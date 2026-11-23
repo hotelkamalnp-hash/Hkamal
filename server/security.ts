@@ -755,7 +755,7 @@ export async function authenticateStaffCredentials(
         const resolved = await resolveStaffUserFromSupabase(
           sbData.user.id,
           sbData.user.email || targetEmail,
-          sbData.user.app_metadata?.role
+          sbData.user.app_metadata?.staff_role || sbData.user.app_metadata?.role
         );
 
         if (!resolved) {
@@ -838,7 +838,7 @@ export async function resolveAuthFromRequest(
           const resolved = await resolveStaffUserFromSupabase(
             data.user.id,
             data.user.email || payload.email,
-            data.user.app_metadata?.role
+            data.user.app_metadata?.staff_role || data.user.app_metadata?.role
           );
           if (resolved) {
             return { user: resolved, payload };
@@ -883,7 +883,7 @@ export async function resolveAuthFromRequest(
         const resolved = await resolveStaffUserFromSupabase(
           data.user.id,
           data.user.email,
-          data.user.app_metadata?.role
+          data.user.app_metadata?.staff_role || data.user.app_metadata?.role
         );
         if (resolved) {
           return { user: resolved };

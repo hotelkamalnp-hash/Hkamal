@@ -11,15 +11,33 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- 2. HELPER FUNCTIONS: RBAC & CLAIMS
 CREATE OR REPLACE FUNCTION public.get_current_staff_role()
 RETURNS TEXT
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
+SET search_path = public
 AS $$
-  SELECT COALESCE(
-    current_setting('request.jwt.claims', true)::jsonb->'app_metadata'->>'staff_role',
-    current_setting('request.jwt.claims', true)::jsonb->'user_metadata'->>'staff_role',
+DECLARE v_role TEXT;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN 'guest';
+  END IF;
+
+  SELECT s.role INTO v_role
+  FROM public.staff_users s
+  WHERE (
+    s.auth_user_id = auth.uid()
+    OR LOWER(s.email) = LOWER(COALESCE(auth.jwt() ->> 'email', ''))
+  )
+    AND COALESCE(s.status, 'active') <> 'inactive'
+  LIMIT 1;
+
+  RETURN COALESCE(
+    NULLIF(v_role, ''),
+    NULLIF(auth.jwt() -> 'app_metadata' ->> 'staff_role', ''),
+    NULLIF(auth.jwt() -> 'app_metadata' ->> 'role', ''),
     'guest'
   );
+END;
 $$;
 
 CREATE OR REPLACE FUNCTION public.has_staff_role(allowed_roles TEXT[])
@@ -124,6 +142,36 @@ CREATE TABLE IF NOT EXISTS public.notification_jobs (
 );
 CREATE INDEX IF NOT EXISTS idx_notification_jobs_due ON public.notification_jobs (status, next_run_at);
 
+CREATE TABLE IF NOT EXISTS public.staff_users (
+  id TEXT PRIMARY KEY,
+  auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  username TEXT UNIQUE,
+  email TEXT NOT NULL UNIQUE,
+  phone TEXT,
+  role TEXT NOT NULL CHECK (role IN ('super_admin', 'admin', 'hotel_manager', 'restaurant_owner', 'receptionist', 'chef', 'waiter', 'housekeeping')),
+  permissions JSONB DEFAULT '[]'::jsonb,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'on-leave', 'inactive')),
+  department TEXT,
+  last_active TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.staff_users
+  ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS username TEXT,
+  ADD COLUMN IF NOT EXISTS phone TEXT,
+  ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active',
+  ADD COLUMN IF NOT EXISTS department TEXT,
+  ADD COLUMN IF NOT EXISTS last_active TIMESTAMPTZ DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_users_username_lower ON public.staff_users (LOWER(username)) WHERE username IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_staff_users_email ON public.staff_users (LOWER(email));
+
 CREATE TABLE IF NOT EXISTS public.staff_accounts (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -205,6 +253,7 @@ CREATE POLICY "Staff can upload hotel media"
 ALTER TABLE public.pms_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pms_kv_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookings_store ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.staff_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staff_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.smtp_credentials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_jobs ENABLE ROW LEVEL SECURITY;
@@ -225,8 +274,8 @@ DROP POLICY IF EXISTS "staff_manage_pms_records" ON public.pms_records;
 CREATE POLICY "staff_manage_pms_records"
   ON public.pms_records FOR ALL
   TO authenticated
-  USING (true)
-  WITH CHECK (true);
+  USING (public.has_staff_role(ARRAY['super_admin', 'admin', 'hotel_manager', 'restaurant_owner', 'receptionist', 'chef', 'waiter', 'housekeeping']))
+  WITH CHECK (public.has_staff_role(ARRAY['super_admin', 'admin', 'hotel_manager', 'restaurant_owner', 'receptionist', 'chef', 'waiter', 'housekeeping']));
 
 -- Public can read theme and public settings from pms_kv_settings
 DROP POLICY IF EXISTS "public_read_pms_kv_settings" ON public.pms_kv_settings;
@@ -234,27 +283,45 @@ CREATE POLICY "public_read_pms_kv_settings"
   ON public.pms_kv_settings FOR SELECT
   USING (key IN ('themeConfig', 'billSettings', 'floors', 'seasonalSettings'));
 
--- Staff full access to pms_kv_settings
+-- Admin/Manager access to pms_kv_settings
 DROP POLICY IF EXISTS "staff_manage_pms_kv_settings" ON public.pms_kv_settings;
 CREATE POLICY "staff_manage_pms_kv_settings"
   ON public.pms_kv_settings FOR ALL
   TO authenticated
-  USING (true)
-  WITH CHECK (true);
+  USING (public.has_staff_role(ARRAY['super_admin', 'admin', 'hotel_manager']))
+  WITH CHECK (public.has_staff_role(ARRAY['super_admin', 'admin', 'hotel_manager']));
 
--- Bookings store: Staff can view and manage
+-- Bookings store: Front desk / Manager / Admin can view and manage
 DROP POLICY IF EXISTS "staff_manage_bookings_store" ON public.bookings_store;
 CREATE POLICY "staff_manage_bookings_store"
   ON public.bookings_store FOR ALL
   TO authenticated
-  USING (true)
-  WITH CHECK (true);
+  USING (public.has_staff_role(ARRAY['super_admin', 'admin', 'hotel_manager', 'receptionist']))
+  WITH CHECK (public.has_staff_role(ARRAY['super_admin', 'admin', 'hotel_manager', 'receptionist']));
 
--- Staff accounts: Only authenticated staff can view
+-- Staff users: self read (by UID or email) + super_admin/admin/hotel_manager manage/read
+DROP POLICY IF EXISTS "staff_users_read_self_or_admin" ON public.staff_users;
+CREATE POLICY "staff_users_read_self_or_admin"
+  ON public.staff_users FOR SELECT
+  TO authenticated
+  USING (
+    auth.uid() = auth_user_id
+    OR LOWER(email) = LOWER(COALESCE(auth.jwt() ->> 'email', ''))
+    OR public.has_staff_role(ARRAY['super_admin', 'admin', 'hotel_manager'])
+  );
+
+DROP POLICY IF EXISTS "staff_users_superadmin_write" ON public.staff_users;
+CREATE POLICY "staff_users_superadmin_write"
+  ON public.staff_users FOR ALL
+  TO authenticated
+  USING (public.has_staff_role(ARRAY['super_admin']))
+  WITH CHECK (public.has_staff_role(ARRAY['super_admin']));
+
+-- Staff accounts: Only Super Admin & Admin can view
 DROP POLICY IF EXISTS "staff_view_staff_accounts" ON public.staff_accounts;
 CREATE POLICY "staff_view_staff_accounts"
   ON public.staff_accounts FOR SELECT
   TO authenticated
-  USING (true);
+  USING (public.has_staff_role(ARRAY['super_admin', 'admin']));
 
 -- Service role has full bypass on all tables automatically.

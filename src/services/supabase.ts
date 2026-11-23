@@ -122,6 +122,232 @@ export const testSupabaseConnection = async (
   }
 };
 
+export type StaticStaffRole =
+  | 'super_admin'
+  | 'admin'
+  | 'hotel_manager'
+  | 'restaurant_owner'
+  | 'receptionist'
+  | 'chef'
+  | 'waiter'
+  | 'housekeeping';
+
+const STATIC_ROLE_PERMISSIONS: Record<StaticStaffRole, string[]> = {
+  super_admin: [
+    'all_access',
+    'manage_staff',
+    'edit_cms',
+    'modify_rates',
+    'manage_bookings',
+    'manage_rooms',
+    'view_finances',
+    'view_audit_logs',
+    'supabase_sync',
+    'manage_smtp',
+  ],
+  admin: [
+    'edit_cms',
+    'modify_rates',
+    'manage_bookings',
+    'manage_rooms',
+    'view_finances',
+    'manage_coupons',
+    'process_checkin',
+    'manage_smtp',
+  ],
+  hotel_manager: [
+    'manage_bookings',
+    'manage_rooms',
+    'modify_rates',
+    'process_checkin',
+    'view_finances',
+    'view_audit_logs',
+  ],
+  restaurant_owner: [
+    'manage_restaurant_pos',
+    'view_dining_revenue',
+    'manage_menu_specials',
+    'view_kot',
+    'manage_inventory',
+  ],
+  receptionist: [
+    'process_checkin',
+    'manage_bookings',
+    'view_availability',
+    'assign_rooms',
+    'print_bills',
+  ],
+  chef: ['view_dining_orders', 'manage_menu_specials', 'view_breakfast_counts'],
+  waiter: ['view_dining_orders', 'room_service_dispatch', 'view_guest_preferences'],
+  housekeeping: ['manage_rooms_cleanliness', 'view_availability'],
+};
+
+const VALID_STATIC_ROLES = new Set<string>(Object.keys(STATIC_ROLE_PERMISSIONS));
+
+function isValidRoleString(role: unknown): role is StaticStaffRole {
+  return typeof role === 'string' && VALID_STATIC_ROLES.has(role);
+}
+
+export async function resolveSupabaseStaffSession(
+  client: SupabaseClient,
+  authUser: {
+    id: string;
+    email?: string;
+    app_metadata?: Record<string, unknown>;
+    user_metadata?: Record<string, unknown>;
+  }
+): Promise<{
+  ok: boolean;
+  message?: string;
+  user?: {
+    id: string;
+    name: string;
+    username: string;
+    email: string;
+    phone: string;
+    role: StaticStaffRole;
+    permissions: string[];
+    status: 'active' | 'on-leave' | 'inactive';
+    department: string;
+    lastActive: string;
+    authSource: 'supabase';
+  };
+}> {
+  const email = (authUser.email || '').trim().toLowerCase();
+  let staffRow: Record<string, unknown> | null = null;
+
+  try {
+    const queryFilter = email
+      ? `auth_user_id.eq.${authUser.id},email.ilike.${email}`
+      : `auth_user_id.eq.${authUser.id}`;
+    const { data, error } = await client
+      .from('staff_users')
+      .select('id, auth_user_id, name, username, email, phone, role, permissions, status, department, last_active')
+      .or(queryFilter)
+      .limit(1)
+      .maybeSingle();
+
+    if (!error && data) {
+      staffRow = data as Record<string, unknown>;
+    }
+  } catch {
+    // Table may not exist yet or RLS restricted; fall back to signed app_metadata below
+  }
+
+  if (staffRow && staffRow.status === 'inactive') {
+    await client.auth.signOut().catch(() => {});
+    return {
+      ok: false,
+      message: 'This staff account is marked inactive. Contact Super Admin.',
+    };
+  }
+
+  // Only trust staff_users DB record or server-signed app_metadata (never client-editable user_metadata)
+  const dbRole = staffRow?.role;
+  const appMetaRole = authUser.app_metadata?.staff_role || authUser.app_metadata?.role;
+  const resolvedRole = isValidRoleString(dbRole)
+    ? dbRole
+    : isValidRoleString(appMetaRole)
+    ? appMetaRole
+    : null;
+
+  if (!resolvedRole) {
+    return {
+      ok: false,
+      message: `Signed into Supabase Auth (${email || authUser.id}), but no active staff role was found in public.staff_users or app_metadata. Run the SQL link script in Supabase SQL Editor to assign your role.`,
+    };
+  }
+
+  const rowPermissions = Array.isArray(staffRow?.permissions)
+    ? (staffRow?.permissions as unknown[]).filter((p): p is string => typeof p === 'string')
+    : [];
+  const permissions = rowPermissions.length > 0 ? rowPermissions : [...STATIC_ROLE_PERMISSIONS[resolvedRole]];
+  const derivedName =
+    typeof staffRow?.name === 'string' && staffRow.name.trim()
+      ? staffRow.name.trim()
+      : typeof authUser.user_metadata?.name === 'string' && authUser.user_metadata.name.trim()
+      ? String(authUser.user_metadata.name).trim()
+      : email.split('@')[0] || 'Staff Member';
+
+  const rowStatus = staffRow?.status === 'on-leave' ? 'on-leave' : 'active';
+
+  return {
+    ok: true,
+    user: {
+      id: typeof staffRow?.id === 'string' ? staffRow.id : authUser.id,
+      name: derivedName,
+      username:
+        typeof staffRow?.username === 'string' && staffRow.username.trim()
+          ? staffRow.username.trim()
+          : email.split('@')[0] || 'staff',
+      email: typeof staffRow?.email === 'string' && staffRow.email.trim() ? staffRow.email : email,
+      phone: typeof staffRow?.phone === 'string' ? staffRow.phone : '',
+      role: resolvedRole,
+      permissions,
+      status: rowStatus,
+      department: typeof staffRow?.department === 'string' && staffRow.department ? staffRow.department : 'Operations',
+      lastActive: new Date().toISOString(),
+      authSource: 'supabase',
+    },
+  };
+}
+
+export async function hydrateCatalogFromSupabaseDirect(
+  client: SupabaseClient,
+  includeStaffRecords: boolean
+): Promise<{
+  kvSettings: Record<string, unknown>;
+  collections: Record<string, unknown[]>;
+  bookings: unknown[];
+}> {
+  const kvSettings: Record<string, unknown> = {};
+  const collections: Record<string, unknown[]> = {};
+  let bookings: unknown[] = [];
+
+  try {
+    const { data: kvRows } = await client.from('pms_kv_settings').select('key, value');
+    if (Array.isArray(kvRows)) {
+      for (const row of kvRows) {
+        if (row && typeof row.key === 'string') {
+          kvSettings[row.key] = row.value;
+        }
+      }
+    }
+  } catch {
+    // Ignore when table not yet provisioned
+  }
+
+  try {
+    const { data: recRows } = await client.from('pms_records').select('collection, data_json');
+    if (Array.isArray(recRows)) {
+      for (const row of recRows) {
+        if (row && typeof row.collection === 'string' && row.data_json) {
+          if (!collections[row.collection]) collections[row.collection] = [];
+          collections[row.collection].push(row.data_json);
+        }
+      }
+    }
+  } catch {
+    // Ignore when table not yet provisioned
+  }
+
+  if (includeStaffRecords) {
+    try {
+      const { data: bookingRows } = await client
+        .from('bookings_store')
+        .select('data_json')
+        .order('created_at', { ascending: false });
+      if (Array.isArray(bookingRows)) {
+        bookings = bookingRows.map((r) => r.data_json).filter(Boolean);
+      }
+    } catch {
+      // Ignore when table not yet provisioned
+    }
+  }
+
+  return { kvSettings, collections, bookings };
+}
+
 /**
  * Complete PostgreSQL SQL Schema for Supabase
  */

@@ -74,7 +74,12 @@ import {
   VipGuestProfile,
 } from '../types/hotel';
 import { convertPrice, formatCurrency } from '../utils/theme';
-import { getSupabaseClient, testSupabaseConnection } from '../services/supabase';
+import {
+  getSupabaseClient,
+  hydrateCatalogFromSupabaseDirect,
+  resolveSupabaseStaffSession,
+  testSupabaseConnection,
+} from '../services/supabase';
 import { queryClient } from '../services/queryClient';
 import { performanceTracker } from '../services/performanceTracker';
 import {
@@ -965,6 +970,7 @@ interface HotelContextType {
   deleteStaff: (staffId: string) => Promise<void> | void;
 
   // Authentication & Staff Session
+  backendConnected: boolean;
   isStaffLoggedIn: boolean;
   isLoginModalOpen: boolean;
   loginModalTargetRole?: StaffRole;
@@ -1505,9 +1511,12 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [backendConnected, setBackendConnected] = useState<boolean>(false);
   const backendAvailableRef = useRef<boolean>(false);
 
+  const apiBaseUrl = ((import.meta.env.VITE_API_BASE_URL as string) || '').trim().replace(/\/+$/, '');
+  const apiUrl = (endpoint: string) => (apiBaseUrl ? `${apiBaseUrl}${endpoint}` : endpoint);
+
   const persistCollectionItem = (collection: string, id: string, payload: unknown) => {
     if (!backendAvailableRef.current || !id) return;
-    fetch(`/api/pms/collection/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`, {
+    fetch(apiUrl(`/api/pms/collection/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -1517,7 +1526,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const removeCollectionItem = (collection: string, id: string) => {
     if (!backendAvailableRef.current || !id) return;
-    fetch(`/api/pms/collection/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`, {
+    fetch(apiUrl(`/api/pms/collection/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`), {
       method: 'DELETE',
       credentials: 'include',
     }).catch(() => {});
@@ -1525,7 +1534,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const persistSetting = (settingKey: 'theme' | 'bill' | 'floors', payload: unknown) => {
     if (!backendAvailableRef.current) return;
-    fetch(`/api/pms/settings/${settingKey}`, {
+    fetch(apiUrl(`/api/pms/settings/${settingKey}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -1533,9 +1542,75 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }).catch(() => {});
   };
 
+  const applySupabaseDirectState = async (includeStaffRecords: boolean) => {
+    const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+    if (!client) return;
+    const snap = await hydrateCatalogFromSupabaseDirect(client, includeStaffRecords);
+    const kv = snap.kvSettings;
+    if (kv.themeConfig && typeof kv.themeConfig === 'object') {
+      setThemeConfig((prev) => ({
+        ...prev,
+        ...(kv.themeConfig as Partial<HotelThemeConfig>),
+        supabaseUrl: prev.supabaseUrl,
+        supabaseAnonKey: prev.supabaseAnonKey,
+        supabaseConnected: true,
+      }));
+    }
+    if (kv.billSettings && typeof kv.billSettings === 'object') {
+      setBillSettings((prev) => ({ ...prev, ...(kv.billSettings as Partial<BillSettings>) }));
+    }
+    if (Array.isArray(kv.floors)) setFloors(kv.floors as string[]);
+
+    const cols = snap.collections;
+    if (Array.isArray(cols.rooms) && cols.rooms.length > 0) setRooms(cols.rooms as Room[]);
+    if (Array.isArray(cols.amenities) && cols.amenities.length > 0) setAmenities(cols.amenities as AmenityItem[]);
+    if (Array.isArray(cols.reviews) && cols.reviews.length > 0) setReviews(cols.reviews as GuestReview[]);
+    if (Array.isArray(cols.faqs) && cols.faqs.length > 0) setFaqs(cols.faqs as FaqItem[]);
+    if (Array.isArray(cols.coupons)) setCoupons(cols.coupons as HotelCoupon[]);
+    if (Array.isArray(cols.menuItems) && cols.menuItems.length > 0) {
+      setMenuItems(
+        (cols.menuItems as MenuItem[]).map((m) => ({
+          ...m,
+          category: normalizeLegacyMenuCategory(String(m.category)),
+        }))
+      );
+    }
+    if (Array.isArray(cols.tables) && cols.tables.length > 0) setRestaurantTables(cols.tables as RestaurantTable[]);
+
+    if (includeStaffRecords) {
+      if (Array.isArray(cols.roomUnits) && cols.roomUnits.length > 0) setRoomUnits(cols.roomUnits as RoomOperationalUnit[]);
+      if (Array.isArray(snap.bookings)) setBookings(snap.bookings as Booking[]);
+      if (Array.isArray(cols.staff) && cols.staff.length > 0) setStaff(cols.staff as StaffUser[]);
+      if (Array.isArray(cols.invoices)) setInvoices(cols.invoices as MasterInvoice[]);
+      if (Array.isArray(cols.restaurantOrders)) setRestaurantOrders(cols.restaurantOrders as RestaurantOrder[]);
+      if (Array.isArray(cols.stockItems)) setStockItems(cols.stockItems as StockItem[]);
+      if (Array.isArray(cols.floorSupplies)) setFloorSupplies(cols.floorSupplies as FloorSupplyItem[]);
+      if (Array.isArray(cols.lostAndFound)) setLostAndFound(cols.lostAndFound as LostAndFoundItem[]);
+      if (Array.isArray(cols.shiftHandovers)) setShiftHandovers(cols.shiftHandovers as ShiftHandoverLog[]);
+      if (Array.isArray(cols.nightAudits)) setNightAudits(cols.nightAudits as NightAuditRecord[]);
+      if (Array.isArray(cols.staffShifts)) setStaffShifts(cols.staffShifts as StaffShiftAssignment[]);
+      if (Array.isArray(cols.staffAvailability)) setStaffAvailability(cols.staffAvailability as StaffAvailabilityEntry[]);
+      if (Array.isArray(cols.surveys)) setSurveys(cols.surveys as PostCheckoutSurvey[]);
+      if (Array.isArray(cols.digitalKeycards)) setDigitalKeycards(cols.digitalKeycards as DigitalKeycard[]);
+      if (Array.isArray(cols.doorUnlockLogs)) setDoorUnlockLogs(cols.doorUnlockLogs as DoorUnlockEvent[]);
+      if (Array.isArray(cols.maintenanceTickets)) setMaintenanceTickets(cols.maintenanceTickets as MaintenanceTicket[]);
+      if (Array.isArray(cols.rewardsMembers)) setLoyaltyMembers(cols.rewardsMembers as KamalRewardsMember[]);
+      if (Array.isArray(cols.wakeUpCalls)) setWakeUpCalls(cols.wakeUpCalls as WakeUpCallRequest[]);
+      if (Array.isArray(cols.deepCleaningSchedules)) setDeepCleaningSchedules(cols.deepCleaningSchedules as DeepCleaningSchedule[]);
+      if (Array.isArray(cols.expressTurnovers)) setExpressTurnovers(cols.expressTurnovers as ExpressTurnoverJob[]);
+      if (Array.isArray(cols.roomServiceRequests)) setRoomServiceRequests(cols.roomServiceRequests as RoomServiceRequest[]);
+      if (Array.isArray(cols.vipProfiles)) setVipGuestProfiles(cols.vipProfiles as VipGuestProfile[]);
+      if (Array.isArray(cols.guestSessions)) setGuestSessions(cols.guestSessions as GuestRoomSession[]);
+      if (Array.isArray(cols.guestChatMessages)) setGuestChatMessages(cols.guestChatMessages as CSRChatMessage[]);
+      if (Array.isArray(cols.operationalAlerts)) setOperationalAlerts(cols.operationalAlerts as OperationalAlert[]);
+      if (Array.isArray(cols.notifications)) setNotifications(cols.notifications as NotificationRecord[]);
+      if (Array.isArray(cols.auditLogs)) setAuditLogs(cols.auditLogs as AuditLog[]);
+    }
+  };
+
   const refreshBootstrapFromServer = async () => {
     try {
-      const res = await fetch('/api/pms/bootstrap', { credentials: 'include' });
+      const res = await fetch(apiUrl('/api/pms/bootstrap'), { credentials: 'include' });
       const contentType = res.headers.get('content-type') || '';
       if (!res.ok || !contentType.includes('application/json')) return;
       const data = await res.json().catch(() => null);
@@ -1614,8 +1689,39 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const verifySession = async () => {
       await refreshBootstrapFromServer();
+
+      if (!backendAvailableRef.current) {
+        // Static host mode (e.g. GitHub Pages): restore session & catalog via Supabase directly
+        const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+        if (client) {
+          try {
+            const { data: sessionData } = await client.auth.getSession();
+            if (!active) return;
+            if (sessionData?.session?.user) {
+              const resolved = await resolveSupabaseStaffSession(client, sessionData.session.user);
+              if (!active) return;
+              if (resolved.ok && resolved.user) {
+                setActiveUser(resolved.user);
+                setActiveRole(resolved.user.role);
+                setIsStaffLoggedIn(true);
+                await applySupabaseDirectState(true);
+                return;
+              }
+            }
+            await applySupabaseDirectState(false);
+          } catch {
+            // Fall through cleanly to guest view
+          }
+        }
+        if (!active) return;
+        setActiveRole('guest');
+        setActiveUser(null);
+        setIsStaffLoggedIn(false);
+        return;
+      }
+
       try {
-        const res = await fetch('/api/auth/session', { credentials: 'include' });
+        const res = await fetch(apiUrl('/api/auth/session'), { credentials: 'include' });
         if (!active) return;
         if (!res.ok) {
           setActiveRole('guest');
@@ -3323,12 +3429,78 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsLoginModalOpen(false);
   };
 
+  const loginViaSupabaseDirect = async (
+    usernameOrEmail: string,
+    password: string
+  ): Promise<{ success: boolean; message: string; user?: StaffUser }> => {
+    const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+    if (!client) {
+      return {
+        success: false,
+        message:
+          'Static hosting detected (no Node.js /api backend) and Supabase browser credentials (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) are not configured in this build. Add them to GitHub Repository Secrets and redeploy, or access the full Node.js server (AI Studio / cPanel).',
+      };
+    }
+
+    const trimmedIdentifier = usernameOrEmail.trim();
+    if (!trimmedIdentifier.includes('@')) {
+      return {
+        success: false,
+        message:
+          'Static hosting uses direct Supabase Cloud Auth. Please enter your official staff email address (for example: hotelkamal.np@gmail.com) instead of a username.',
+      };
+    }
+
+    const { data: authData, error: authError } = await client.auth.signInWithPassword({
+      email: trimmedIdentifier,
+      password,
+    });
+
+    if (authError || !authData?.user) {
+      return {
+        success: false,
+        message: authError?.message || 'Supabase authentication failed. Check email and password.',
+      };
+    }
+
+    const resolved = await resolveSupabaseStaffSession(client, authData.user);
+    if (!resolved.ok || !resolved.user) {
+      return {
+        success: false,
+        message: resolved.message || 'No active staff role is linked to this Supabase user.',
+      };
+    }
+
+    const authenticatedUser = resolved.user as StaffUser;
+    setActiveUser(authenticatedUser);
+    setActiveRole(authenticatedUser.role);
+    setIsStaffLoggedIn(true);
+    setIsLoginModalOpen(false);
+    localStorage.removeItem('kamal_hotel_session');
+
+    await applySupabaseDirectState(true);
+
+    addAuditLog(
+      'Staff Authentication Success',
+      'security',
+      `${authenticatedUser.name} (${authenticatedUser.role}) authenticated directly via Supabase Cloud Auth.`
+    );
+
+    showToast(
+      'Signed In via Supabase Auth',
+      `Namaste ${authenticatedUser.name}! Active role: ${authenticatedUser.role.replace('_', ' ').toUpperCase()}`,
+      'success'
+    );
+
+    return { success: true, message: 'Login successful!', user: authenticatedUser };
+  };
+
   const loginStaff = async (
     usernameOrEmail: string,
     password: string
   ): Promise<{ success: boolean; message: string; user?: StaffUser }> => {
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -3337,6 +3509,15 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           password,
         }),
       });
+
+      const contentType = res.headers.get('content-type') || '';
+      const isStaticHost =
+        res.status === 404 || res.status === 405 || !contentType.includes('application/json');
+
+      if (isStaticHost) {
+        return await loginViaSupabaseDirect(usernameOrEmail, password);
+      }
+
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok || !data?.user) {
         return {
@@ -3350,9 +3531,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Sync Supabase browser session alongside server cookie when Supabase Auth is active
       if (
         authenticatedUser.authSource === 'supabase' &&
-        themeConfig.supabaseConnected &&
-        themeConfig.supabaseUrl &&
-        themeConfig.supabaseAnonKey
+        (themeConfig.supabaseConnected || import.meta.env.VITE_SUPABASE_URL)
       ) {
         const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
         if (client) {
@@ -3388,6 +3567,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       return { success: true, message: 'Login successful!', user: authenticatedUser };
     } catch {
+      if (!backendAvailableRef.current) {
+        return await loginViaSupabaseDirect(usernameOrEmail, password);
+      }
       return {
         success: false,
         message: 'Unable to reach authentication server. Please verify the backend service is running.',
@@ -3398,7 +3580,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const logoutStaff = async () => {
     const prevName = activeUser?.name || 'Staff User';
     try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      await fetch(apiUrl('/api/auth/logout'), { method: 'POST', credentials: 'include' });
     } catch {
       // Proceed cleanly with local state clearance
     }
@@ -3408,11 +3590,12 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.removeItem('kamal_hotel_session');
     await refreshBootstrapFromServer();
 
-    if (themeConfig.supabaseConnected && themeConfig.supabaseUrl && themeConfig.supabaseAnonKey) {
-      const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
-      if (client) {
-        client.auth.signOut().catch(() => {});
-      }
+    const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+    if (client) {
+      await client.auth.signOut().catch(() => {});
+    }
+    if (!backendAvailableRef.current) {
+      await applySupabaseDirectState(false);
     }
 
     addAuditLog('Staff Logged Out', 'security', `${prevName} signed out of the operations console.`);
@@ -6844,6 +7027,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toasts,
         selectedRoomForBooking,
         isBookingModalOpen,
+        backendConnected,
         isStaffLoggedIn,
         isLoginModalOpen,
         loginModalTargetRole,

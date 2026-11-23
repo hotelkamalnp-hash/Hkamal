@@ -32,8 +32,14 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({ onSuccess }) =
     loginStaff, 
     loginModalTargetRole,
     themeConfig,
+    backendConnected,
     staff 
   } = useHotel();
+
+  const hasSupabaseClientConfig = Boolean(
+    (themeConfig.supabaseUrl || import.meta.env.VITE_SUPABASE_URL) &&
+      (themeConfig.supabaseAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY)
+  );
 
   const themeClasses = getThemeClasses(themeConfig.palette);
 
@@ -130,16 +136,28 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({ onSuccess }) =
           <ModalDismissButton onClose={closeLoginModal} ariaLabel="Close staff sign-in dialog" />
         </div>
 
-        {/* Supabase status strip */}
-        {themeConfig.supabaseConnected && (
+        {/* Connection & Auth Mode status strip */}
+        {backendConnected && themeConfig.supabaseConnected ? (
           <div className="px-5 py-2 bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between shrink-0">
             <span className="flex items-center gap-1.5 font-medium">
               <Database className="w-3.5 h-3.5" />
-              <span>Supabase Cloud Auth & DB Active</span>
+              <span>Supabase Cloud Auth &amp; Server DB Active</span>
             </span>
-            <span className="font-mono text-[10px]">Cloud Synced</span>
+            <span className="font-mono text-[10px]">Full-Stack Mode</span>
           </div>
-        )}
+        ) : !backendConnected && hasSupabaseClientConfig ? (
+          <div className="px-5 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-300 text-[11px] flex items-center justify-between shrink-0">
+            <span className="flex items-center gap-1.5 font-medium">
+              <Database className="w-3.5 h-3.5 shrink-0" />
+              <span>Static Host Mode — Sign in with Supabase Staff Email</span>
+            </span>
+            <span className="font-mono text-[10px]">Direct Auth</span>
+          </div>
+        ) : !backendConnected && !hasSupabaseClientConfig ? (
+          <div className="px-5 py-2 bg-rose-50 dark:bg-rose-950/30 border-b border-rose-200 dark:border-rose-900/40 text-rose-800 dark:text-rose-300 text-[11px] shrink-0">
+            Static host detected with no Node.js backend or VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY in build. Configure GitHub Secrets &amp; redeploy, or deploy to cPanel Node.js.
+          </div>
+        ) : null}
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs overflow-y-auto flex-1">
