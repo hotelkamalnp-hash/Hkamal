@@ -127,7 +127,10 @@ export const testSupabaseConnection = async (
  */
 export const SUPABASE_SQL_SCHEMA = `-- ==============================================================================
 -- KAMAL HOTEL (KAMALPOKHARI, KATHMANDU) - SUPABASE POSTGRESQL SCHEMA
--- Paste this script into your Supabase Dashboard -> SQL Editor and click 'Run'.
+-- NOTE: For complete production PMS/POS deployment, also execute:
+--   supabase/migrations/202611160001_p0_security_rls.sql
+--   supabase/migrations/202611160002_full_production_schema.sql
+-- Paste into your Supabase Dashboard -> SQL Editor and click 'Run'.
 -- ==============================================================================
 
 -- 1. Create Room Categories & Inventory Table
@@ -231,18 +234,68 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
   ip_address TEXT
 );
 
--- 7. Create Staff Users & RBAC Permissions Table
+-- 7. Create Staff Users & RBAC Permissions Table (Linked to Supabase Auth, NO plaintext passwords)
 CREATE TABLE IF NOT EXISTS public.staff_users (
   id TEXT PRIMARY KEY,
+  auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
+  username TEXT UNIQUE,
   email TEXT NOT NULL UNIQUE,
   phone TEXT,
-  role TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('super_admin','admin','hotel_manager','restaurant_owner','receptionist','chef','waiter','housekeeping')),
   permissions JSONB DEFAULT '[]'::jsonb,
-  status TEXT DEFAULT 'active',
+  status TEXT DEFAULT 'active' CHECK (status IN ('active','on-leave','inactive')),
   department TEXT,
   last_active TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 8. Private Admin-Only SMTP Settings & OTP Verifications
+CREATE TABLE IF NOT EXISTS public.smtp_settings (
+  id TEXT PRIMARY KEY DEFAULT 'default_smtp',
+  provider_preset TEXT DEFAULT 'gmail',
+  smtp_host TEXT NOT NULL DEFAULT '',
+  smtp_port INT NOT NULL DEFAULT 587,
+  smtp_user TEXT NOT NULL DEFAULT '',
+  smtp_password_encrypted TEXT NOT NULL DEFAULT '',
+  sender_email TEXT NOT NULL DEFAULT '',
+  sender_name TEXT NOT NULL DEFAULT 'Kamal Hotel Reservations',
+  reply_to_email TEXT,
+  notification_email TEXT,
+  encryption TEXT NOT NULL DEFAULT 'tls',
+  send_booking_confirmation_email BOOLEAN NOT NULL DEFAULT true,
+  require_real_email_otp BOOLEAN NOT NULL DEFAULT false,
+  otp_expiry_minutes INT NOT NULL DEFAULT 10,
+  email_subject_prefix TEXT DEFAULT '[Kamal Hotel]',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.email_otp_verifications (
+  email TEXT PRIMARY KEY,
+  otp_hash TEXT NOT NULL,
+  guest_name TEXT,
+  attempts INT NOT NULL DEFAULT 0,
+  verified BOOLEAN NOT NULL DEFAULT false,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Security Helper Functions (SECURITY DEFINER with locked search_path)
+CREATE OR REPLACE FUNCTION public.current_staff_role()
+RETURNS TEXT LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_role TEXT;
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN NULL; END IF;
+  SELECT s.role INTO v_role FROM public.staff_users s
+   WHERE (s.auth_user_id = auth.uid() OR LOWER(s.email) = LOWER(COALESCE(auth.jwt() ->> 'email', '')))
+     AND s.status = 'active' LIMIT 1;
+  RETURN COALESCE(v_role, NULLIF(auth.jwt() -> 'app_metadata' ->> 'role', ''));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.has_staff_role(allowed_roles TEXT[])
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT COALESCE(public.current_staff_role() = ANY(allowed_roles), false);
+$$;
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
@@ -252,21 +305,36 @@ ALTER TABLE public.amenities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staff_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.smtp_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.email_otp_verifications ENABLE ROW LEVEL SECURITY;
 
--- Public read policies for catalog and config
-CREATE POLICY "Public can view rooms" ON public.rooms FOR SELECT USING (true);
-CREATE POLICY "Public can view amenities" ON public.amenities FOR SELECT USING (true);
-CREATE POLICY "Public can view hotel config" ON public.hotel_config FOR SELECT USING (true);
-CREATE POLICY "Public can view reviews" ON public.reviews FOR SELECT USING (is_approved = true);
+-- Strict Role-Based Policies
+CREATE POLICY "rooms_public_select" ON public.rooms FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "rooms_staff_insert" ON public.rooms FOR INSERT TO authenticated WITH CHECK (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager']));
+CREATE POLICY "rooms_staff_update" ON public.rooms FOR UPDATE TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager','receptionist','housekeeping'])) WITH CHECK (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager','receptionist','housekeeping']));
+CREATE POLICY "rooms_admin_delete" ON public.rooms FOR DELETE TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin']));
 
--- Public can insert new bookings
-CREATE POLICY "Public can insert bookings" ON public.bookings FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public can view own bookings by code" ON public.bookings FOR SELECT USING (true);
+CREATE POLICY "amenities_public_select" ON public.amenities FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "amenities_admin_manage" ON public.amenities FOR ALL TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager'])) WITH CHECK (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager']));
 
--- Authenticated staff policies (Full CRUD)
-CREATE POLICY "Staff can manage all rooms" ON public.rooms FOR ALL USING (true);
-CREATE POLICY "Staff can manage all bookings" ON public.bookings FOR ALL USING (true);
-CREATE POLICY "Staff can update config" ON public.hotel_config FOR ALL USING (true);
-CREATE POLICY "Staff can manage audit logs" ON public.audit_logs FOR ALL USING (true);
-CREATE POLICY "Staff can manage reviews" ON public.reviews FOR ALL USING (true);
+CREATE POLICY "hotel_config_public_select" ON public.hotel_config FOR SELECT TO anon, authenticated USING (id = 'main_config');
+CREATE POLICY "hotel_config_admin_write" ON public.hotel_config FOR ALL TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin'])) WITH CHECK (public.has_staff_role(ARRAY['super_admin','admin']));
+
+CREATE POLICY "reviews_public_approved_select" ON public.reviews FOR SELECT TO anon, authenticated USING (is_approved = true OR public.has_staff_role(ARRAY['super_admin','admin','hotel_manager','receptionist']));
+CREATE POLICY "reviews_admin_manage" ON public.reviews FOR ALL TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager'])) WITH CHECK (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager']));
+
+CREATE POLICY "bookings_staff_select" ON public.bookings FOR SELECT TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager','receptionist','restaurant_owner','chef']));
+CREATE POLICY "bookings_public_controlled_insert" ON public.bookings FOR INSERT TO anon, authenticated WITH CHECK (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager','receptionist']) OR (payment_status IN ('pending') AND booking_status IN ('confirmed')));
+CREATE POLICY "bookings_staff_update" ON public.bookings FOR UPDATE TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager','receptionist'])) WITH CHECK (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager','receptionist']));
+CREATE POLICY "bookings_admin_delete" ON public.bookings FOR DELETE TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin']));
+
+CREATE POLICY "staff_users_select_scoped" ON public.staff_users FOR SELECT TO authenticated USING (auth_user_id = auth.uid() OR LOWER(email) = LOWER(COALESCE(auth.jwt() ->> 'email', '')) OR public.has_staff_role(ARRAY['super_admin','admin','hotel_manager']));
+CREATE POLICY "staff_users_super_admin_insert" ON public.staff_users FOR INSERT TO authenticated WITH CHECK (public.has_staff_role(ARRAY['super_admin']));
+CREATE POLICY "staff_users_super_admin_update" ON public.staff_users FOR UPDATE TO authenticated USING (public.has_staff_role(ARRAY['super_admin'])) WITH CHECK (public.has_staff_role(ARRAY['super_admin']));
+CREATE POLICY "staff_users_super_admin_delete" ON public.staff_users FOR DELETE TO authenticated USING (public.has_staff_role(ARRAY['super_admin']) AND role <> 'super_admin');
+
+CREATE POLICY "audit_logs_admin_select" ON public.audit_logs FOR SELECT TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin','hotel_manager']));
+CREATE POLICY "audit_logs_staff_insert" ON public.audit_logs FOR INSERT TO authenticated WITH CHECK (public.current_staff_role() IS NOT NULL);
+
+CREATE POLICY "smtp_settings_admin_only" ON public.smtp_settings FOR ALL TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin'])) WITH CHECK (public.has_staff_role(ARRAY['super_admin','admin']));
 `;

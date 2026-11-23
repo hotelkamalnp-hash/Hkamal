@@ -22,8 +22,8 @@ const REWARD_PERKS = [
   },
   {
     id: 'perk-thali',
-    title: 'Traditional Newari Khaja / Thali Experience for Two',
-    detail: 'Curated signature platter prepared by our Rooftop Head Chef.',
+    title: 'Traditional Nepali Khaja / Thali Experience for Two',
+    detail: 'Curated signature platter prepared by our Ground-Floor Head Chef.',
     costPoints: 1200,
   },
   {
@@ -109,7 +109,7 @@ export const KamalRewardsPortalView: React.FC<KamalRewardsPortalViewProps> = ({ 
             <div className="text-[11px] uppercase font-mono text-stone-500 dark:text-stone-400">
               Available Points Balance
             </div>
-            <div className="text-4xl font-serif font-bold text-amber-800 dark:text-amber-300 tabular-nums mt-0.5">
+            <div className="text-4xl font-sans font-semibold tracking-tight text-amber-800 dark:text-amber-300 tabular-nums mt-0.5">
               {pointsBalance.toLocaleString()} <span className="text-base font-sans font-semibold">pts</span>
             </div>
             <div className="text-[11px] text-stone-500 dark:text-stone-400 tabular-nums mt-0.5">

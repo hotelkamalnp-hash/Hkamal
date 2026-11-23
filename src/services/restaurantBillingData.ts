@@ -1,4 +1,4 @@
-import { 
+import type { 
   MenuItem, 
   StockItem, 
   BillSettings, 
@@ -11,7 +11,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   {
     id: 'menu-1',
     name: 'Himalayan Sherpa Khana Set (Thali)',
-    category: 'Nepali Heritage & Newari',
+    category: 'Nepali Heritage & Cuisine',
     description: 'Organic Marsi red rice, local black lentil (kaalo daal), rayo ko saag, gundruk sandeko, mountain mutton curry, spicy tomato timur achar, and fresh curd.',
     priceUSD: 14.5,
     imageUrl: './assets/images/amenity_rooftop_dining_1793848735329.jpg',
@@ -24,7 +24,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   {
     id: 'menu-2',
     name: 'Steamed Kathmandu Jhol Momo (10 pcs)',
-    category: 'Nepali Heritage & Newari',
+    category: 'Nepali Heritage & Cuisine',
     description: 'Handcrafted buff/chicken momos immersed in a savory hot sesame-soybean-timur broth topped with fresh coriander.',
     priceUSD: 7.5,
     isVegetarian: false,
@@ -36,7 +36,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   {
     id: 'menu-3',
     name: 'Organic Paneer & Vegetable Jhol Momo',
-    category: 'Nepali Heritage & Newari',
+    category: 'Nepali Heritage & Cuisine',
     description: 'Cottage cheese, fresh mountain greens, and shiitake mushroom dumplings in roasted tomato broth.',
     priceUSD: 6.5,
     isVegetarian: true,
@@ -47,8 +47,8 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'menu-4',
-    name: 'Newari Samay Baji Heritage Platter',
-    category: 'Nepali Heritage & Newari',
+    name: 'Nepali Samay Baji Heritage Platter',
+    category: 'Nepali Heritage & Cuisine',
     description: 'Traditional celebration platter: Baji (beaten rice), Chhwela (marinated spicy buffalo/chicken), Bhatmas sandeko, Wo (lentil pancake), and Aloo Tama soup.',
     priceUSD: 12.0,
     isVegetarian: false,
@@ -59,7 +59,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   },
   {
     id: 'menu-5',
-    name: 'Rooftop Mountain Herb Roast Chicken',
+    name: 'Ground-Floor Garden Herb Roast Chicken',
     category: 'Main Course',
     description: 'Half spring chicken roasted with Himalayan rosemary, wild thyme, garlic mash, butter-glazed mountain vegetables, and pan jus.',
     priceUSD: 16.0,
@@ -84,7 +84,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   {
     id: 'menu-7',
     name: 'Everest Highland Arabica Coffee & Artisan Bakery',
-    category: 'Rooftop Bar & Beverages',
+    category: 'Ground-Floor Bar & Beverages',
     description: 'Single-origin shade-grown coffee from Nuwakot valley, brewed fresh via V60 or espresso, served with warm cinnamon walnut roll.',
     priceUSD: 4.5,
     isVegetarian: true,
@@ -96,7 +96,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   {
     id: 'menu-8',
     name: 'Kamalpokhari Golden Sunset Mocktail',
-    category: 'Rooftop Bar & Beverages',
+    category: 'Ground-Floor Bar & Beverages',
     description: 'Pressed litchi, fresh passion fruit, sparkling Himalayan tonic, wild mint, and local sea buckthorn syrup.',
     priceUSD: 5.5,
     isVegetarian: true,
@@ -108,7 +108,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   {
     id: 'menu-9',
     name: 'Authentic Masala Chia Pot with Khajuri',
-    category: 'Rooftop Bar & Beverages',
+    category: 'Ground-Floor Bar & Beverages',
     description: 'Whole milk slow-brewed Ilam black tea infused with green cardamom, ginger, cinnamon, and cloves, accompanied by traditional baked cookies.',
     priceUSD: 3.0,
     isVegetarian: true,
@@ -144,7 +144,7 @@ export const INITIAL_STOCK_ITEMS: StockItem[] = [
     lastRestockedDate: '2026-11-01',
     supplierName: 'Himalayan Organic Plantations',
     supplierContact: '+977 9801123445',
-    location: 'Rooftop Bar Pantry A-2',
+    location: 'Ground-Floor Bar Pantry A-2',
   },
   {
     id: 'stock-2',
@@ -305,7 +305,7 @@ export const INITIAL_INVOICES: MasterInvoice[] = [
       },
       {
         id: 'li-3',
-        description: 'Rooftop Himalayan Khana Thali Dinner + Timur Drink',
+        description: 'Ground-Floor Himalayan Khana Thali Dinner + Timur Drink',
         category: 'restaurant_dining',
         date: '2026-11-05',
         quantity: 2,
@@ -437,7 +437,7 @@ export const INITIAL_FLOORS: string[] = [
   '1st Floor',
   '2nd Floor',
   '3rd Floor',
-  'Rooftop Suite Level'
+  '4th Floor Suites'
 ];
 
 export const INITIAL_ROOM_UNITS = [
@@ -448,13 +448,13 @@ export const INITIAL_ROOM_UNITS = [
   { id: 'unit-205', roomNumber: '205', floor: '2nd Floor', roomType: 'super-deluxe' as const, occupancyStatus: 'occupied' as const, cleanStatus: 'clean' as const, currentGuestName: 'Rajesh & Pooja Agarwal', currentBookingCode: 'KH-2026-9088', checkInDate: '2026-11-04', checkOutDate: '2026-11-08' },
   { id: 'unit-301', roomNumber: '301', floor: '3rd Floor', roomType: 'deluxe' as const, occupancyStatus: 'vacant' as const, cleanStatus: 'in_progress' as const, assignedHousekeeper: 'Sunita Thapa' },
   { id: 'unit-302', roomNumber: '302', floor: '3rd Floor', roomType: 'executive-suite' as const, occupancyStatus: 'occupied' as const, cleanStatus: 'clean' as const, currentGuestName: 'Eleanor Vance', currentBookingCode: 'KH-2026-9042', checkInDate: '2026-11-05', checkOutDate: '2026-11-09' },
-  { id: 'unit-401', roomNumber: '401', floor: 'Rooftop Suite Level', roomType: 'executive-suite' as const, occupancyStatus: 'reserved' as const, cleanStatus: 'inspected' as const, inspectedBy: 'Sunita Thapa' },
+  { id: 'unit-401', roomNumber: '401', floor: '4th Floor Suites', roomType: 'executive-suite' as const, occupancyStatus: 'reserved' as const, cleanStatus: 'inspected' as const, inspectedBy: 'Sunita Thapa' },
 ];
 
 export const INITIAL_LOST_FOUND = [
   { id: 'lf-1', referenceId: 'LF-2026-1001', itemDescription: 'Leather Passport Pouch with Swiss currency', category: 'Valuables', roomNumber: '204', foundBy: 'Sunita Thapa', foundDate: '2026-11-04', status: 'stored' as const, storageLocation: 'Front Office Safe #2', contactPhone: '+41 79 441 8201', notes: 'Secured in tamper-evident sleeve with dual custody log.' },
   { id: 'lf-2', referenceId: 'LF-2026-1002', itemDescription: 'Sony Alpha Camera Lens Cap & Filter', category: 'Electronics', roomNumber: '302', foundBy: 'Prakash Lama', foundDate: '2026-11-06', status: 'stored' as const, storageLocation: 'Concierge Desk Drawer B', notes: 'Found near executive parlor writing desk.' },
-  { id: 'lf-3', referenceId: 'LF-2026-1003', itemDescription: 'Woolen Yak Shawl (Maroon)', category: 'Clothing', roomNumber: 'Rooftop Table 4', foundBy: 'Prakash Lama', foundDate: '2026-11-05', status: 'claimed' as const, storageLocation: 'Returned to Guest', claimedByGuestName: 'Pooja Agarwal', claimedByIdNumber: 'IND-8821-PP', claimedAt: '2026-11-06 10:15', contactPhone: '+91 98110 99881' },
+  { id: 'lf-3', referenceId: 'LF-2026-1003', itemDescription: 'Woolen Yak Shawl (Maroon)', category: 'Clothing', roomNumber: 'Ground-Floor Table 4', foundBy: 'Prakash Lama', foundDate: '2026-11-05', status: 'claimed' as const, storageLocation: 'Returned to Guest', claimedByGuestName: 'Pooja Agarwal', claimedByIdNumber: 'IND-8821-PP', claimedAt: '2026-11-06 10:15', contactPhone: '+91 98110 99881' },
 ];
 
 export const INITIAL_SHIFTS = [
@@ -652,7 +652,7 @@ export const INITIAL_STAFF_SHIFTS = [
     department: 'Restaurant & Banquet' as const,
     date: isoDateOffset(0),
     shiftSlot: 'evening' as const,
-    assignedStation: 'Rooftop Dining & Room Service',
+    assignedStation: 'Ground-Floor Dining & Room Service',
     attendanceStatus: 'scheduled' as const,
   },
   {
@@ -838,7 +838,7 @@ export const INITIAL_KAMAL_REWARDS = [
         type: 'dining_earn' as const,
         pointsDelta: 330,
         balanceAfter: 2480,
-        reason: 'Rooftop Dining & Room Service Earn (10 pts / $1)',
+        reason: 'Ground-Floor Dining & Room Service Earn (10 pts / $1)',
         bookingCode: 'KH-2026-9042',
         adjustedBy: 'System Auto-Earn',
       },

@@ -5,8 +5,6 @@ import {
   Users, 
   ShieldCheck, 
   Key, 
-  Eye, 
-  EyeOff, 
   Edit3, 
   Trash2, 
   Plus, 
@@ -28,7 +26,6 @@ export const AdminUserManager: React.FC = () => {
     addAuditLog 
   } = useHotel();
 
-  const [showPasswords, setShowPasswords] = useState(false);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffUser | null>(null);
   const [confirmResetPending, setConfirmResetPending] = useState(false);
@@ -37,7 +34,7 @@ export const AdminUserManager: React.FC = () => {
   // Add User Form State
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('KamalHotel@2026');
+  const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('+977 98');
   const [role, setRole] = useState<StaffRole>('receptionist');
@@ -57,20 +54,25 @@ export const AdminUserManager: React.FC = () => {
   const handleStartEdit = (member: StaffUser) => {
     setEditingStaff(member);
     setEditUsername(member.username || '');
-    setEditPassword(member.password || '');
+    setEditPassword('');
     setEditName(member.name);
     setEditRole(member.role);
     setEditDepartment(member.department);
     setEditStatus(member.status);
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStaff) return;
 
-    updateStaffCredentials(editingStaff.id, {
+    if (editPassword.trim() && editPassword.trim().length < 8) {
+      showToast('Weak Password', 'New password must be at least 8 characters.', 'warning');
+      return;
+    }
+
+    await updateStaffCredentials(editingStaff.id, {
       username: editUsername.trim().toLowerCase(),
-      password: editPassword,
+      password: editPassword.trim() || undefined,
       name: editName,
       role: editRole,
       department: editDepartment,
@@ -80,9 +82,13 @@ export const AdminUserManager: React.FC = () => {
     setEditingStaff(null);
   };
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !name.trim()) return;
+    if (password.trim().length < 8) {
+      showToast('Weak Password', 'Initial password must be at least 8 characters.', 'warning');
+      return;
+    }
 
     let permissions = ['view_availability'];
     if (role === 'super_admin') {
@@ -103,10 +109,10 @@ export const AdminUserManager: React.FC = () => {
       permissions = ['manage_rooms_cleanliness', 'view_availability'];
     }
 
-    addStaff({
+    await addStaff({
       name,
       username: username.trim().toLowerCase(),
-      password: password || 'KamalHotel@2026',
+      password: password.trim(),
       email: email || `${username.trim().toLowerCase()}@kamalhotel.np`,
       phone,
       role,
@@ -118,7 +124,7 @@ export const AdminUserManager: React.FC = () => {
 
     setName('');
     setUsername('');
-    setPassword('KamalHotel@2026');
+    setPassword('');
     setEmail('');
     setIsAddUserOpen(false);
   };
@@ -150,15 +156,6 @@ export const AdminUserManager: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setShowPasswords(!showPasswords)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 text-stone-700 dark:text-stone-300 transition cursor-pointer"
-          >
-            {showPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            <span>{showPasswords ? 'Hide Passwords' : 'Show Passwords'}</span>
-          </button>
-
           <button
             type="button"
             onClick={() => setIsAddUserOpen(true)}
@@ -214,13 +211,10 @@ export const AdminUserManager: React.FC = () => {
                     {member.username}
                   </td>
                   <td className="py-3 px-3 font-mono">
-                    {showPasswords ? (
-                      <span className="font-semibold text-stone-900 dark:text-stone-100 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded">
-                        {member.password || 'KamalHotel@2026'}
-                      </span>
-                    ) : (
-                      <span className="text-stone-400">••••••••••</span>
-                    )}
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                      <Lock className="w-2.5 h-2.5" />
+                      <span>Hashed / Encrypted</span>
+                    </span>
                   </td>
                   <td className="py-3 px-3">
                     <span className="font-mono text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-stone-200 dark:bg-stone-800 text-stone-800 dark:text-stone-200">
@@ -344,11 +338,12 @@ export const AdminUserManager: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                  Password (Plaintext)
+                  Rotate Password (Optional — min 8 chars)
                 </label>
                 <input
-                  type="text"
-                  required
+                  type="password"
+                  minLength={8}
+                  placeholder="Leave blank to keep existing password"
                   value={editPassword}
                   onChange={(e) => setEditPassword(e.target.value)}
                   className="w-full text-xs px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 font-mono"
@@ -469,11 +464,13 @@ export const AdminUserManager: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                  Initial Password *
+                  Initial Password * (Minimum 8 characters)
                 </label>
                 <input
-                  type="text"
+                  type="password"
                   required
+                  minLength={8}
+                  placeholder="Enter strong password (min 8 chars)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full text-xs px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 font-mono"
@@ -491,10 +488,10 @@ export const AdminUserManager: React.FC = () => {
                     setRole(r);
                     if (r === 'receptionist') setDepartment('Front Office & Concierge');
                     else if (r === 'waiter') setDepartment('Restaurant & Banquet Service');
-                    else if (r === 'chef') setDepartment('Culinary & Rooftop Restaurant');
+                    else if (r === 'chef') setDepartment('Culinary & Ground-Floor Restaurant');
                     else if (r === 'housekeeping') setDepartment('Housekeeping & Laundry');
                     else if (r === 'hotel_manager') setDepartment('Operations & Guest Relations');
-                    else if (r === 'restaurant_owner') setDepartment('Rooftop Dining & Bar Ownership');
+                    else if (r === 'restaurant_owner') setDepartment('Ground-Floor Dining & Bar Ownership');
                     else if (r === 'admin') setDepartment('Hotel Administration & Customization');
                     else if (r === 'super_admin') setDepartment('Platform Ownership & IT');
                   }}

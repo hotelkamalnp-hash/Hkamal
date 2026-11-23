@@ -172,7 +172,7 @@ export const ShiftSchedulingPanel: React.FC = () => {
       } else if (inferredDept === 'Kitchen & Culinary') {
         setFormStation('Main Kitchen Line & KDS');
       } else if (inferredDept === 'Restaurant & Banquet') {
-        setFormStation('Rooftop Dining & Room Service');
+        setFormStation('Ground-Floor Dining & Room Service');
       } else {
         setFormStation('Operations & Duty Management');
       }
@@ -274,7 +274,7 @@ export const ShiftSchedulingPanel: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pb-5 border-b border-stone-200 dark:border-stone-800 tabular-nums text-xs">
         <div>
           <div className="text-stone-500 dark:text-stone-400 font-medium">Active Clocked-In Staff</div>
-          <div className="mt-1 text-2xl font-serif font-bold text-emerald-700 dark:text-emerald-400">
+          <div className="mt-1 text-2xl font-sans font-semibold tracking-tight tabular-nums text-emerald-700 dark:text-emerald-400">
             {metrics.clockedInNow}
             <span className="text-xs font-sans font-normal text-stone-500 ml-1.5">
               / {metrics.scheduledToday} scheduled today
@@ -287,7 +287,7 @@ export const ShiftSchedulingPanel: React.FC = () => {
 
         <div>
           <div className="text-stone-500 dark:text-stone-400 font-medium">Reception &amp; Front Desk</div>
-          <div className="mt-1 text-2xl font-serif font-bold text-stone-900 dark:text-stone-50">
+          <div className="mt-1 text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-50">
             {metrics.receptionCount}
           </div>
           <div className="text-[11px] text-stone-500 dark:text-stone-400">
@@ -297,7 +297,7 @@ export const ShiftSchedulingPanel: React.FC = () => {
 
         <div>
           <div className="text-stone-500 dark:text-stone-400 font-medium">Housekeeping &amp; Laundry</div>
-          <div className="mt-1 text-2xl font-serif font-bold text-stone-900 dark:text-stone-50">
+          <div className="mt-1 text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-50">
             {metrics.housekeepingCount}
           </div>
           <div className="text-[11px] text-stone-500 dark:text-stone-400">
@@ -307,7 +307,7 @@ export const ShiftSchedulingPanel: React.FC = () => {
 
         <div>
           <div className="text-stone-500 dark:text-stone-400 font-medium">Registered Staff Pool</div>
-          <div className="mt-1 text-2xl font-serif font-bold text-stone-900 dark:text-stone-50">
+          <div className="mt-1 text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-50">
             {staff.filter((s) => s.status === 'active').length}
           </div>
           <div className="text-[11px] text-stone-500 dark:text-stone-400">

@@ -9,7 +9,7 @@ const RATING_DIMENSIONS: { key: keyof PostCheckoutSurveyRatings; label: string }
   { key: 'cleanliness', label: 'Room Cleanliness & Housekeeping' },
   { key: 'staffHospitality', label: 'Front Desk & Staff Hospitality' },
   { key: 'roomComfort', label: 'Bed Comfort & Quietness' },
-  { key: 'diningExperience', label: 'Breakfast & Rooftop Dining' },
+  { key: 'diningExperience', label: 'Breakfast & Ground-Floor Dining' },
   { key: 'valueForMoney', label: 'Overall Value for Money' },
 ];
 

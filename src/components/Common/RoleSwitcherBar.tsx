@@ -24,6 +24,10 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
   currentView,
   setCurrentView,
 }) => {
+  if (!import.meta.env.DEV) {
+    return null;
+  }
+
   const { 
     activeRole, 
     activeUser, 
@@ -31,7 +35,6 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
     openLoginModal, 
     logoutStaff,
     resetAllHotelDataToDefault,
-    staff
   } = useHotel();
 
   const [pendingResetConfirm, setPendingResetConfirm] = useState(false);
@@ -87,7 +90,7 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
     {
       id: 'restaurant_owner',
       label: 'Restaurant Owner',
-      description: 'Rooftop Dining POS, KDS & P&L',
+      description: 'Ground-Floor Dining POS, KDS & P&L',
       icon: <UtensilsCrossed className="w-3.5 h-3.5" />,
       view: 'dashboard',
     },

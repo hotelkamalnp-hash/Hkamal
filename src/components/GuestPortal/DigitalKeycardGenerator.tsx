@@ -33,7 +33,7 @@ function formatCountdown(expiresAtIso: string, nowMs: number): string {
 }
 
 function scopeLabel(scope: DigitalKeyAccessScope): string {
-  if (scope === 'vip_all_access') return 'VIP All-Access (Room · Pool · Rooftop Lounge)';
+  if (scope === 'vip_all_access') return 'VIP All-Access (Room · Pool · Ground-Floor Lounge)';
   if (scope === 'room_and_amenities') return 'Room + Lift + Spa & Pool Access';
   return 'Room Door Access Only';
 }
@@ -380,7 +380,7 @@ export const DigitalKeycardGenerator: React.FC = () => {
                 >
                   <option value="room_only">Room Door Access Only</option>
                   <option value="room_and_amenities">Room + Lift + Spa &amp; Pool</option>
-                  <option value="vip_all_access">VIP All-Access + Rooftop Lounge</option>
+                  <option value="vip_all_access">VIP All-Access + Ground-Floor Lounge</option>
                 </select>
               </div>
             </div>

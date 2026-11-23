@@ -94,23 +94,30 @@ export const ReceptionDesk: React.FC = () => {
   const [pendingCheckoutModal, setPendingCheckoutModal] = useState<{ roomNumber: string; invoice: MasterInvoice } | null>(null);
 
   const pendingArrivals = useMemo(
-    () => bookings.filter((b) => b.bookingStatus === 'confirmed'),
+    () =>
+      bookings
+        .filter((b) => b.bookingStatus === 'confirmed')
+        .slice()
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
     [bookings]
   );
 
   const filteredArrivalBookings = useMemo(() => {
     const q = arrivalsSearch.trim().toLowerCase();
-    return bookings.filter((b) => {
-      const matchesStatus = arrivalsFilter === 'all' || b.bookingStatus === arrivalsFilter;
-      const matchesQuery =
-        !q ||
-        b.guestName.toLowerCase().includes(q) ||
-        b.guestEmail.toLowerCase().includes(q) ||
-        b.bookingCode.toLowerCase().includes(q) ||
-        b.roomName.toLowerCase().includes(q) ||
-        (b.assignedRoomNumber && b.assignedRoomNumber.toLowerCase().includes(q));
-      return matchesStatus && matchesQuery;
-    });
+    return bookings
+      .filter((b) => {
+        const matchesStatus = arrivalsFilter === 'all' || b.bookingStatus === arrivalsFilter;
+        const matchesQuery =
+          !q ||
+          b.guestName.toLowerCase().includes(q) ||
+          b.guestEmail.toLowerCase().includes(q) ||
+          b.bookingCode.toLowerCase().includes(q) ||
+          b.roomName.toLowerCase().includes(q) ||
+          (b.assignedRoomNumber && b.assignedRoomNumber.toLowerCase().includes(q));
+        return matchesStatus && matchesQuery;
+      })
+      .slice()
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   }, [bookings, arrivalsSearch, arrivalsFilter]);
 
   const pendingWakeUpCalls = useMemo(

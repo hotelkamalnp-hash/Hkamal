@@ -205,7 +205,7 @@ export const KitchenKdsView: React.FC = () => {
             Kitchen Queue Clear!
           </h4>
           <p className="text-xs text-stone-500 max-w-sm mx-auto">
-            All guest room service and rooftop dining tickets have been completed and served. New orders placed by Waiters will appear here in real time.
+            All guest room service and ground-floor dining tickets have been completed and served. New orders placed by Waiters will appear here in real time.
           </p>
         </div>
       ) : (

@@ -284,7 +284,7 @@ export const HotelTenantOnboardingWizard: React.FC = () => {
       if (rawCols.length === 0 || !rawCols[0]) continue;
 
       const name = rawCols[nameIdx >= 0 ? nameIdx : 0] || `Dish #${i}`;
-      let categoryRaw = rawCols[catIdx >= 0 ? catIdx : 1] || 'Nepali Heritage & Newari';
+      let categoryRaw = rawCols[catIdx >= 0 ? catIdx : 1] || 'Nepali Heritage & Cuisine';
       const desc = rawCols[descIdx >= 0 ? descIdx : 2] || 'Prepared fresh with Himalayan spices.';
       const priceRaw = parseFloat(rawCols[priceIdx >= 0 ? priceIdx : 3]);
       const priceUSD = isNaN(priceRaw) || priceRaw <= 0 ? 9.5 : priceRaw;
@@ -293,9 +293,9 @@ export const HotelTenantOnboardingWizard: React.FC = () => {
       let category: MenuItemCategory = 'Main Course';
       const catLower = categoryRaw.toLowerCase();
       if (catLower.includes('starter') || catLower.includes('appetizer')) category = 'Starters';
-      else if (catLower.includes('newar') || catLower.includes('heritage') || catLower.includes('dal')) category = 'Nepali Heritage & Newari';
+      else if (catLower.includes('newar') || catLower.includes('heritage') || catLower.includes('cuisine') || catLower.includes('dal')) category = 'Nepali Heritage & Cuisine';
       else if (catLower.includes('special') || catLower.includes('himalaya') || catLower.includes('chef')) category = 'Himalayan Specials';
-      else if (catLower.includes('bar') || catLower.includes('drink') || catLower.includes('beverage') || catLower.includes('wine')) category = 'Rooftop Bar & Beverages';
+      else if (catLower.includes('rooftop') || catLower.includes('ground-floor') || catLower.includes('bar') || catLower.includes('drink') || catLower.includes('beverage') || catLower.includes('wine')) category = 'Ground-Floor Bar & Beverages';
       else if (catLower.includes('dessert') || catLower.includes('sweet') || catLower.includes('cake')) category = 'Desserts';
 
       const isSpicy = spicyIdx >= 0 ? /true|1|yes|hot|medium/i.test(rawCols[spicyIdx]) : false;
@@ -349,10 +349,10 @@ export const HotelTenantOnboardingWizard: React.FC = () => {
     const csvContent = 
 `DishName,Category,Description,PriceUSD,SpicyLevel,IsVegetarian,IsChefSpecial,PrepTimeMinutes
 Himalayan Herb Roasted Chicken,Main Course,Organic local chicken marinated in Jimbu herbs and cold-pressed mustard oil,14.50,Medium,false,true,25
-Traditional Newari Khaja Set,Nepali Heritage & Newari,Baji beaten rice with spiced choila roasted soybean and spicy aloo tama,12.00,Hot,false,true,20
+Traditional Nepali Khaja Set,Nepali Heritage & Cuisine,Baji beaten rice with spiced choila roasted soybean and spicy aloo tama,12.00,Hot,false,true,20
 Kathmandu Valley Vegetable Momo (10 pcs),Starters,Steamed handmade dumplings filled with fresh valley cabbage paneer and coriander,7.50,Medium,true,false,15
-Mustang Thakali Dal Bhat Platter,Nepali Heritage & Newari,Traditional black lentil soup steamed basmati gundruk and seasonal sag,13.00,Mild,true,true,20
-Rooftop Everest Glacier Mule,Rooftop Bar & Beverages,Nepalese craft vodka fresh ginger brew Himalayan lime and fresh mint,9.00,Mild,true,true,5
+Mustang Thakali Dal Bhat Platter,Nepali Heritage & Cuisine,Traditional black lentil soup steamed basmati gundruk and seasonal sag,13.00,Mild,true,true,20
+Ground-Floor Everest Glacier Mule,Ground-Floor Bar & Beverages,Nepalese craft vodka fresh ginger brew Himalayan lime and fresh mint,9.00,Mild,true,true,5
 Himalayan Yak Cheese Platter,Starters,Aged high-altitude yak artisan cheese with organic wildflower honey and crackers,11.50,Mild,true,false,10
 Warm Apple Pie with Organic Honey,Desserts,Baked Helambu mountain apples infused with cinnamon and sweet vanilla cream,6.50,Mild,true,false,15`;
 
@@ -387,16 +387,20 @@ Warm Apple Pie with Organic Honey,Desserts,Baked Helambu mountain apples infused
     setUploadFileName('');
   };
 
-  const handleAddStaffMember = (e: React.FormEvent) => {
+  const handleAddStaffMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStaffMember.name || !newStaffMember.username || !newStaffMember.email) {
       showToast('Missing Fields', 'Please complete the name, username, and email.', 'warning');
       return;
     }
-    addStaff({
+    if (!newStaffMember.password || newStaffMember.password.trim().length < 8) {
+      showToast('Strong Password Required', 'Please enter a password of at least 8 characters.', 'warning');
+      return;
+    }
+    await addStaff({
       name: newStaffMember.name,
       username: newStaffMember.username.toLowerCase().trim(),
-      password: newStaffMember.password || 'hotel@123',
+      password: newStaffMember.password.trim(),
       email: newStaffMember.email.trim(),
       phone: newStaffMember.phone || '+977-9800000000',
       role: newStaffMember.role,
@@ -1103,7 +1107,7 @@ Warm Apple Pie with Organic Honey,Desserts,Baked Helambu mountain apples infused
                   <span>Restaurant Dining Floor Plan & Table Configuration</span>
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Set up dining tables for Waiters and KOT kitchen tickets across Rooftop, Courtyard, and Banquet zones.
+                  Set up dining tables for Waiters and KOT kitchen tickets across Ground-Floor, Courtyard, and Banquet zones.
                 </p>
               </div>
             </div>
@@ -1127,7 +1131,7 @@ Warm Apple Pie with Organic Honey,Desserts,Baked Helambu mountain apples infused
                   onChange={(e) => setNewTableZone(e.target.value as TableZone)}
                   className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950"
                 >
-                  <option value="rooftop">Rooftop Garden & Terrace</option>
+                  <option value="rooftop">Ground-Floor Garden & Terrace</option>
                   <option value="courtyard">Courtyard Lounge</option>
                   <option value="banquet">Indoor Heritage Banquet</option>
                 </select>
@@ -1359,10 +1363,12 @@ Warm Apple Pie with Organic Honey,Desserts,Baked Helambu mountain apples infused
               </div>
 
               <div>
-                <label className="block font-semibold mb-1">Password</label>
+                <label className="block font-semibold mb-1">Password (min 8 chars)</label>
                 <input
                   type="password"
-                  placeholder="hotel@123"
+                  required
+                  minLength={8}
+                  placeholder="Minimum 8 characters"
                   value={newStaffMember.password}
                   onChange={(e) => setNewStaffMember({ ...newStaffMember, password: e.target.value })}
                   className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 font-mono"

@@ -296,7 +296,7 @@ export const OperationalQaTestBench: React.FC = () => {
     const startTime = performance.now();
     const steps: QaStepResult[] = [];
 
-    // Step 1: Table Allocation on Rooftop Terrace
+    // Step 1: Table Allocation in Ground-Floor Garden Dining
     const testTableId = 'tbl-2';
     updateTableStatus(testTableId, 'seated', 'QA Ambassador Party', 'Prakash Lama', 'Window table with view');
     const table = restaurantTables.find(t => t.id === testTableId);
@@ -340,9 +340,9 @@ export const OperationalQaTestBench: React.FC = () => {
 
     // Step 3: KOT Dispatch to Kitchen Display System
     const newKotOrder = placeRestaurantOrder({
-      roomNumber: 'Rooftop T-02',
+      roomNumber: 'Ground-Floor T-02',
       destination: 'rooftop_table',
-      tableOrRoomNo: 'T-02 (Rooftop)',
+      tableOrRoomNo: 'T-02 (Ground Floor)',
       guestName: 'QA Ambassador Party',
       items: orderItems,
       subtotalUSD,
@@ -800,7 +800,7 @@ export const OperationalQaTestBench: React.FC = () => {
           {
             id: 'waiter',
             title: '3. Waiter POS & Dining Orders',
-            desc: 'Rooftop table allocation, dining menu ordering with spice notes, statutory F&B 10% SC + 13% VAT, and real-time KOT dispatch.',
+            desc: 'Ground-Floor table allocation, dining menu ordering with spice notes, statutory F&B 10% SC + 13% VAT, and real-time KOT dispatch.',
             icon: <UtensilsCrossed className="w-4 h-4 text-indigo-600" />,
           },
           {

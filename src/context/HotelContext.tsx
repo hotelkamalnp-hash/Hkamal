@@ -16,6 +16,7 @@ import {
   GuestReview,
   FaqItem,
   MenuItem,
+  MenuItemCategory,
   RestaurantOrder,
   StockItem,
   BillSettings,
@@ -107,6 +108,8 @@ import {
 import HERO_IMAGE from '../assets/images/hero_himalayan_boutique_1793983309553.jpg';
 import ROOM_DELUXE_IMAGE from '../assets/images/suite_himalayan_deluxe_1793983311349.jpg';
 import ROOM_SUITE_IMAGE from '../assets/images/suite_presidential_living_1793983311442.jpg';
+import ROOM_FAMILY_IMAGE from '../assets/images/room_deluxe_suite_1793848735141.jpg';
+import ROOM_COZY_IMAGE from '../assets/images/room_executive_himalayan_1793848733912.jpg';
 import AMENITY_ROOFTOP_IMAGE from '../assets/images/rooftop_candlelight_dining_1793983310740.jpg';
 
 const INITIAL_ROOMS: Room[] = [
@@ -127,7 +130,7 @@ const INITIAL_ROOMS: Room[] = [
     rating: 4.9,
     reviewsCount: 134,
     description:
-      'Immerse yourself in serenity in the heart of Kathmandu with hand-carved Newari woodwork, custom plush mattress, soundproof windows, and en-suite rain shower with continuous hot water.',
+      'Immerse yourself in serenity in the heart of Kathmandu with hand-carved Nepali woodwork, custom plush mattress, soundproof windows, and en-suite rain shower with continuous hot water.',
     images: [ROOM_DELUXE_IMAGE, ROOM_SUITE_IMAGE, HERO_IMAGE],
     amenities: [
       'High-Speed Optical Wi-Fi',
@@ -164,7 +167,7 @@ const INITIAL_ROOMS: Room[] = [
       'Separate Living Parlor',
       'Mini-Bar Refrigerator',
       'Deep Soaking Tub & Rain Shower',
-      'Complimentary Rooftop Breakfast',
+      'Complimentary Ground-Floor Breakfast',
       'Ergonomic Work Desk',
       'Welcome Nepali Masala Tea & Fresh Fruit',
     ],
@@ -188,7 +191,7 @@ const INITIAL_ROOMS: Room[] = [
     reviewsCount: 96,
     description:
       'Spacious sanctuary tailored for families and groups visiting Kathmandu. Wide veranda seating facing our botanical courtyard with ample space for luggage and trekking gear.',
-    images: [ROOM_DELUXE_IMAGE, HERO_IMAGE, ROOM_SUITE_IMAGE],
+    images: [ROOM_FAMILY_IMAGE, ROOM_DELUXE_IMAGE, ROOM_SUITE_IMAGE],
     amenities: [
       'Dual Queen Beds',
       'Botanical Veranda Seating',
@@ -218,7 +221,7 @@ const INITIAL_ROOMS: Room[] = [
     reviewsCount: 165,
     description:
       'Smartly appointed, peaceful room designed for mindful travelers, digital nomads, and trekkers stopping in Kathmandu. Features fast Wi-Fi, work desk, and clean private bath.',
-    images: [HERO_IMAGE, ROOM_DELUXE_IMAGE, ROOM_SUITE_IMAGE],
+    images: [ROOM_COZY_IMAGE, ROOM_DELUXE_IMAGE, ROOM_SUITE_IMAGE],
     amenities: [
       'Comfortable Queen Bed',
       '24/7 Hot Water Shower',
@@ -234,10 +237,10 @@ const INITIAL_ROOMS: Room[] = [
 const INITIAL_AMENITIES: AmenityItem[] = [
   {
     id: 'amenity-1',
-    name: 'Rooftop Mountain & City Restaurant',
+    name: 'Ground-Floor Garden Restaurant',
     category: 'Dining',
     description:
-      'Opening Soon! Perched atop Kamal Hotel, savor organic Himalayan coffees, Nepali fusion plates, and panoramic sunset views over the Kathmandu valley and distant snow peaks.',
+      'Step into our tranquil ground-floor garden courtyard dining room for organic Himalayan coffees, authentic Nepali plates, and relaxed morning & evening gatherings.',
     iconName: 'Utensils',
     imageUrl: AMENITY_ROOFTOP_IMAGE,
     isHighlight: true,
@@ -247,7 +250,7 @@ const INITIAL_AMENITIES: AmenityItem[] = [
     name: 'High-Speed Optical Fiber Wi-Fi',
     category: 'Connectivity',
     description:
-      'Dedicated enterprise dual-band fiber internet (150+ Mbps) throughout all rooms, lobby, and rooftop garden with 100% solar and inverter battery backup continuity.',
+      'Dedicated enterprise dual-band fiber internet (150+ Mbps) throughout all rooms, lobby, and ground-floor garden with 100% solar and inverter battery backup continuity.',
     iconName: 'Wifi',
     isHighlight: true,
   },
@@ -305,7 +308,7 @@ const INITIAL_REVIEWS: GuestReview[] = [
     author: 'Eleanor Vance',
     role: 'Travel Photographer',
     location: 'California, USA',
-    quote: 'Kamal Hotel was our favorite stay in Nepal. The hand-carved Newari woodwork is gorgeous, the beds are super comfy, and the instant SMS/Email voucher with airport pickup was effortless.',
+    quote: 'Kamal Hotel was our favorite stay in Nepal. The hand-carved Nepali woodwork is gorgeous, the beds are super comfy, and the instant SMS/Email voucher with airport pickup was effortless.',
     rating: 5,
     date: 'November 2026',
     isApproved: true,
@@ -331,8 +334,8 @@ const INITIAL_FAQS: FaqItem[] = [
   },
   {
     id: 'faq-2',
-    question: 'When will the Rooftop Garden Dining be opening?',
-    answer: 'Our panoramic Rooftop Garden Restaurant is currently putting finishing touches and is scheduled for its Grand Opening in Winter 2026! Guests can already preview the space for morning coffee and sunset viewing.',
+    question: 'When is Ground-Floor Garden Dining open?',
+    answer: 'Our peaceful Ground-Floor Garden Restaurant welcomes hotel guests daily from 7:00 AM to 10:30 PM with fresh organic breakfasts, Nepali heritage plates, and seasonal garden refreshments.',
     category: 'Dining',
   },
   {
@@ -352,22 +355,15 @@ const INITIAL_FAQS: FaqItem[] = [
 const DEFAULT_HERO_CTA_BUTTONS: HotelThemeConfig['heroCtaButtons'] = [
   {
     id: 'cta-reserve',
-    label: 'Reserve Your Sanctuary',
+    label: 'Book Your Stay',
     action: 'booking_modal',
     variant: 'primary',
     enabled: true,
   },
   {
-    id: 'cta-portal',
-    label: 'In-House Guest Room Portal',
-    action: 'guest_portal',
-    variant: 'amber_outline',
-    enabled: true,
-  },
-  {
-    id: 'cta-dining',
-    label: 'Explore Rooftop Dining',
-    action: 'scroll_dining',
+    id: 'cta-rooms',
+    label: 'Explore Suites',
+    action: 'scroll_rooms',
     variant: 'glass_light',
     enabled: true,
   },
@@ -376,27 +372,27 @@ const DEFAULT_HERO_CTA_BUTTONS: HotelThemeConfig['heroCtaButtons'] = [
 const INITIAL_THEME: HotelThemeConfig = {
   palette: 'bright-himalayan-gold',
   brightnessMode: 'warm-sunlit',
-  heroOverlayOpacity: 0.32,
+  heroOverlayOpacity: 0.38,
   heroLayoutMode: 'full_bleed',
-  heroBackgroundFit: 'whole_building',
+  heroBackgroundFit: 'cover',
   heroImagePosition: 'center',
   enableHeroParallax: true,
   fontFamily: 'garamond',
   hotelName: 'Kamal Hotel',
   starRating: 3,
   tagline: 'Authentic Himalayan Warmth & Peaceful Boutique Comfort',
-  heroHeadline: 'Experience Authentic Himalayan Boutique Hospitality in Kathmandu',
+  heroHeadline: 'Boutique Serenity in Kathmandu',
   heroSubheadline:
-    'A tranquil 3-star boutique sanctuary in Kamalpokhari, Kathmandu. Hand-carved heritage architecture, peaceful inner courtyard, and upcoming panoramic rooftop dining.',
-  heroKickerBadge: 'Boutique 3-Star Sanctuary · Kamalpokhari, Kathmandu · Nepal',
-  heroCtaPrimaryText: 'Reserve Your Sanctuary',
-  heroCtaSecondaryText: 'Explore Rooftop Dining',
+    'Warm Nepali comfort, solar hot water, and ground-floor dining beside Kamalpokhari.',
+  heroKickerBadge: 'Kamalpokhari · Kathmandu',
+  heroCtaPrimaryText: 'Book Your Stay',
+  heroCtaSecondaryText: 'Explore Suites',
   heroCtaButtons: DEFAULT_HERO_CTA_BUTTONS,
   enablePromoBanner: true,
   promoBannerType: 'seasonal_offer',
-  promoBannerText: 'Himalayan Sunlit Season: Enjoy an instant 10% discount on direct suite reservations',
+  promoBannerText: 'Direct booking offer: 10% off flexible suite stays',
   promoBannerCode: 'HIMALAYA10',
-  promoBannerCtaLabel: 'Seasonal Offers',
+  promoBannerCtaLabel: 'Apply Offer',
   promoBannerCtaTarget: 'rooms',
   enableWeatherWidget: true,
   weatherWidgetPosition: 'hero_strip',
@@ -410,30 +406,30 @@ const INITIAL_THEME: HotelThemeConfig = {
   stat1Value: '360°',
   stat1Label: 'Mountain & Valley Views',
   stat2Value: '100%',
-  stat2Label: 'Solar Power & Continuous Hot Water',
+  stat2Label: 'Solar Power & Hot Water',
   stat3Value: '4.9 ★',
-  stat3Label: 'Google Guest Satisfaction',
+  stat3Label: 'Google Guest Rating',
   stat4Value: '24/7',
-  stat4Label: 'Front Desk & Guest Concierge',
-  heritageTitle: 'A Luminous Sanctuary in Kamalpokhari',
-  heritageSubtitle: 'Kathmandu Valley Boutique Living with Authentic Himalayan Warmth',
+  stat4Label: 'Front Desk & Concierge',
+  heritageTitle: 'A Calm Retreat in Kamalpokhari',
+  heritageSubtitle: 'Kathmandu Valley Living',
   heritageStoryP1:
-    'Situated beside the historic Kamalpokhari lotus pond in central Kathmandu, Kamal Hotel welcomes travelers into a luminous, sun-drenched sanctuary. Bask in natural Himalayan sunlight, handcrafted Newari woodwork, and peaceful courtyard gardens while remaining minutes away from City Center, Thamel, and Durbar Marg.',
+    'Set beside the peaceful Kamalpokhari lotus pond, Kamal Hotel offers sunlit rooms with handcrafted Nepali woodwork just minutes from City Center, Thamel, and Durbar Marg.',
   heritageStoryP2:
-    'Our boutique 3-star sanctuary pairs traditional Nepalese hospitality with uninterrupted high-speed Wi-Fi, 100% solar hot water, fresh mountain culinary offerings, and personalized 24/7 care.',
+    'Our boutique stay pairs warm Nepalese hospitality with fiber Wi-Fi, 100% solar hot water, ground-floor cuisine, and 24/7 concierge care.',
   heritageQuote:
-    '“Atithi Devo Bhava” — Guest is welcomed as God in Himalayan culture. Our dedicated team is here to craft an unforgettable, radiant Kathmandu journey for you.',
+    '“Atithi Devo Bhava” — Every guest is welcomed like family.',
   heritageAuthor: 'Hosts & Concierge Team, Kamal Hotel',
   heritageStat1Number: '2 Mins',
-  heritageStat1Text: 'Walk to Kamalpokhari Lotus Pond & City Center',
+  heritageStat1Text: 'Walk to Kamalpokhari Pond & City Center',
   heritageStat2Number: '15 Mins',
-  heritageStat2Text: 'Direct Transfer to Tribhuvan International Airport (TIA)',
+  heritageStat2Text: 'Drive to Tribhuvan International Airport (TIA)',
   contactEmail: 'hotelkamal.np@gmail.com',
   contactPhone: '+977 1 4422589',
   whatsappNumber: '+977 9851023456',
   address: 'Kamalpokhari Marg, Ward No. 1, Kathmandu 44600, Nepal',
   city: 'Kathmandu',
-  neighborhood: 'Kamalpokhari (near City Center & Kamalpokhari Pond)',
+  neighborhood: 'Kamalpokhari, Central Kathmandu',
   latitude: 27.7123,
   longitude: 85.3240,
   googleMapsUrl: 'https://maps.google.com/?q=Kamalpokhari,+Kathmandu,+Nepal',
@@ -451,16 +447,16 @@ const INITIAL_THEME: HotelThemeConfig = {
   },
   seasonalSurgeMultiplier: 1.0,
   taxRatePercent: 13,
-  heroImage: './assets/aistudio/hotel_kamal_new_look_6cc0fe47.jpg',
-  announcementText: 'Namaste! Rooftop Himalayan Dining Opening Soon · Book direct for complimentary welcome tea and breakfast!',
+  heroImage: HERO_IMAGE,
+  announcementText: 'Namaste! Book direct for best flexible rates and welcome Himalayan tea.',
   enableAnnouncement: true,
 
-  // Rooftop Dining
-  rooftopDiningStatus: 'opening_soon',
-  rooftopOpeningDateText: 'Grand Opening Soon · Winter 2026',
-  rooftopTeaserHeadline: 'Panoramic Kathmandu Valley & Himalayan Skyline Rooftop Restaurant',
+  // Ground-Floor Dining
+  rooftopDiningStatus: 'open',
+  rooftopOpeningDateText: 'Open Daily · 7:00 AM – 10:30 PM',
+  rooftopTeaserHeadline: 'Ground-Floor Garden Dining',
   rooftopTeaserDescription:
-    'Perched above Kamalpokhari, our upcoming glasshouse terrace restaurant will present artisan highland coffees, authentic Newari fusion delicacies, and handcrafted mocktails with 360-degree views of the valley and distant mountain peaks.',
+    'Peaceful ground-floor courtyard dining featuring highland coffee, Nepali heritage classics, and garden tranquility in Kamalpokhari.',
   rooftopDiningImage: AMENITY_ROOFTOP_IMAGE,
 
   // Supabase
@@ -469,25 +465,25 @@ const INITIAL_THEME: HotelThemeConfig = {
   supabaseConnected: Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY),
 
   // Customizable Section Headings, Neighborhood Guide & Footer Copy
-  roomsSectionSubtitle: 'Sanctuary & Comfort',
-  roomsSectionTitle: 'Rooms & Suites in Kamalpokhari',
+  roomsSectionSubtitle: 'Suites & Rooms',
+  roomsSectionTitle: 'Stay in Comfort',
   roomsSectionDescription:
-    'Every room at Kamal Hotel combines traditional Newari carved woodwork with modern boutique luxury, solar-warmed showers, and quiet Kathmandu courtyard views.',
-  amenitiesSectionSubtitle: 'Thoughtful Boutique Hospitality',
-  amenitiesSectionTitle: 'Real-Time Facilities & Rooftop Experience',
+    'Quiet suites crafted with Nepali woodwork, solar hot showers, and peaceful courtyard views.',
+  amenitiesSectionSubtitle: 'Dining & Facilities',
+  amenitiesSectionTitle: 'Ground-Floor Dining & Essentials',
   amenitiesSectionDescription:
-    'From uninterrupted optical fiber Wi-Fi powered by solar backup in Kamalpokhari to our upcoming rooftop dining sanctuary overlooking the Kathmandu skyline.',
-  neighborhoodGuideSubtitle: 'Finding Us & Neighborhood Guide',
-  neighborhoodGuideTitle: 'Prime Kamalpokhari Neighborhood Guide',
+    'Fiber Wi-Fi with solar backup, airport pickup, and ground-floor courtyard hospitality.',
+  neighborhoodGuideSubtitle: 'Location & Guide',
+  neighborhoodGuideTitle: 'Around Kamalpokhari',
   neighborhoodGuideDescription:
-    'Explore landmarks, cafés, restaurants, and transit stops right around Kamal Hotel in Kamalpokhari — tap any place or map pin for live hours and Google Maps directions.',
+    'Steps from Kamalpokhari lotus pond, minutes from Thamel, Durbar Marg, and Tribhuvan International Airport.',
   neighborhoodSearchRadiusMeters: 1200,
   reviewsSectionSubtitle: 'Verified Guest Impressions',
   reviewsSectionTitle: 'Loved by Travelers in Kathmandu',
   faqSectionSubtitle: 'Guest Assistance',
   faqSectionTitle: 'Frequently Asked Questions',
   footerDescription:
-    'Authentic 3-star boutique accommodation in Kamalpokhari, Kathmandu. Dedicated to peaceful Himalayan hospitality, high-speed fiber internet, and rooftop mountain views.',
+    'Authentic 3-star boutique accommodation in Kamalpokhari, Kathmandu. Dedicated to peaceful Himalayan hospitality, high-speed fiber internet, and ground-floor garden dining.',
 };
 
 const INITIAL_STAFF: StaffUser[] = [
@@ -497,7 +493,6 @@ const INITIAL_STAFF: StaffUser[] = [
     username: 'superadmin',
     email: 'hotelkamal.np@gmail.com',
     phone: '+977 9851023456',
-    password: 'KamalHotel@2026',
     role: 'super_admin',
     permissions: [
       'all_access',
@@ -520,7 +515,6 @@ const INITIAL_STAFF: StaffUser[] = [
     username: 'admin',
     email: 'admin@kamalhotel.np',
     phone: '+977 9841239871',
-    password: 'Admin@2026',
     role: 'admin',
     permissions: [
       'edit_cms',
@@ -541,7 +535,6 @@ const INITIAL_STAFF: StaffUser[] = [
     username: 'manager',
     email: 'anita.manager@kamalhotel.np',
     phone: '+977 9841239870',
-    password: 'Manager@2026',
     role: 'hotel_manager',
     permissions: [
       'manage_bookings',
@@ -561,7 +554,6 @@ const INITIAL_STAFF: StaffUser[] = [
     username: 'receptionist',
     email: 'frontdesk@kamalhotel.np',
     phone: '+977 9813456789',
-    password: 'Reception@2026',
     role: 'receptionist',
     permissions: ['process_checkin', 'manage_bookings', 'view_availability', 'assign_rooms', 'print_bills'],
     status: 'active',
@@ -574,12 +566,11 @@ const INITIAL_STAFF: StaffUser[] = [
     username: 'owner',
     email: 'owner.dining@kamalhotel.np',
     phone: '+977 9851122888',
-    password: 'Owner@2026',
     role: 'restaurant_owner',
     permissions: ['manage_restaurant_pos', 'view_dining_revenue', 'manage_menu_specials', 'view_kot', 'manage_inventory'],
     status: 'active',
     lastActive: '12 mins ago',
-    department: 'Rooftop Dining & Bar Ownership',
+    department: 'Ground-Floor Dining & Bar Ownership',
   },
   {
     id: 'staff-4',
@@ -587,12 +578,11 @@ const INITIAL_STAFF: StaffUser[] = [
     username: 'chef',
     email: 'chef.ramesh@kamalhotel.np',
     phone: '+977 9801122334',
-    password: 'Chef@2026',
     role: 'chef',
     permissions: ['view_dining_orders', 'manage_menu_specials', 'view_breakfast_counts'],
     status: 'active',
     lastActive: '15 mins ago',
-    department: 'Culinary & Rooftop Restaurant',
+    department: 'Culinary & Ground-Floor Restaurant',
   },
   {
     id: 'staff-5',
@@ -600,7 +590,6 @@ const INITIAL_STAFF: StaffUser[] = [
     username: 'waiter',
     email: 'service@kamalhotel.np',
     phone: '+977 9805566778',
-    password: 'Waiter@2026',
     role: 'waiter',
     permissions: ['view_dining_orders', 'room_service_dispatch', 'view_guest_preferences'],
     status: 'active',
@@ -613,7 +602,6 @@ const INITIAL_STAFF: StaffUser[] = [
     username: 'housekeeping',
     email: 'housekeeping@kamalhotel.np',
     phone: '+977 9803322114',
-    password: 'Clean@2026',
     role: 'housekeeping',
     permissions: ['manage_rooms_cleanliness', 'view_availability'],
     status: 'active',
@@ -641,7 +629,7 @@ const INITIAL_BOOKINGS: Booking[] = [
     adults: 2,
     children: 0,
     addons: [
-      { id: 'ad-1', name: 'Rooftop Himalayan Breakfast Buffet', priceUSD: 8, description: 'Daily breakfast' },
+      { id: 'ad-1', name: 'Ground-Floor Himalayan Breakfast Buffet', priceUSD: 8, description: 'Daily breakfast' },
       { id: 'ad-2', name: 'Private Airport Pickup', priceUSD: 18, description: 'Direct pickup' },
     ],
     subtotal: 252,
@@ -741,7 +729,7 @@ const INITIAL_OPERATIONAL_ALERTS: OperationalAlert[] = [
     id: 'alt-2',
     timestamp: 'Today 09:40',
     title: 'Room Service KOT Dispatched',
-    message: 'Rooftop Table 4 placed Order KHO-4921 (Nepali Newari Khaja Set + Masala Chai). Sent to Kitchen.',
+    message: 'Ground-Floor Table 4 placed Order KHO-4921 (Nepali Khaja Set + Masala Chai). Sent to Kitchen.',
     type: 'dining_order',
     targetRoles: ['super_admin', 'restaurant_owner', 'chef', 'waiter'],
     isRead: false,
@@ -765,9 +753,9 @@ const INITIAL_AUDIT_LOGS: AuditLog[] = [
     timestamp: '2026-11-04 19:25:00',
     actorName: 'Kamal Dev Sharma',
     actorRole: 'Super Admin',
-    action: 'Location & Rooftop Dining Configured',
+    action: 'Location & Ground-Floor Dining Configured',
     category: 'cms',
-    details: 'Updated address to Kamalpokhari, Kathmandu. Set Rooftop Dining to Opening Soon status.',
+    details: 'Updated address to Kamalpokhari, Kathmandu. Set Ground-Floor Dining to Open status.',
     ipAddress: '103.10.23.41',
   },
   {
@@ -809,9 +797,9 @@ const INITIAL_COUPONS: HotelCoupon[] = [
     createdBy: 'Subash Sharma (Super Admin)',
   },
   {
-    id: 'cp-rooftop10',
-    code: 'ROOFTOP10',
-    description: '$10 USD Flat Voucher for Rooftop Garden Dining',
+    id: 'cp-dining10',
+    code: 'DINING10',
+    description: '$10 USD Flat Voucher for Ground-Floor Garden Dining',
     discountType: 'fixed_amount',
     discountValue: 10,
     applicableTo: 'dining',
@@ -911,6 +899,7 @@ interface HotelContextType {
   guestSessions: GuestRoomSession[];
   activeGuestSession: GuestRoomSession | null;
   loginGuestByRoom: (roomNumber: string, passcode: string) => { success: boolean; message: string; session?: GuestRoomSession };
+  loginGuestWithDatabase: (roomNumber: string, passcode: string) => Promise<{ success: boolean; message: string; session?: GuestRoomSession }>;
   logoutGuestSession: () => void;
   generateNewRoomPasscode: (roomNumber: string, bookingCode: string, guestName: string) => GuestRoomSession;
   checkoutAndResetRoomPasscode: (roomNumber: string) => void;
@@ -940,6 +929,12 @@ interface HotelContextType {
   openBookingModal: (room?: Room) => void;
   closeBookingModal: () => void;
   createBooking: (bookingData: Omit<Booking, 'id' | 'bookingCode' | 'createdAt' | 'smsSent' | 'emailSent' | 'whatsappSent'>) => Booking;
+  applyServerCreatedBooking: (payload: {
+    booking: Booking;
+    invoice?: MasterInvoice | null;
+    guestSession?: GuestRoomSession | null;
+  }) => void;
+  refreshBootstrapFromServer: () => Promise<void>;
   assignRoomToBooking: (bookingId: string, roomNumber: string) => void;
   getAvailableRoomsForType: (roomType: RoomType, excludeBookingId?: string) => RoomOperationalUnit[];
   updateBookingStatus: (bookingId: string, status: BookingStatus) => void;
@@ -965,9 +960,9 @@ interface HotelContextType {
   deleteFaq: (id: string) => void;
 
   // Staff & RBAC Management
-  addStaff: (member: Omit<StaffUser, 'id'>) => void;
-  updateStaffRoleAndPermissions: (staffId: string, role: StaffRole, permissions: string[]) => void;
-  deleteStaff: (staffId: string) => void;
+  addStaff: (member: Omit<StaffUser, 'id'> & { password?: string }) => Promise<void> | void;
+  updateStaffRoleAndPermissions: (staffId: string, role: StaffRole, permissions: string[]) => Promise<void> | void;
+  deleteStaff: (staffId: string) => Promise<void> | void;
 
   // Authentication & Staff Session
   isStaffLoggedIn: boolean;
@@ -976,8 +971,8 @@ interface HotelContextType {
   openLoginModal: (preferredRole?: StaffRole) => void;
   closeLoginModal: () => void;
   loginStaff: (usernameOrEmail: string, password: string) => Promise<{ success: boolean; message: string; user?: StaffUser }>;
-  logoutStaff: () => void;
-  changeUserPassword: (userId: string, newPass: string) => void;
+  logoutStaff: () => Promise<void> | void;
+  changeUserPassword: (userId: string, newPass: string) => Promise<void> | void;
 
   // Supabase Sync & Connection
   connectSupabase: (url: string, key: string) => Promise<{ success: boolean; message: string }>;
@@ -1034,16 +1029,16 @@ interface HotelContextType {
 
   // Night Audit
   nightAudits: NightAuditRecord[];
-  runNightAudit: (auditorName: string) => NightAuditRecord;
+  runNightAudit: (auditorName: string, cashDrawerCountedUSD?: number) => NightAuditRecord;
 
   // Fast Role Switcher & Credential Balancing
   fastSwitchRole: (role: StaffRole | 'guest', staffId?: string) => void;
-  updateStaffCredentials: (staffId: string, updates: { username?: string; password?: string; name?: string; role?: StaffRole; status?: 'active' | 'on-leave' | 'inactive'; department?: string }) => void;
+  updateStaffCredentials: (staffId: string, updates: { username?: string; password?: string; name?: string; role?: StaffRole; status?: 'active' | 'on-leave' | 'inactive'; department?: string }) => Promise<void> | void;
   resetAllHotelDataToDefault: () => void;
 
   // Tenant Setup, Multi-Hotel Customization & Mail SMTP
   smtpConfig: SmtpConfig;
-  updateSmtpConfig: (updates: Partial<SmtpConfig>) => void;
+  updateSmtpConfig: (updates: Partial<SmtpConfig>) => Promise<void> | void;
   testSmtpConnection: (
     testEmail?: string,
     overrideConfig?: Partial<SmtpConfig>
@@ -1272,15 +1267,73 @@ interface HotelContextType {
 
 const HotelContext = createContext<HotelContextType | undefined>(undefined);
 
+export const normalizeLegacyCopyText = (val: string): string =>
+  val
+    .replace(/Nepali Heritage & Newari/g, 'Nepali Heritage & Cuisine')
+    .replace(/Rooftop Bar & Beverages/g, 'Ground-Floor Bar & Beverages')
+    .replace(/Newari comfort/gi, 'Nepali comfort')
+    .replace(/Newari woodwork/gi, 'Nepali woodwork')
+    .replace(/Newari fusion classics/gi, 'Nepali heritage classics')
+    .replace(/Nepali Newari Khaja/gi, 'Nepali Khaja')
+    .replace(/Newari Khaja/gi, 'Nepali Khaja')
+    .replace(/Newari Samay Baji/gi, 'Nepali Samay Baji')
+    .replace(/Himalayan Skyline Rooftop Dining/g, 'Ground-Floor Garden Dining')
+    .replace(/Rooftop Dining & Essentials/g, 'Ground-Floor Dining & Essentials')
+    .replace(/Rooftop Mountain & City Restaurant/g, 'Ground-Floor Garden Restaurant')
+    .replace(/Complimentary Rooftop Breakfast/g, 'Complimentary Ground-Floor Breakfast')
+    .replace(/Rooftop Garden Dining/g, 'Ground-Floor Garden Dining')
+    .replace(/Rooftop Garden Restaurant/g, 'Ground-Floor Garden Restaurant')
+    .replace(/Rooftop Dining & Bar Ownership/g, 'Ground-Floor Dining & Bar Ownership')
+    .replace(/Culinary & Rooftop Restaurant/g, 'Culinary & Ground-Floor Restaurant')
+    .replace(/rooftop dining/gi, 'ground-floor dining')
+    .replace(/rooftop cuisine/gi, 'ground-floor cuisine')
+    .replace(/rooftop garden/gi, 'ground-floor garden')
+    .replace(/rooftop mountain views/gi, 'ground-floor garden dining');
+
+export const normalizeLegacyMenuCategory = (category: string): MenuItemCategory => {
+  if (category === 'Nepali Heritage & Newari') return 'Nepali Heritage & Cuisine';
+  if (category === 'Rooftop Bar & Beverages') return 'Ground-Floor Bar & Beverages';
+  return category as MenuItemCategory;
+};
+
+const sanitizeStoredJson = <T,>(raw: string): T => {
+  const cleaned = normalizeLegacyCopyText(raw);
+  return JSON.parse(cleaned) as T;
+};
+
 export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  if (typeof window !== 'undefined' && !localStorage.getItem('kamal_hotel_copy_v4')) {
+    const keysToClean = [
+      'kamal_hotel_rooms_v2',
+      'kamal_hotel_amenities_v2',
+      'kamal_hotel_reviews_v2',
+      'kamal_hotel_faqs_v2',
+      'kamal_hotel_theme_v2',
+      'kamal_hotel_menu_v1',
+      'kamal_hotel_coupons_v1',
+      'kamal_hotel_staff_v3',
+    ];
+    keysToClean.forEach((k) => {
+      const val = localStorage.getItem(k);
+      if (val) {
+        try {
+          localStorage.setItem(k, normalizeLegacyCopyText(val));
+        } catch {
+          // ignore storage quota errors
+        }
+      }
+    });
+    localStorage.setItem('kamal_hotel_copy_v4', '1');
+  }
+
   const [rooms, setRooms] = useState<Room[]>(() => {
     const saved = localStorage.getItem('kamal_hotel_rooms_v2');
-    return saved ? JSON.parse(saved) : INITIAL_ROOMS;
+    return saved ? sanitizeStoredJson<Room[]>(saved) : INITIAL_ROOMS;
   });
 
   const [amenities, setAmenities] = useState<AmenityItem[]>(() => {
     const saved = localStorage.getItem('kamal_hotel_amenities_v2');
-    return saved ? JSON.parse(saved) : INITIAL_AMENITIES;
+    return saved ? sanitizeStoredJson<AmenityItem[]>(saved) : INITIAL_AMENITIES;
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
@@ -1294,7 +1347,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].username) {
-          return parsed;
+          return parsed.map(({ password: _stripped, ...safe }: any) => safe as StaffUser);
         }
       } catch (e) {}
     }
@@ -1326,26 +1379,24 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const parsed = saved ? JSON.parse(saved) : {};
     const envUrl = (import.meta.env.VITE_SUPABASE_URL as string) || '';
     const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
-    const defaultNewHero = './assets/aistudio/hotel_kamal_new_look_6cc0fe47.jpg';
-    const migrationFlag = 'kamal_hotel_hero_migrated_6cc0fe47';
-    const fullBleedMigrationFlag = 'kamal_hotel_hero_fullbleed_v2';
-    let resolvedHeroImage: string = parsed.heroImage || defaultNewHero;
+    const visualRefreshFlag = 'kamal_hotel_visual_refresh_v3';
+    let resolvedHeroImage: string = parsed.heroImage || HERO_IMAGE;
     if (resolvedHeroImage.startsWith('/assets/')) {
       resolvedHeroImage = `.${resolvedHeroImage}`;
     }
 
-    if (!localStorage.getItem(migrationFlag)) {
+    if (!localStorage.getItem(visualRefreshFlag)) {
       if (
         !parsed.heroImage ||
-        parsed.heroImage === HERO_IMAGE ||
-        String(parsed.heroImage).includes('hero_himalayan_boutique') ||
+        String(parsed.heroImage).includes('hotel_kamal_new_look_6cc0fe47') ||
         String(parsed.heroImage).includes('hero_boutique_kathmandu')
       ) {
-        resolvedHeroImage = defaultNewHero;
+        resolvedHeroImage = HERO_IMAGE;
       }
-      localStorage.setItem(migrationFlag, '1');
+      localStorage.setItem(visualRefreshFlag, '1');
     }
 
+    const fullBleedMigrationFlag = 'kamal_hotel_hero_fullbleed_v2';
     let resolvedLayoutMode: 'full_bleed' | 'architectural_showcase' =
       parsed.heroLayoutMode || 'full_bleed';
     if (!localStorage.getItem(fullBleedMigrationFlag)) {
@@ -1353,27 +1404,25 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem(fullBleedMigrationFlag, '1');
     }
 
-    const resolvedCtaButtons = Array.isArray(parsed.heroCtaButtons)
+    const isVerbatimLegacyStock =
+      parsed.heroHeadline === 'Experience Authentic Himalayan Boutique Hospitality in Kathmandu';
+
+    const resolvedCtaButtons = isVerbatimLegacyStock
+      ? DEFAULT_HERO_CTA_BUTTONS
+      : Array.isArray(parsed.heroCtaButtons)
       ? parsed.heroCtaButtons
       : [
           {
             id: 'cta-reserve',
-            label: parsed.heroCtaPrimaryText || 'Reserve Your Sanctuary',
+            label: parsed.heroCtaPrimaryText || 'Book Your Stay',
             action: 'booking_modal' as const,
             variant: 'primary' as const,
             enabled: true,
           },
           {
-            id: 'cta-portal',
-            label: 'In-House Guest Room Portal',
-            action: 'guest_portal' as const,
-            variant: 'amber_outline' as const,
-            enabled: true,
-          },
-          {
-            id: 'cta-dining',
-            label: parsed.heroCtaSecondaryText || 'Explore Rooftop Dining',
-            action: 'scroll_dining' as const,
+            id: 'cta-rooms',
+            label: parsed.heroCtaSecondaryText || 'Explore Suites',
+            action: 'scroll_rooms' as const,
             variant: 'glass_light' as const,
             enabled: true,
           },
@@ -1383,14 +1432,26 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const merged: HotelThemeConfig = {
       ...INITIAL_THEME,
       ...parsed,
+      ...(isVerbatimLegacyStock
+        ? {
+            heroKickerBadge: INITIAL_THEME.heroKickerBadge,
+            heroHeadline: INITIAL_THEME.heroHeadline,
+            heroSubheadline: INITIAL_THEME.heroSubheadline,
+            heroCtaPrimaryText: INITIAL_THEME.heroCtaPrimaryText,
+            heroCtaSecondaryText: INITIAL_THEME.heroCtaSecondaryText,
+          }
+        : {}),
       heroImage: resolvedHeroImage,
       heroLayoutMode: resolvedLayoutMode,
-      heroBackgroundFit: parsed.heroBackgroundFit || 'whole_building',
+      heroBackgroundFit:
+        !parsed.heroBackgroundFit || parsed.heroBackgroundFit === 'whole_building'
+          ? 'cover'
+          : parsed.heroBackgroundFit,
       heroImagePosition: parsed.heroImagePosition || 'center',
       heroCtaButtons: resolvedCtaButtons,
       palette: parsed.palette === 'royal-maroon' || !parsed.palette ? 'bright-himalayan-gold' : parsed.palette,
       brightnessMode: parsed.brightnessMode || 'warm-sunlit',
-      heroOverlayOpacity: typeof parsed.heroOverlayOpacity === 'number' ? parsed.heroOverlayOpacity : 0.32,
+      heroOverlayOpacity: typeof parsed.heroOverlayOpacity === 'number' ? parsed.heroOverlayOpacity : 0.38,
     };
     return {
       ...merged,
@@ -1404,32 +1465,349 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return (localStorage.getItem('kamal_hotel_currency') as CurrencyCode) || 'NPR';
   });
 
-  const [activeRole, setActiveRole] = useState<StaffRole | 'guest'>(() => {
-    const savedSession = localStorage.getItem('kamal_hotel_session');
-    if (savedSession) {
-      try {
-        const parsed = JSON.parse(savedSession);
-        return parsed.role || 'guest';
-      } catch (e) {}
-    }
-    return 'guest';
-  });
+  const [activeRole, setActiveRole] = useState<StaffRole | 'guest'>('guest');
+  const [activeUser, setActiveUser] = useState<StaffUser | null>(null);
+  const [isStaffLoggedIn, setIsStaffLoggedIn] = useState<boolean>(false);
 
-  const [activeUser, setActiveUser] = useState<StaffUser | null>(() => {
-    const savedSession = localStorage.getItem('kamal_hotel_session');
-    if (savedSession) {
+  const hydrateAuthorizedStaffContext = async (role: StaffRole) => {
+    if (role === 'super_admin' || role === 'admin' || role === 'hotel_manager') {
       try {
-        const parsed = JSON.parse(savedSession);
-        const found = INITIAL_STAFF.find((s) => s.id === parsed.userId || s.role === parsed.role);
-        return found || INITIAL_STAFF[0];
-      } catch (e) {}
+        const staffRes = await fetch('/api/auth/staff', { credentials: 'include' });
+        if (staffRes.ok) {
+          const staffData = await staffRes.json().catch(() => null);
+          if (Array.isArray(staffData?.staff) && staffData.staff.length > 0) {
+            setStaff(staffData.staff);
+          }
+        }
+      } catch {
+        // Keep current roster if backend offline
+      }
     }
-    return null;
-  });
+    if (role === 'super_admin' || role === 'admin') {
+      try {
+        const smtpRes = await fetch('/api/settings/smtp', { credentials: 'include' });
+        if (smtpRes.ok) {
+          const smtpData = await smtpRes.json().catch(() => null);
+          if (smtpData?.smtp) {
+            setSmtpConfig((prev) => ({
+              ...prev,
+              ...smtpData.smtp,
+              smtpPassword: '',
+            }));
+          }
+        }
+      } catch {
+        // Ignore fetch failure
+      }
+    }
+  };
 
-  const [isStaffLoggedIn, setIsStaffLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem('kamal_hotel_session') !== null;
-  });
+  const [backendConnected, setBackendConnected] = useState<boolean>(false);
+  const backendAvailableRef = useRef<boolean>(false);
+
+  const persistCollectionItem = (collection: string, id: string, payload: unknown) => {
+    if (!backendAvailableRef.current || !id) return;
+    fetch(`/api/pms/collection/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  };
+
+  const removeCollectionItem = (collection: string, id: string) => {
+    if (!backendAvailableRef.current || !id) return;
+    fetch(`/api/pms/collection/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    }).catch(() => {});
+  };
+
+  const persistSetting = (settingKey: 'theme' | 'bill' | 'floors', payload: unknown) => {
+    if (!backendAvailableRef.current) return;
+    fetch(`/api/pms/settings/${settingKey}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  };
+
+  const refreshBootstrapFromServer = async () => {
+    try {
+      const res = await fetch('/api/pms/bootstrap', { credentials: 'include' });
+      const contentType = res.headers.get('content-type') || '';
+      if (!res.ok || !contentType.includes('application/json')) return;
+      const data = await res.json().catch(() => null);
+      if (!data?.ok) return;
+
+      backendAvailableRef.current = true;
+      setBackendConnected(true);
+
+      if (data.themeConfig) setThemeConfig((prev) => ({ ...prev, ...data.themeConfig }));
+      if (data.billSettings) setBillSettings((prev) => ({ ...prev, ...data.billSettings }));
+      if (Array.isArray(data.floors)) setFloors(data.floors);
+      if (Array.isArray(data.rooms)) setRooms(data.rooms);
+      if (Array.isArray(data.amenities)) setAmenities(data.amenities);
+      if (Array.isArray(data.reviews)) setReviews(data.reviews);
+      if (Array.isArray(data.faqs)) setFaqs(data.faqs);
+      if (Array.isArray(data.coupons)) setCoupons(data.coupons);
+      if (Array.isArray(data.menuItems)) {
+        setMenuItems(
+          data.menuItems.map((m: MenuItem) => ({
+            ...m,
+            category: normalizeLegacyMenuCategory(String(m.category)),
+          }))
+        );
+      }
+      if (Array.isArray(data.tables)) setRestaurantTables(data.tables);
+
+      if (data.scope === 'staff') {
+        if (Array.isArray(data.roomUnits)) setRoomUnits(data.roomUnits);
+        if (Array.isArray(data.bookings)) setBookings(data.bookings);
+        if (Array.isArray(data.staff)) setStaff(data.staff);
+        if (Array.isArray(data.invoices)) setInvoices(data.invoices);
+        if (Array.isArray(data.restaurantOrders)) setRestaurantOrders(data.restaurantOrders);
+        if (Array.isArray(data.stockItems)) setStockItems(data.stockItems);
+        if (Array.isArray(data.floorSupplies)) setFloorSupplies(data.floorSupplies);
+        if (Array.isArray(data.lostAndFound)) setLostAndFound(data.lostAndFound);
+        if (Array.isArray(data.shiftHandovers)) setShiftHandovers(data.shiftHandovers);
+        if (Array.isArray(data.nightAudits)) setNightAudits(data.nightAudits);
+        if (Array.isArray(data.staffShifts)) setStaffShifts(data.staffShifts);
+        if (Array.isArray(data.staffAvailability)) setStaffAvailability(data.staffAvailability);
+        if (Array.isArray(data.surveys)) setSurveys(data.surveys);
+        if (Array.isArray(data.digitalKeycards)) setDigitalKeycards(data.digitalKeycards);
+        if (Array.isArray(data.doorUnlockLogs)) setDoorUnlockLogs(data.doorUnlockLogs);
+        if (Array.isArray(data.maintenanceTickets)) setMaintenanceTickets(data.maintenanceTickets);
+        if (Array.isArray(data.rewardsMembers)) setLoyaltyMembers(data.rewardsMembers);
+        if (Array.isArray(data.wakeUpCalls)) setWakeUpCalls(data.wakeUpCalls);
+        if (Array.isArray(data.deepCleaningSchedules)) setDeepCleaningSchedules(data.deepCleaningSchedules);
+        if (Array.isArray(data.expressTurnovers)) setExpressTurnovers(data.expressTurnovers);
+        if (Array.isArray(data.roomServiceRequests)) setRoomServiceRequests(data.roomServiceRequests);
+        if (Array.isArray(data.vipProfiles)) setVipGuestProfiles(data.vipProfiles);
+        if (Array.isArray(data.guestSessions)) setGuestSessions(data.guestSessions);
+        if (Array.isArray(data.guestChatMessages)) setGuestChatMessages(data.guestChatMessages);
+        if (Array.isArray(data.operationalAlerts)) setOperationalAlerts(data.operationalAlerts);
+        if (Array.isArray(data.notifications)) setNotifications(data.notifications);
+        if (Array.isArray(data.auditLogs)) setAuditLogs(data.auditLogs);
+      } else {
+        if (Array.isArray(data.roomUnitsSummary)) {
+          setRoomUnits(data.roomUnitsSummary);
+        }
+        // Clear PII operational arrays for unauthenticated visitors
+        setBookings([]);
+        setInvoices([]);
+        setGuestSessions([]);
+        setAuditLogs([]);
+        setNotifications([]);
+      }
+    } catch {
+      // Offline / static host mode fallback
+    }
+  };
+
+  // Verify HttpOnly session cookie with server on boot & handle expiration
+  useEffect(() => {
+    localStorage.removeItem('kamal_hotel_session');
+    let active = true;
+    let expiryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const verifySession = async () => {
+      await refreshBootstrapFromServer();
+      try {
+        const res = await fetch('/api/auth/session', { credentials: 'include' });
+        if (!active) return;
+        if (!res.ok) {
+          setActiveRole('guest');
+          setActiveUser(null);
+          setIsStaffLoggedIn(false);
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        if (!active || !data?.authenticated || !data?.user) {
+          setActiveRole('guest');
+          setActiveUser(null);
+          setIsStaffLoggedIn(false);
+          return;
+        }
+
+        const user = data.user as StaffUser;
+        setActiveUser(user);
+        setActiveRole(user.role);
+        setIsStaffLoggedIn(true);
+        await hydrateAuthorizedStaffContext(user.role);
+
+        if (typeof data.expiresAt === 'number') {
+          const msRemaining = Math.max(0, data.expiresAt - Date.now());
+          if (msRemaining === 0) {
+            setActiveRole('guest');
+            setActiveUser(null);
+            setIsStaffLoggedIn(false);
+          } else {
+            expiryTimer = setTimeout(() => {
+              if (!active) return;
+              setActiveRole('guest');
+              setActiveUser(null);
+              setIsStaffLoggedIn(false);
+              showToast('Session Expired', 'Please sign in again to continue.', 'warning');
+            }, msRemaining);
+          }
+        }
+      } catch {
+        if (!active) return;
+        setActiveRole('guest');
+        setActiveUser(null);
+        setIsStaffLoggedIn(false);
+      }
+    };
+
+    verifySession();
+    return () => {
+      active = false;
+      if (expiryTimer) clearTimeout(expiryTimer);
+    };
+  }, []);
+
+  // Real-time multi-device WebSocket sync when backend is reachable
+  useEffect(() => {
+    if (!backendConnected || typeof window === 'undefined' || !('WebSocket' in window)) return;
+    let ws: WebSocket | null = null;
+    let closedByCleanup = false;
+    let reconnectDelay = 2000;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const upsertItem = <T extends { id: string }>(arr: T[], item: T, prepend = true): T[] => {
+      const idx = arr.findIndex((x) => x.id === item.id);
+      if (idx >= 0) {
+        const copy = [...arr];
+        copy[idx] = item;
+        return copy;
+      }
+      return prepend ? [item, ...arr] : [...arr, item];
+    };
+
+    const connect = () => {
+      if (closedByCleanup) return;
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${proto}//${window.location.host}/ws`);
+      ws.onopen = () => {
+        reconnectDelay = 2000;
+      };
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          const { event, payload } = msg || {};
+          if (!event) return;
+          if (event === 'booking:created' && payload?.booking) {
+            setBookings((prev) => upsertItem(prev, payload.booking));
+            if (payload.invoice) setInvoices((prev) => upsertItem(prev, payload.invoice));
+            if (payload.guestSession) {
+              setGuestSessions((prev) => [
+                payload.guestSession,
+                ...prev.filter((s) => s.roomNumber !== payload.guestSession.roomNumber),
+              ]);
+            }
+            if (payload.booking.assignedRoomNumber) {
+              setRoomUnits((prev) =>
+                prev.map((u) =>
+                  u.roomNumber === payload.booking.assignedRoomNumber
+                    ? {
+                        ...u,
+                        occupancyStatus: 'reserved',
+                        currentGuestName: payload.booking.guestName,
+                        currentBookingCode: payload.booking.bookingCode,
+                      }
+                    : u
+                )
+              );
+            }
+            const popupPayload = { booking: payload.booking, triggeredAt: new Date().toISOString() };
+            setLatestBookingPopup(popupPayload);
+          } else if (event === 'booking:updated' && payload?.booking) {
+            setBookings((prev) => upsertItem(prev, payload.booking));
+            if (payload.updatedUnit) {
+              setRoomUnits((prev) => upsertItem(prev, payload.updatedUnit, false));
+            }
+          } else if ((event === 'payment:recorded' || event === 'invoice:updated') && payload) {
+            if (payload.invoice) setInvoices((prev) => upsertItem(prev, payload.invoice));
+            if (payload.booking) setBookings((prev) => upsertItem(prev, payload.booking));
+          } else if (event === 'theme:updated' && payload) {
+            setThemeConfig((prev) => ({ ...prev, ...payload }));
+          } else if (event === 'billSettings:updated' && payload) {
+            setBillSettings((prev) => ({ ...prev, ...payload }));
+          } else if (event === 'floors:updated' && Array.isArray(payload)) {
+            setFloors(payload);
+          } else if (event === 'nightAudit:completed' && payload) {
+            setNightAudits((prev) => upsertItem(prev, payload));
+          } else if (event === 'order:created' && payload) {
+            setRestaurantOrders((prev) => upsertItem(prev, payload));
+          } else if (event === 'chat:message' && payload) {
+            setGuestChatMessages((prev) => upsertItem(prev, payload, false));
+          } else if (typeof event === 'string' && event.startsWith('collection:')) {
+            const parts = event.split(':');
+            const col = parts[1];
+            const op = parts[2];
+            const item = payload?.item;
+            const id = payload?.id;
+            const mapSet: Record<string, React.Dispatch<React.SetStateAction<any[]>>> = {
+              rooms: setRooms,
+              amenities: setAmenities,
+              reviews: setReviews,
+              faqs: setFaqs,
+              coupons: setCoupons,
+              roomUnits: setRoomUnits,
+              menuItems: setMenuItems,
+              tables: setRestaurantTables,
+              restaurantOrders: setRestaurantOrders,
+              stockItems: setStockItems,
+              floorSupplies: setFloorSupplies,
+              lostAndFound: setLostAndFound,
+              shiftHandovers: setShiftHandovers,
+              nightAudits: setNightAudits,
+              staffShifts: setStaffShifts,
+              staffAvailability: setStaffAvailability,
+              surveys: setSurveys,
+              digitalKeycards: setDigitalKeycards,
+              maintenanceTickets: setMaintenanceTickets,
+              rewardsMembers: setLoyaltyMembers,
+              wakeUpCalls: setWakeUpCalls,
+              deepCleaningSchedules: setDeepCleaningSchedules,
+              expressTurnovers: setExpressTurnovers,
+              roomServiceRequests: setRoomServiceRequests,
+              vipProfiles: setVipGuestProfiles,
+              invoices: setInvoices,
+              guestChatMessages: setGuestChatMessages,
+              operationalAlerts: setOperationalAlerts,
+            };
+            const setter = mapSet[col];
+            if (setter) {
+              if (op === 'updated' && item) {
+                setter((prev) => upsertItem(prev, item));
+              } else if (op === 'deleted' && id) {
+                setter((prev) => prev.filter((x) => x.id !== id));
+              }
+            }
+          }
+        } catch {
+          // Ignore malformed WS messages
+        }
+      };
+      ws.onclose = () => {
+        if (closedByCleanup) return;
+        timer = setTimeout(() => {
+          reconnectDelay = Math.min(30000, reconnectDelay * 1.5);
+          connect();
+        }, reconnectDelay);
+      };
+    };
+
+    connect();
+    return () => {
+      closedByCleanup = true;
+      if (timer) clearTimeout(timer);
+      if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+    };
+  }, [backendConnected, isStaffLoggedIn]);
 
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [loginModalTargetRole, setLoginModalTargetRole] = useState<StaffRole | undefined>(undefined);
@@ -1541,7 +1919,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           setThemeConfig(val);
           break;
         case 'kamal_hotel_smtp_v1':
-          setSmtpConfig(val);
+          if (val && typeof val === 'object') {
+            setSmtpConfig({ ...val, smtpPassword: '' });
+          }
           break;
       }
     };
@@ -1568,7 +1948,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('kamal_hotel_coupons_v1', JSON.stringify(coupons));
   }, [coupons]);
 
-  // SMTP Mail Gateway state
+  // SMTP Mail Gateway state (secrets live encrypted on the backend — NEVER in localStorage)
   const [smtpConfig, setSmtpConfig] = useState<SmtpConfig>(() => {
     const saved = localStorage.getItem('kamal_hotel_smtp_v1');
     const defaults: SmtpConfig = {
@@ -1577,6 +1957,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       smtpPort: 587,
       smtpUser: '',
       smtpPassword: '',
+      hasStoredPassword: false,
       senderEmail: 'hotelkamal.np@gmail.com',
       senderName: 'Kamal Hotel Reservations',
       replyToEmail: 'hotelkamal.np@gmail.com',
@@ -1591,12 +1972,10 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Partial<SmtpConfig>;
-        if (parsed.smtpPassword === 'SG.demo_key_hotel_gateway') {
-          return defaults;
-        }
         return {
           ...defaults,
           ...parsed,
+          smtpPassword: '',
           sendBookingConfirmationEmail: parsed.sendBookingConfirmationEmail !== false,
           otpExpiryMinutes: parsed.otpExpiryMinutes || 10,
         };
@@ -1606,7 +1985,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   useEffect(() => {
-    localStorage.setItem('kamal_hotel_smtp_v1', JSON.stringify(smtpConfig));
+    const { smtpPassword: _neverStoreSecret, ...safeToStore } = smtpConfig;
+    localStorage.setItem('kamal_hotel_smtp_v1', JSON.stringify(safeToStore));
   }, [smtpConfig]);
 
   // Sync dark mode class
@@ -1634,7 +2014,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [bookings]);
 
   useEffect(() => {
-    localStorage.setItem('kamal_hotel_staff_v3', JSON.stringify(staff));
+    const scrubbed = staff.map(({ ...member }) => member);
+    localStorage.setItem('kamal_hotel_staff_v3', JSON.stringify(scrubbed));
   }, [staff]);
 
   useEffect(() => {
@@ -1664,7 +2045,16 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // ----------------- RESTAURANT & DINING STATE -----------------
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
     const saved = localStorage.getItem('kamal_hotel_menu_v1');
-    return saved ? JSON.parse(saved) : INITIAL_MENU_ITEMS;
+    if (!saved) return INITIAL_MENU_ITEMS;
+    try {
+      const parsed = sanitizeStoredJson<MenuItem[]>(saved);
+      return parsed.map((m) => ({
+        ...m,
+        category: normalizeLegacyMenuCategory(String(m.category)),
+      }));
+    } catch {
+      return INITIAL_MENU_ITEMS;
+    }
   });
 
   const [restaurantOrders, setRestaurantOrders] = useState<RestaurantOrder[]>(() => {
@@ -2080,7 +2470,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
 
     // Auto generate/sync guest session passcode and linked invoice room
-    generateNewRoomPasscode(roomNumber, targetBooking.bookingCode, targetBooking.guestName);
+    const issuedPin = generateNewRoomPasscode(roomNumber, targetBooking.bookingCode, targetBooking.guestName);
 
     setInvoices((prev) =>
       prev.map((inv) =>
@@ -2089,6 +2479,16 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           : inv
       )
     );
+
+    if (backendAvailableRef.current) {
+      fetch(`/api/bookings/${encodeURIComponent(bookingId)}/assign-room`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ roomNumber }),
+      }).catch(() => {});
+      persistCollectionItem('guestSessions', roomNumber, issuedPin);
+    }
 
     dispatchOperationalAlert({
       title: `Room ${roomNumber} Assigned`,
@@ -2313,7 +2713,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       recipient: newBooking.guestPhone,
       channel: 'whatsapp',
       subject: `WhatsApp Hospitality Voucher [${bookingCode}]`,
-      message: `Welcome to Kamal Hotel! We have prepared your itinerary, Kamalpokhari location map, airport transfer instructions, and rooftop preview pass. Chat with our concierge here 24/7!`,
+      message: `Welcome to Kamal Hotel! We have prepared your itinerary, Kamalpokhari location map, airport transfer instructions, and ground-floor dining preview pass. Chat with our concierge here 24/7!`,
       status: 'delivered',
       bookingCode,
     };
@@ -2376,73 +2776,130 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return newBooking;
   };
 
-  const updateBookingStatus = (bookingId: string, status: BookingStatus) => {
-    const target = bookings.find((b) => b.id === bookingId);
-    
-    setBookings((prev) =>
-      prev.map((b) => {
-        if (b.id === bookingId) {
-          return { ...b, bookingStatus: status };
-        }
-        return b;
-      })
-    );
+    const applyServerCreatedBooking: HotelContextType['applyServerCreatedBooking'] = ({
+      booking,
+      invoice,
+      guestSession,
+    }) => {
+      setBookings((prev) => {
+        const filtered = prev.filter((b) => b.id !== booking.id && b.bookingCode !== booking.bookingCode);
+        return [booking, ...filtered];
+      });
 
-    if (target) {
-      if (status === 'checked-in') {
-        if (target.assignedRoomNumber) {
-          checkInRoomUnit(target.assignedRoomNumber, target.guestName, target.bookingCode);
-        }
-        triggerVipCheckInAlertIfFlagged({
-          guestName: target.guestName,
-          guestEmail: target.guestEmail,
-          guestPhone: target.guestPhone,
-          roomNumber: target.assignedRoomNumber,
-          bookingCode: target.bookingCode,
-        });
-        dispatchOperationalAlert({
-          title: 'Guest Check-In Completed',
-          message: `${target.guestName} checked in (${target.bookingCode})${target.assignedRoomNumber ? ` to Room ${target.assignedRoomNumber}` : ''}. Keycard & passcode active.`,
-          type: 'check_in',
-          targetRoles: ['super_admin', 'admin', 'hotel_manager', 'receptionist', 'restaurant_owner'],
-          bookingCode: target.bookingCode,
-          roomNumber: target.assignedRoomNumber,
-        });
-      } else if (status === 'checked-out') {
-        if (target.assignedRoomNumber) {
-          checkOutRoomUnit(target.assignedRoomNumber);
-          checkoutAndResetRoomPasscode(target.assignedRoomNumber);
-        } else {
-          triggerPostCheckoutSurvey({
-            bookingCode: target.bookingCode,
-            roomNumber: 'Unassigned',
-            roomName: target.roomName,
-            guestName: target.guestName,
-            guestEmail: target.guestEmail,
-            guestPhone: target.guestPhone,
-            checkOutDate: target.checkOutDate,
-            channels: ['email', 'sms'],
-            triggerMode: 'auto_checkout',
-          });
-        }
-        dispatchOperationalAlert({
-          title: 'Guest Check-Out Completed',
-          message: `${target.guestName} checked out (${target.bookingCode})${target.assignedRoomNumber ? ` from Room ${target.assignedRoomNumber}` : ''}. Room marked for turnaround.`,
-          type: 'check_out',
-          targetRoles: ['super_admin', 'admin', 'hotel_manager', 'receptionist', 'restaurant_owner', 'housekeeping'],
-          bookingCode: target.bookingCode,
-          roomNumber: target.assignedRoomNumber,
+      if (booking.assignedRoomNumber) {
+        setRoomUnits((prev) =>
+          prev.map((u) =>
+            u.roomNumber === booking.assignedRoomNumber
+              ? {
+                  ...u,
+                  occupancyStatus: 'reserved',
+                  currentGuestName: booking.guestName,
+                  currentBookingCode: booking.bookingCode,
+                }
+              : u
+          )
+        );
+      }
+
+      if (invoice) {
+        setInvoices((prev) => {
+          const filtered = prev.filter((i) => i.id !== invoice.id);
+          return [invoice, ...filtered];
         });
       }
 
-      addAuditLog(
-        `Booking Status Changed: ${status}`,
-        'booking',
-        `Reservation ${target.bookingCode} for ${target.guestName} status changed to ${status}.`
+      if (guestSession) {
+        setGuestSessions((prev) => [
+          guestSession,
+          ...prev.filter((s) => s.roomNumber !== guestSession.roomNumber),
+        ]);
+      }
+
+      const popupPayload = { booking, triggeredAt: new Date().toISOString() };
+      setLatestBookingPopup(popupPayload);
+      showToast(
+        'Reservation Confirmed!',
+        `Booking ${booking.bookingCode} saved${booking.assignedRoomNumber ? ` · Room ${booking.assignedRoomNumber} Assigned` : ''}.`,
+        'success'
       );
-      showToast('Booking Updated', `Status changed to ${status.toUpperCase()} for ${target.guestName}`);
-    }
-  };
+    };
+
+    const updateBookingStatus = (bookingId: string, status: BookingStatus) => {
+      const target = bookings.find((b) => b.id === bookingId);
+
+      setBookings((prev) =>
+        prev.map((b) => {
+          if (b.id === bookingId) {
+            return { ...b, bookingStatus: status };
+          }
+          return b;
+        })
+      );
+
+      if (backendAvailableRef.current) {
+        fetch(`/api/bookings/${encodeURIComponent(bookingId)}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status }),
+        }).catch(() => {});
+      }
+
+      if (target) {
+        if (status === 'checked-in') {
+          if (target.assignedRoomNumber) {
+            checkInRoomUnit(target.assignedRoomNumber, target.guestName, target.bookingCode);
+          }
+          triggerVipCheckInAlertIfFlagged({
+            guestName: target.guestName,
+            guestEmail: target.guestEmail,
+            guestPhone: target.guestPhone,
+            roomNumber: target.assignedRoomNumber,
+            bookingCode: target.bookingCode,
+          });
+          dispatchOperationalAlert({
+            title: 'Guest Check-In Completed',
+            message: `${target.guestName} checked in (${target.bookingCode})${target.assignedRoomNumber ? ` to Room ${target.assignedRoomNumber}` : ''}. Keycard & passcode active.`,
+            type: 'check_in',
+            targetRoles: ['super_admin', 'admin', 'hotel_manager', 'receptionist', 'restaurant_owner'],
+            bookingCode: target.bookingCode,
+            roomNumber: target.assignedRoomNumber,
+          });
+        } else if (status === 'checked-out') {
+          if (target.assignedRoomNumber) {
+            checkOutRoomUnit(target.assignedRoomNumber);
+            checkoutAndResetRoomPasscode(target.assignedRoomNumber);
+          } else {
+            triggerPostCheckoutSurvey({
+              bookingCode: target.bookingCode,
+              roomNumber: 'Unassigned',
+              roomName: target.roomName,
+              guestName: target.guestName,
+              guestEmail: target.guestEmail,
+              guestPhone: target.guestPhone,
+              checkOutDate: target.checkOutDate,
+              channels: ['email', 'sms'],
+              triggerMode: 'auto_checkout',
+            });
+          }
+          dispatchOperationalAlert({
+            title: 'Guest Check-Out Completed',
+            message: `${target.guestName} checked out (${target.bookingCode})${target.assignedRoomNumber ? ` from Room ${target.assignedRoomNumber}` : ''}. Room marked for turnaround.`,
+            type: 'check_out',
+            targetRoles: ['super_admin', 'admin', 'hotel_manager', 'receptionist', 'restaurant_owner', 'housekeeping'],
+            bookingCode: target.bookingCode,
+            roomNumber: target.assignedRoomNumber,
+          });
+        }
+
+        addAuditLog(
+          `Booking Status Changed: ${status}`,
+          'booking',
+          `Reservation ${target.bookingCode} for ${target.guestName} status changed to ${status}.`
+        );
+        showToast('Booking Updated', `Status changed to ${status.toUpperCase()} for ${target.guestName}`);
+      }
+    };
 
   const markBookingEmailSent = (bookingId: string, sent: boolean) => {
     setBookings((prev) =>
@@ -2463,6 +2920,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const res = await fetch('/api/bookings/send-confirmation-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           bookingCode: booking.bookingCode,
           guestName: booking.guestName,
@@ -2498,7 +2956,6 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           checkInTime: themeConfig.checkInTime,
           checkOutTime: themeConfig.checkOutTime,
           googleMapsUrl: themeConfig.googleMapsUrl,
-          smtpConfig,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -2552,6 +3009,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // CMS Updates
   const updateThemeConfig = (updates: Partial<HotelThemeConfig>) => {
     setThemeConfig((prev) => ({ ...prev, ...updates }));
+    persistSetting('theme', updates);
     addAuditLog('CMS Configuration Updated', 'cms', `Updated fields: ${Object.keys(updates).join(', ')}`);
     showToast('Settings Saved', 'Landing page content, rates, or theme updated dynamically.');
   };
@@ -2562,11 +3020,14 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: 'room-' + Math.random().toString(36).substring(2, 9),
     };
     setRooms((prev) => [...prev, newRoom]);
+    persistCollectionItem('rooms', newRoom.id, newRoom);
     addAuditLog('New Room Created', 'cms', `Added room "${newRoom.name}" ($${newRoom.pricePerNightUSD}/night)`);
     showToast('Room Added', `${newRoom.name} added to catalog.`);
   };
 
   const updateRoom = (roomId: string, updates: Partial<Room>) => {
+    const existing = rooms.find((r) => r.id === roomId);
+    const updated = existing ? { ...existing, ...updates } : { id: roomId, ...updates };
     setRooms((prev) =>
       prev.map((r) => {
         if (r.id === roomId) {
@@ -2575,6 +3036,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return r;
       })
     );
+    persistCollectionItem('rooms', roomId, updated);
     const target = rooms.find((r) => r.id === roomId);
     addAuditLog('Room Specifications Modified', 'cms', `Updated "${target?.name || roomId}"`);
     showToast('Room Updated', 'Changes saved to live directory.');
@@ -2583,6 +3045,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteRoom = (roomId: string) => {
     const target = rooms.find((r) => r.id === roomId);
     setRooms((prev) => prev.filter((r) => r.id !== roomId));
+    removeCollectionItem('rooms', roomId);
     addAuditLog('Room Removed', 'cms', `Deleted room "${target?.name || roomId}" from active catalog.`);
     showToast('Room Deleted', `Removed from hotel inventory.`);
   };
@@ -2593,18 +3056,16 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: 'amenity-' + Math.random().toString(36).substring(2, 9),
     };
     setAmenities((prev) => [...prev, newAmenity]);
+    persistCollectionItem('amenities', newAmenity.id, newAmenity);
     addAuditLog('Amenity Added', 'cms', `Added hotel facility: "${newAmenity.name}"`);
     showToast('Amenity Added', `${newAmenity.name} is now visible to guests.`);
   };
 
   const updateAmenity = (amenityId: string, updates: Partial<AmenityItem>) => {
+    const existing = amenities.find((a) => a.id === amenityId);
+    if (existing) persistCollectionItem('amenities', amenityId, { ...existing, ...updates });
     setAmenities((prev) =>
-      prev.map((a) => {
-        if (a.id === amenityId) {
-          return { ...a, ...updates };
-        }
-        return a;
-      })
+      prev.map((a) => (a.id === amenityId ? { ...a, ...updates } : a))
     );
     addAuditLog('Amenity Modified', 'cms', `Updated amenity ${amenityId}`);
     showToast('Amenity Updated', 'Details refreshed.');
@@ -2612,6 +3073,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteAmenity = (amenityId: string) => {
     setAmenities((prev) => prev.filter((a) => a.id !== amenityId));
+    removeCollectionItem('amenities', amenityId);
     addAuditLog('Amenity Removed', 'cms', `Deleted amenity ${amenityId}`);
     showToast('Amenity Removed', 'Amenity deleted.');
   };
@@ -2624,11 +3086,14 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       date: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
     };
     setReviews((prev) => [newReview, ...prev]);
+    persistCollectionItem('reviews', newReview.id, newReview);
     addAuditLog('Guest Review Added', 'cms', `Added review by ${newReview.author}`);
     showToast('Review Added', 'Review published to landing page.');
   };
 
   const updateReview = (id: string, updates: Partial<GuestReview>) => {
+    const existing = reviews.find((r) => r.id === id);
+    if (existing) persistCollectionItem('reviews', id, { ...existing, ...updates });
     setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)));
     addAuditLog('Guest Review Modified', 'cms', `Updated review ${id}`);
     showToast('Review Updated', 'Review changes saved.');
@@ -2636,6 +3101,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteReview = (id: string) => {
     setReviews((prev) => prev.filter((r) => r.id !== id));
+    removeCollectionItem('reviews', id);
     addAuditLog('Guest Review Deleted', 'cms', `Removed review ${id}`);
     showToast('Review Removed', 'Review deleted from site.');
   };
@@ -2647,11 +3113,14 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: 'faq-' + Math.random().toString(36).substring(2, 9),
     };
     setFaqs((prev) => [...prev, newFaq]);
+    persistCollectionItem('faqs', newFaq.id, newFaq);
     addAuditLog('FAQ Added', 'cms', `Added FAQ: "${newFaq.question}"`);
     showToast('FAQ Added', 'FAQ added to landing page.');
   };
 
   const updateFaq = (id: string, updates: Partial<FaqItem>) => {
+    const existing = faqs.find((f) => f.id === id);
+    if (existing) persistCollectionItem('faqs', id, { ...existing, ...updates });
     setFaqs((prev) => prev.map((f) => (f.id === id ? { ...f, ...updates } : f)));
     addAuditLog('FAQ Modified', 'cms', `Updated FAQ ${id}`);
     showToast('FAQ Updated', 'FAQ changes saved.');
@@ -2659,55 +3128,91 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteFaq = (id: string) => {
     setFaqs((prev) => prev.filter((f) => f.id !== id));
+    removeCollectionItem('faqs', id);
     addAuditLog('FAQ Deleted', 'cms', `Deleted FAQ ${id}`);
     showToast('FAQ Removed', 'FAQ removed from landing page.');
   };
 
-  // Staff & RBAC
-  const addStaff = (userData: Omit<StaffUser, 'id' | 'lastActive'>) => {
-    const newUser: StaffUser = {
-      ...userData,
-      id: 'staff-' + Math.random().toString(36).substring(2, 9),
-      lastActive: 'Just registered',
-    };
-    setStaff((prev) => [...prev, newUser]);
-    addAuditLog('Staff Member Added', 'staff', `Added ${newUser.name} with role ${newUser.role}`);
-    showToast('Staff Member Added', `${newUser.name} added to hotel operations team.`);
+  // Staff & RBAC (server-enforced Super Admin routes)
+  const addStaff = async (userData: Omit<StaffUser, 'id' | 'lastActive'> & { password?: string }) => {
+    try {
+      const res = await fetch('/api/auth/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: userData.name,
+          username: userData.username,
+          email: userData.email,
+          phone: userData.phone,
+          password: userData.password,
+          role: userData.role,
+          department: userData.department,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok || !data?.user) {
+        showToast('Access Denied', data?.error || 'Super Admin authentication required to create staff accounts.', 'error');
+        return;
+      }
+      setStaff((prev) => [...prev, data.user as StaffUser]);
+      addAuditLog('Staff Member Added', 'staff', `Added ${data.user.name} with role ${data.user.role}`);
+      showToast('Staff Member Added', `${data.user.name} added to hotel operations team.`, 'success');
+    } catch {
+      showToast('Network Error', 'Unable to reach authentication server to add staff account.', 'error');
+    }
   };
 
-  const updateStaffRoleAndPermissions = (
+  const updateStaffRoleAndPermissions = async (
     staffId: string,
     role: StaffRole,
     permissions: string[],
     status?: 'active' | 'on-leave' | 'inactive'
   ) => {
-    setStaff((prev) =>
-      prev.map((s) => {
-        if (s.id === staffId) {
-          return {
-            ...s,
-            role,
-            permissions,
-            status: status || s.status,
-          };
-        }
-        return s;
-      })
-    );
-    const target = staff.find((s) => s.id === staffId);
-    addAuditLog(
-      'Staff Role & RBAC Updated',
-      'security',
-      `Updated role for ${target?.name} to "${role}" with ${permissions.length} granular permissions.`
-    );
-    showToast('Permissions Updated', `Role updated for ${target?.name}`);
+    try {
+      const res = await fetch(`/api/auth/staff/${encodeURIComponent(staffId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ role, status }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok || !data?.user) {
+        showToast('Access Denied', data?.error || 'Super Admin privileges required to change staff roles.', 'error');
+        return;
+      }
+      setStaff((prev) =>
+        prev.map((s) => (s.id === staffId ? { ...(data.user as StaffUser), permissions: data.user.permissions || permissions } : s))
+      );
+      addAuditLog(
+        'Staff Role & RBAC Updated',
+        'security',
+        `Updated role for ${data.user.name} to "${role}" (${permissions.length} permissions).`
+      );
+      showToast('Permissions Updated', `Role updated for ${data.user.name}`, 'success');
+    } catch {
+      showToast('Network Error', 'Unable to update staff role on server.', 'error');
+    }
   };
 
-  const deleteStaff = (staffId: string) => {
+  const deleteStaff = async (staffId: string) => {
     const target = staff.find((s) => s.id === staffId);
-    setStaff((prev) => prev.filter((s) => s.id !== staffId));
-    addAuditLog('Staff Member Removed', 'security', `Removed staff member ${target?.name}`);
-    showToast('Staff Removed', 'Member deleted from access registry.');
+    try {
+      const res = await fetch(`/api/auth/staff/${encodeURIComponent(staffId)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        showToast('Access Denied', data?.error || 'Super Admin privileges required to remove staff.', 'error');
+        return;
+      }
+      setStaff((prev) => prev.filter((s) => s.id !== staffId));
+      addAuditLog('Staff Member Removed', 'security', `Removed staff member ${target?.name || staffId}`);
+      showToast('Staff Removed', 'Member deleted from access registry.', 'success');
+    } catch {
+      showToast('Network Error', 'Unable to remove staff member on server.', 'error');
+    }
   };
 
   // Supabase Connection & Sync
@@ -2822,76 +3327,86 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     usernameOrEmail: string,
     password: string
   ): Promise<{ success: boolean; message: string; user?: StaffUser }> => {
-    const clean = usernameOrEmail.trim().toLowerCase();
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          usernameOrEmail: usernameOrEmail.trim(),
+          password,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok || !data?.user) {
+        return {
+          success: false,
+          message: data?.message || data?.error || 'Authentication failed. Check username/email and password.',
+        };
+      }
 
-    // Match by username or email
-    const matched = staff.find(
-      (s) => s.username?.toLowerCase() === clean || s.email.toLowerCase() === clean
-    );
+      const authenticatedUser = data.user as StaffUser;
 
-    if (!matched) {
-      return { success: false, message: 'User not found. Check username or official email.' };
-    }
-
-    if (matched.status === 'inactive') {
-      return { success: false, message: 'This staff account is currently inactive.' };
-    }
-
-    if (matched.password && matched.password !== password) {
-      return { success: false, message: 'Incorrect password. Please verify and try again.' };
-    }
-
-    // Attempt Supabase Auth login if connected
-    if (themeConfig.supabaseConnected && themeConfig.supabaseUrl && themeConfig.supabaseAnonKey) {
-      const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
-      if (client) {
-        try {
-          await client.auth.signInWithPassword({
-            email: matched.email,
-            password: password,
-          });
-        } catch (e) {
-          console.warn('Supabase auth attempt:', e);
+      // Sync Supabase browser session alongside server cookie when Supabase Auth is active
+      if (
+        authenticatedUser.authSource === 'supabase' &&
+        themeConfig.supabaseConnected &&
+        themeConfig.supabaseUrl &&
+        themeConfig.supabaseAnonKey
+      ) {
+        const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+        if (client) {
+          await client.auth
+            .signInWithPassword({
+              email: authenticatedUser.email,
+              password,
+            })
+            .catch(() => {});
         }
       }
+
+      setActiveUser(authenticatedUser);
+      setActiveRole(authenticatedUser.role);
+      setIsStaffLoggedIn(true);
+      setIsLoginModalOpen(false);
+      localStorage.removeItem('kamal_hotel_session');
+
+      await refreshBootstrapFromServer();
+      await hydrateAuthorizedStaffContext(authenticatedUser.role);
+
+      addAuditLog(
+        'Staff Authentication Success',
+        'security',
+        `${authenticatedUser.name} (${authenticatedUser.role}) authenticated via ${authenticatedUser.authSource || 'server_jwt'}.`
+      );
+
+      showToast(
+        'Signed In Successfully',
+        `Namaste ${authenticatedUser.name}! Active role: ${authenticatedUser.role.replace('_', ' ').toUpperCase()}`,
+        'success'
+      );
+
+      return { success: true, message: 'Login successful!', user: authenticatedUser };
+    } catch {
+      return {
+        success: false,
+        message: 'Unable to reach authentication server. Please verify the backend service is running.',
+      };
     }
-
-    setActiveUser(matched);
-    setActiveRole(matched.role);
-    setIsStaffLoggedIn(true);
-    setIsLoginModalOpen(false);
-
-    localStorage.setItem(
-      'kamal_hotel_session',
-      JSON.stringify({
-        userId: matched.id,
-        role: matched.role,
-        name: matched.name,
-        loginAt: new Date().toISOString(),
-      })
-    );
-
-    addAuditLog(
-      'Staff Authentication Success',
-      'security',
-      `${matched.name} (${matched.role}) logged in successfully.`
-    );
-
-    showToast(
-      'Signed In Successfully',
-      `Namaste ${matched.name}! Active role: ${matched.role.replace('_', ' ').toUpperCase()}`,
-      'success'
-    );
-
-    return { success: true, message: 'Login successful!', user: matched };
   };
 
-  const logoutStaff = () => {
+  const logoutStaff = async () => {
     const prevName = activeUser?.name || 'Staff User';
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {
+      // Proceed cleanly with local state clearance
+    }
     setActiveRole('guest');
     setActiveUser(null);
     setIsStaffLoggedIn(false);
     localStorage.removeItem('kamal_hotel_session');
+    await refreshBootstrapFromServer();
 
     if (themeConfig.supabaseConnected && themeConfig.supabaseUrl && themeConfig.supabaseAnonKey) {
       const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
@@ -2904,13 +3419,25 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Signed Out', 'Returned to guest portal.', 'info');
   };
 
-  const changeUserPassword = (userId: string, newPass: string) => {
-    setStaff((prev) =>
-      prev.map((s) => (s.id === userId ? { ...s, password: newPass } : s))
-    );
+  const changeUserPassword = async (userId: string, newPass: string) => {
     const target = staff.find((s) => s.id === userId);
-    addAuditLog('Staff Password Updated', 'security', `Password modified for ${target?.name}`);
-    showToast('Password Updated', `New credentials saved for ${target?.name}`);
+    try {
+      const res = await fetch(`/api/auth/staff/${encodeURIComponent(userId)}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ password: newPass }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok) {
+        showToast('Password Update Failed', data?.error || 'Super Admin privileges required.', 'error');
+        return;
+      }
+      addAuditLog('Staff Password Updated', 'security', `Password rotated securely for ${target?.name || userId}`);
+      showToast('Password Updated', `New credentials saved for ${target?.name || 'staff user'}`, 'success');
+    } catch {
+      showToast('Network Error', 'Unable to update staff password on server.', 'error');
+    }
   };
 
   // ----------------- RESTAURANT & DINING ACTIONS -----------------
@@ -2920,11 +3447,14 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: 'menu-' + Date.now(),
     };
     setMenuItems((prev) => [...prev, newItem]);
+    persistCollectionItem('menuItems', newItem.id, newItem);
     addAuditLog('Menu Item Added', 'cms', `Added dish: ${item.name} (${item.category})`);
     showToast('Dish Added', `${item.name} is now available in the restaurant menu.`);
   };
 
   const updateMenuItem = (id: string, updates: Partial<MenuItem>) => {
+    const existing = menuItems.find((m) => m.id === id);
+    if (existing) persistCollectionItem('menuItems', id, { ...existing, ...updates });
     setMenuItems((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates } : m)));
     showToast('Menu Updated', 'Dish details updated successfully.');
   };
@@ -2932,6 +3462,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteMenuItem = (id: string) => {
     const found = menuItems.find((m) => m.id === id);
     setMenuItems((prev) => prev.filter((m) => m.id !== id));
+    removeCollectionItem('menuItems', id);
     addAuditLog('Menu Item Deleted', 'cms', `Removed dish: ${found?.name}`);
     showToast('Dish Removed', 'Item deleted from menu.', 'info');
   };
@@ -2947,6 +3478,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setRestaurantOrders((prev) => [newOrder, ...prev]);
+    persistCollectionItem('restaurantOrders', newOrder.id, newOrder);
 
     // Update table status if dine-in
     if (newOrder.destination === 'rooftop_table' || newOrder.destination === 'courtyard') {
@@ -2977,7 +3509,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         const newLineItem: BillItemLine = {
           id: 'li-ord-' + newOrder.id,
-          description: `Rooftop Dining KOT #${orderNum} (${newOrder.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')})`,
+          description: `Ground-Floor Dining KOT #${orderNum} (${newOrder.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')})`,
           category: 'restaurant_dining',
           date: new Date().toISOString().split('T')[0],
           quantity: 1,
@@ -3072,7 +3604,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         id: 'msg-' + Date.now(),
         sender: 'concierge',
         roomNumber: newOrder.tableOrRoomNo,
-        guestName: 'Rooftop Kitchen & Waiter',
+        guestName: 'Ground-Floor Kitchen & Waiter',
         text: `✅ Order #${orderNum} received! Our chef is preparing your dishes. Estimated delivery time: 20-25 mins.`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         serviceTag: 'room_service',
@@ -3132,6 +3664,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     const target = restaurantOrders.find((o) => o.id === orderId);
+    if (target) {
+      persistCollectionItem('restaurantOrders', orderId, { ...target, status, waiterAssigned: waiterName || target.waiterAssigned });
+    }
     if (target && status === 'ready_for_delivery') {
       dispatchOperationalAlert({
         title: `KOT Ready: #${target.orderNumber}`,
@@ -3149,7 +3684,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setRestaurantTables((prev) =>
       prev.map((t) => {
         if (t.id === tableId) {
-          return {
+          const updated = {
             ...t,
             status,
             guestName: guestName !== undefined ? guestName : t.guestName,
@@ -3157,6 +3692,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             notes: notes !== undefined ? notes : t.notes,
             seatedAt: status === 'seated' || status === 'order_placed' ? (t.seatedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : t.seatedAt,
           };
+          persistCollectionItem('tables', tableId, updated);
+          return updated;
         }
         return t;
       })
@@ -3170,7 +3707,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setRestaurantTables((prev) =>
       prev.map((t) => {
         if (t.id === tableId) {
-          return {
+          const cleared: RestaurantTable = {
             ...t,
             status: 'vacant',
             currentOrderId: undefined,
@@ -3179,6 +3716,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             seatedAt: undefined,
             notes: undefined,
           };
+          persistCollectionItem('tables', tableId, cleared);
+          return cleared;
         }
         return t;
       })
@@ -3193,6 +3732,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: 'tbl-' + Date.now(),
     };
     setRestaurantTables((prev) => [...prev, newTbl]);
+    persistCollectionItem('tables', newTbl.id, newTbl);
     showToast('Table Registered', `Dining table ${table.tableNumber} added to floor plan.`, 'success');
   };
 
@@ -3206,7 +3746,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setRoomUnits((prev) =>
       prev.map((u) => {
         if (u.id === unitId) {
-          return {
+          const updated = {
             ...u,
             cleanStatus,
             assignedHousekeeper: housekeeper || u.assignedHousekeeper,
@@ -3214,6 +3754,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             maintenanceNote: notes !== undefined ? notes : u.maintenanceNote,
             lastCleanedAt: cleanStatus === 'clean' || cleanStatus === 'inspected' ? `Today ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : u.lastCleanedAt,
           };
+          persistCollectionItem('roomUnits', unitId, updated);
+          return updated;
         }
         return u;
       })
@@ -3597,7 +4139,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       showToast('Duplicate Floor', msg, 'error');
       return { success: false, message: msg };
     }
-    setFloors((prev) => [...prev, trimmed]);
+    setFloors((prev) => {
+      const next = [...prev, trimmed];
+      persistSetting('floors', { floors: next });
+      return next;
+    });
     addAuditLog('Added Hotel Floor', 'cms', `Created new floor: ${trimmed}`);
     showToast('Floor Added', `Floor "${trimmed}" is now configured.`, 'success');
     return { success: true, message: `Floor "${trimmed}" added successfully.` };
@@ -3611,7 +4157,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       showToast('Cannot Delete Floor', msg, 'error');
       return { success: false, message: msg };
     }
-    setFloors((prev) => prev.filter((f) => f.toLowerCase() !== trimmed.toLowerCase()));
+    setFloors((prev) => {
+      const next = prev.filter((f) => f.toLowerCase() !== trimmed.toLowerCase());
+      persistSetting('floors', { floors: next });
+      return next;
+    });
     addAuditLog('Deleted Hotel Floor', 'cms', `Removed floor: ${trimmed}`);
     showToast('Floor Deleted', `Floor "${trimmed}" removed from hotel layout.`, 'info');
     return { success: true, message: `Floor "${trimmed}" deleted successfully.` };
@@ -3637,12 +4187,15 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       cleanStatus: unitData.cleanStatus || 'clean',
     };
     setRoomUnits((prev) => [...prev, newUnit]);
+    persistCollectionItem('roomUnits', newUnit.id, newUnit);
     addAuditLog('Added Room Unit', 'cms', `Registered new physical room unit ${cleanRoomNum} on ${unitData.floor}`);
     showToast('Room Unit Added', `Room ${cleanRoomNum} on ${unitData.floor} registered.`, 'success');
     return { success: true, message: `Room unit ${cleanRoomNum} added successfully.`, unit: newUnit };
   };
 
   const updateRoomUnit = (unitId: string, updates: Partial<RoomOperationalUnit>) => {
+    const existing = roomUnits.find((u) => u.id === unitId);
+    if (existing) persistCollectionItem('roomUnits', unitId, { ...existing, ...updates });
     setRoomUnits((prev) => prev.map((u) => (u.id === unitId ? { ...u, ...updates } : u)));
     addAuditLog('Updated Room Unit', 'cms', `Updated room unit ID ${unitId}`);
     showToast('Room Updated', 'Room configuration updated.', 'info');
@@ -3659,6 +4212,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return { success: false, message: msg };
     }
     setRoomUnits((prev) => prev.filter((u) => u.id !== unitId));
+    removeCollectionItem('roomUnits', unitId);
     addAuditLog('Deleted Room Unit', 'cms', `Deleted room unit ${unit.roomNumber} from ${unit.floor}`);
     showToast('Room Deleted', `Room ${unit.roomNumber} deleted from inventory.`, 'warning');
     return { success: true, message: `Room ${unit.roomNumber} deleted successfully.` };
@@ -3732,7 +4286,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Shift Logged', `${shiftData.shift.toUpperCase()} handover recorded.`, 'success');
   };
 
-  const runNightAudit = (auditorName: string): NightAuditRecord => {
+  const runNightAudit = (auditorName: string, cashDrawerCountedUSD?: number): NightAuditRecord => {
     const totalRoomsSold = roomUnits.filter((u) => u.occupancyStatus === 'occupied').length;
     const totalRoomsAvailable = roomUnits.length;
     const occupancyPercentage = Math.round((totalRoomsSold / (totalRoomsAvailable || 1)) * 100);
@@ -3772,6 +4326,25 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       notes: `Batch run completed by ${auditorName}. Posted daily room tariffs and verified payment reconciliation.`,
     };
 
+    if (backendAvailableRef.current) {
+      fetch('/api/accounting/night-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ cashDrawerCountedUSD }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.ok && d?.nightAudit) {
+            setNightAudits((prev) => [
+              d.nightAudit,
+              ...prev.filter((x) => x.id !== newRecord.id && x.id !== d.nightAudit.id),
+            ]);
+          }
+        })
+        .catch(() => {});
+    }
+
     setNightAudits((prev) => [newRecord, ...prev]);
     addAuditLog('Night Audit Executed', 'rate', `Night Audit batch closed by ${auditorName}. ADR: $${adrUSD}, RevPAR: $${revParUSD}, Occupancy: ${occupancyPercentage}%`);
     showToast('Night Audit Completed', `Closed day operations. Occupancy: ${occupancyPercentage}%, ADR: $${adrUSD}`, 'success');
@@ -3779,6 +4352,15 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const fastSwitchRole = (role: StaffRole | 'guest', staffId?: string) => {
+    if (!import.meta.env.DEV) {
+      showToast(
+        'Authentication Required',
+        'Role switching shortcuts are disabled in production. Sign in with your staff account.',
+        'warning'
+      );
+      return;
+    }
+
     if (role === 'guest') {
       setActiveRole('guest');
       setActiveUser(null);
@@ -3799,20 +4381,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setActiveRole(role);
     setActiveUser(target);
     setIsStaffLoggedIn(true);
-    localStorage.setItem(
-      'kamal_hotel_session',
-      JSON.stringify({
-        userId: target.id,
-        role: target.role,
-        name: target.name,
-        timestamp: new Date().toISOString(),
-      })
-    );
-    addAuditLog('Role Switched (Simulated)', 'security', `Session shifted to ${target.name} (${target.role})`);
-    showToast(`Role: ${target.name}`, `Active Role: ${role.replace('_', ' ').toUpperCase()} (${target.department})`, 'success');
+    addAuditLog('Role Switched (Dev Only)', 'security', `Dev preview shifted to ${target.name} (${target.role})`);
+    showToast(`Dev Role: ${target.name}`, `Previewing ${role.replace('_', ' ').toUpperCase()}`, 'info');
   };
 
-  const updateStaffCredentials = (
+  const updateStaffCredentials = async (
     staffId: string,
     updates: {
       username?: string;
@@ -3823,17 +4396,30 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       department?: string;
     }
   ) => {
-    setStaff((prev) =>
-      prev.map((s) => {
-        if (s.id === staffId) {
-          return { ...s, ...updates };
-        }
-        return s;
-      })
-    );
-    const target = staff.find((s) => s.id === staffId);
-    addAuditLog('Staff Credentials Updated', 'staff', `Updated credentials for ${updates.name || target?.name} (username: ${updates.username || target?.username})`);
-    showToast('Credentials Saved', `Updated account credentials for ${updates.name || target?.name}`, 'success');
+    try {
+      const res = await fetch(`/api/auth/staff/${encodeURIComponent(staffId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.ok || !data?.user) {
+        showToast('Access Denied', data?.error || 'Super Admin privileges required to update credentials.', 'error');
+        return;
+      }
+      setStaff((prev) =>
+        prev.map((s) => (s.id === staffId ? (data.user as StaffUser) : s))
+      );
+      addAuditLog(
+        'Staff Credentials Updated',
+        'staff',
+        `Updated credentials for ${data.user.name} (username: ${data.user.username})`
+      );
+      showToast('Credentials Saved', `Updated account credentials for ${data.user.name}`, 'success');
+    } catch {
+      showToast('Network Error', 'Unable to update staff credentials on server.', 'error');
+    }
   };
 
   const resetAllHotelDataToDefault = () => {
@@ -4039,13 +4625,32 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // ----------------- SMTP & TENANT ONBOARDING ACTIONS -----------------
-  const updateSmtpConfig = (updates: Partial<SmtpConfig>) => {
-    setSmtpConfig((prev) => {
-      const next = { ...prev, ...updates };
-      localStorage.setItem('kamal_hotel_smtp_v1', JSON.stringify(next));
-      return next;
-    });
-    showToast('SMTP Settings Saved', 'Outgoing mail gateway configuration updated.', 'success');
+  const updateSmtpConfig = async (updates: Partial<SmtpConfig>) => {
+    try {
+      const response = await fetch('/api/settings/smtp', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.ok || !data?.smtp) {
+        showToast(
+          'SMTP Save Rejected',
+          data?.error || 'Admin or Super Admin authentication required to save SMTP settings.',
+          'error'
+        );
+        return;
+      }
+      setSmtpConfig((prev) => ({
+        ...prev,
+        ...data.smtp,
+        smtpPassword: '',
+      }));
+      showToast('SMTP Settings Saved', 'Encrypted outgoing mail configuration stored on server.', 'success');
+    } catch {
+      showToast('Network Error', 'Unable to save SMTP settings to server.', 'error');
+    }
   };
 
   const testSmtpConnection = async (
@@ -4057,13 +4662,15 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (!effective.smtpHost || !effective.senderEmail) {
       const err = 'SMTP Host and Sender From Email are required before testing connection.';
-      updateSmtpConfig({
+      setSmtpConfig((prev) => ({
+        ...prev,
         ...overrideConfig,
+        smtpPassword: '',
         isConfigured: false,
         lastTestStatus: 'failed',
         lastTestedAt: new Date().toISOString(),
         lastTestMessage: err,
-      });
+      }));
       return { success: false, message: err };
     }
 
@@ -4071,10 +4678,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const response = await fetch('/api/email/test-smtp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           testEmail: target,
           hotelName: themeConfig.hotelName,
-          smtpConfig: effective,
+          smtpConfig: overrideConfig || effective,
         }),
       });
 
@@ -4083,13 +4691,14 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (!response.ok || !data?.ok) {
         const errMsg = data?.error || 'SMTP authentication or handshake failed.';
-        updateSmtpConfig({
-          ...overrideConfig,
+        setSmtpConfig((prev) => ({
+          ...prev,
           isConfigured: false,
+          smtpPassword: '',
           lastTestStatus: 'failed',
           lastTestedAt: testedAt,
           lastTestMessage: errMsg,
-        });
+        }));
         showToast('SMTP Test Failed', errMsg, 'error');
         return { success: false, message: errMsg };
       }
@@ -4098,13 +4707,15 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         data?.message ||
         `Verified connection with ${effective.smtpHost}:${effective.smtpPort} and dispatched test email to ${target}.`;
 
-      updateSmtpConfig({
-        ...overrideConfig,
+      setSmtpConfig((prev) => ({
+        ...prev,
+        ...(data?.smtp || {}),
+        smtpPassword: '',
         isConfigured: true,
         lastTestStatus: 'success',
         lastTestedAt: testedAt,
         lastTestMessage: okMsg,
-      });
+      }));
 
       dispatchOperationalAlert({
         title: 'SMTP Mail Gateway Connected',
@@ -4118,13 +4729,14 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return { success: true, message: okMsg };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Network error calling SMTP endpoint.';
-      updateSmtpConfig({
-        ...overrideConfig,
+      setSmtpConfig((prev) => ({
+        ...prev,
+        smtpPassword: '',
         isConfigured: false,
         lastTestStatus: 'failed',
         lastTestedAt: new Date().toISOString(),
         lastTestMessage: msg,
-      });
+      }));
       return { success: false, message: msg };
     }
   };
@@ -4370,11 +4982,14 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: 'stock-' + Date.now(),
     };
     setStockItems((prev) => [...prev, newStock]);
+    persistCollectionItem('stockItems', newStock.id, newStock);
     addAuditLog('Stock Item Created', 'cms', `Added inventory SKU ${item.sku}: ${item.name} (${item.category})`);
     showToast('Stock Added', `${item.name} logged into inventory system.`);
   };
 
   const updateStockItem = (id: string, updates: Partial<StockItem>) => {
+    const existing = stockItems.find((s) => s.id === id);
+    if (existing) persistCollectionItem('stockItems', id, { ...existing, ...updates });
     setStockItems((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
     showToast('Inventory Updated', 'Stock item modified successfully.');
   };
@@ -4382,6 +4997,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteStockItem = (id: string) => {
     const found = stockItems.find((s) => s.id === id);
     setStockItems((prev) => prev.filter((s) => s.id !== id));
+    removeCollectionItem('stockItems', id);
     addAuditLog('Stock Item Deleted', 'cms', `Removed stock item: ${found?.name} (${found?.sku})`);
     showToast('Item Removed', 'Inventory record deleted.', 'info');
   };
@@ -4391,11 +5007,13 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map((s) => {
         if (s.id === id) {
           const updated = Math.max(0, s.currentStock + delta);
-          return {
+          const next = {
             ...s,
             currentStock: updated,
             lastRestockedDate: delta > 0 ? new Date().toISOString().split('T')[0] : s.lastRestockedDate,
           };
+          persistCollectionItem('stockItems', id, next);
+          return next;
         }
         return s;
       })
@@ -4408,6 +5026,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // ----------------- BILLING & INVOICING ACTIONS -----------------
   const updateBillSettings = (updates: Partial<BillSettings>) => {
     setBillSettings((prev) => ({ ...prev, ...updates }));
+    persistSetting('bill', updates);
     addAuditLog('Bill Settings Customized', 'cms', 'Updated invoice template, tax/service rates, or logo.');
     showToast('Bill Settings Saved', 'Invoice template and formatting rules updated.', 'success');
   };
@@ -4464,7 +5083,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     guestOrders.forEach((ord) => {
       items.push({
         id: 'li-' + ord.id,
-        description: `Rooftop Dining Order #${ord.orderNumber} (${ord.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')})`,
+        description: `Ground-Floor Dining Order #${ord.orderNumber} (${ord.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')})`,
         category: 'restaurant_dining',
         date: ord.createdAt.split('T')[0],
         quantity: 1,
@@ -4512,6 +5131,21 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setInvoices((prev) => [newInv, ...prev]);
+    if (backendAvailableRef.current) {
+      fetch('/api/pms/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ...newInv, invoiceNumber: undefined }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.ok && d?.invoice) {
+            setInvoices((prev) => prev.map((x) => (x.id === newInv.id ? d.invoice : x)));
+          }
+        })
+        .catch(() => {});
+    }
     showToast('Invoice Generated', `Master bill created for ${newInv.guestName} (${invoiceNum})`);
     return newInv;
   };
@@ -4525,12 +5159,29 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       issuedAt: new Date().toLocaleString(),
     };
     setInvoices((prev) => [newInv, ...prev]);
+    if (backendAvailableRef.current) {
+      fetch('/api/pms/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ...newInv, invoiceNumber: undefined }),
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.ok && d?.invoice) {
+            setInvoices((prev) => prev.map((x) => (x.id === newInv.id ? d.invoice : x)));
+          }
+        })
+        .catch(() => {});
+    }
     addAuditLog('Custom Bill Issued', 'payment', `Invoice ${invNum} created for ${invData.guestName} ($${invData.grandTotalUSD.toFixed(2)})`);
     showToast('Bill Created', `Invoice ${invNum} registered successfully.`);
     return newInv;
   };
 
   const updateInvoice = (id: string, updates: Partial<MasterInvoice>) => {
+    const existing = invoices.find((inv) => inv.id === id);
+    if (existing) persistCollectionItem('invoices', id, { ...existing, ...updates });
     setInvoices((prev) => prev.map((inv) => (inv.id === id ? { ...inv, ...updates } : inv)));
     showToast('Invoice Saved', 'Bill adjustments updated.', 'success');
   };
@@ -4553,6 +5204,14 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return inv;
       })
     );
+    if (backendAvailableRef.current) {
+      fetch('/api/payments/onsite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ invoiceId, amountUSD: amount, method }),
+      }).catch(() => {});
+    }
     addAuditLog('Payment Registered', 'payment', `Collected $${amount} for Invoice #${invoiceId}`);
     showToast('Payment Recorded', `Payment of $${amount.toFixed(2)} applied via ${method.toUpperCase()}.`);
   };
@@ -4585,6 +5244,80 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setActiveGuestSession(session);
     showToast('Welcome to Your Room Portal!', `Logged into ${session.roomNumber} (${session.guestName})`, 'success');
     return { success: true, message: 'Welcome!', session };
+  };
+
+  const loginGuestWithDatabase = async (
+    roomNumber: string,
+    passcode: string
+  ): Promise<{ success: boolean; message: string; session?: GuestRoomSession }> => {
+    const cleanRoom = roomNumber.trim();
+    const cleanPass = passcode.trim();
+    if (!cleanRoom || !cleanPass) {
+      return {
+        success: false,
+        message: 'Please enter both your assigned room number and 4-digit stay PIN.',
+      };
+    }
+
+    try {
+      const res = await fetch('/api/guest/room-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ roomNumber: cleanRoom, passcode: cleanPass }),
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.ok && data.session) {
+          backendAvailableRef.current = true;
+          setBackendConnected(true);
+          if (data.booking) {
+            setBookings((prev) => [data.booking, ...prev.filter((b) => b.id !== data.booking.id)]);
+          }
+          if (data.invoice) {
+            setInvoices((prev) => [data.invoice, ...prev.filter((inv) => inv.id !== data.invoice.id)]);
+          }
+          if (Array.isArray(data.orders) && data.orders.length > 0) {
+            setRestaurantOrders((prev) => {
+              const map = new Map(prev.map((o) => [o.id, o]));
+              data.orders.forEach((o: RestaurantOrder) => map.set(o.id, o));
+              return Array.from(map.values());
+            });
+          }
+          if (data.keycard) {
+            setDigitalKeycards((prev) => [data.keycard, ...prev.filter((k) => k.id !== data.keycard.id)]);
+          }
+          if (Array.isArray(data.chatMessages) && data.chatMessages.length > 0) {
+            setGuestChatMessages((prev) => {
+              const map = new Map(prev.map((m) => [m.id, m]));
+              data.chatMessages.forEach((m: CSRChatMessage) => map.set(m.id, m));
+              return Array.from(map.values());
+            });
+          }
+          setActiveGuestSession(data.session);
+          showToast('Welcome to Your Room Portal!', `Logged into ${data.session.roomNumber} (${data.session.guestName})`, 'success');
+          return { success: true, message: 'Welcome!', session: data.session };
+        }
+        if (res.status === 401 || res.status === 429) {
+          return {
+            success: false,
+            message: data?.error || 'Invalid room number or stay passcode.',
+          };
+        }
+      }
+    } catch {
+      // Static / offline mode fallback below when backend is unreachable
+    }
+
+    if (!backendAvailableRef.current) {
+      return loginGuestByRoom(cleanRoom, cleanPass);
+    }
+
+    return {
+      success: false,
+      message: 'Unable to verify room passcode against the server database. Please check your connection or contact Front Desk.',
+    };
   };
 
   const logoutGuestSession = () => {
@@ -5797,11 +6530,20 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       code: newCp.code.trim().toUpperCase(),
     };
     setCoupons((prev) => [coupon, ...prev]);
+    persistCollectionItem('coupons', coupon.id, coupon);
     addAuditLog('Created Coupon ' + coupon.code, 'rate', `Added coupon ${coupon.code} with value ${coupon.discountValue}${coupon.discountType === 'percentage' ? '%' : ' USD'}`);
     showToast('Coupon Created', `Promo code "${coupon.code}" is now active.`, 'success');
   };
 
   const updateCoupon = (id: string, updates: Partial<HotelCoupon>) => {
+    const existing = coupons.find((c) => c.id === id);
+    if (existing) {
+      persistCollectionItem('coupons', id, {
+        ...existing,
+        ...updates,
+        code: updates.code ? updates.code.trim().toUpperCase() : existing.code,
+      });
+    }
     setCoupons((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates, code: updates.code ? updates.code.trim().toUpperCase() : c.code } : c))
     );
@@ -5810,12 +6552,20 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteCoupon = (id: string) => {
     setCoupons((prev) => prev.filter((c) => c.id !== id));
+    removeCollectionItem('coupons', id);
     showToast('Coupon Deleted', 'Coupon removed from active system.', 'warning');
   };
 
   const toggleCouponStatus = (id: string) => {
     setCoupons((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c))
+      prev.map((c) => {
+        if (c.id === id) {
+          const next = { ...c, isActive: !c.isActive };
+          persistCollectionItem('coupons', id, next);
+          return next;
+        }
+        return c;
+      })
     );
   };
 
@@ -6108,6 +6858,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         logoutStaff,
         changeUserPassword,
         createBooking,
+        applyServerCreatedBooking,
+        refreshBootstrapFromServer,
         assignRoomToBooking,
         getAvailableRoomsForType,
         updateBookingStatus,
@@ -6164,6 +6916,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         guestSessions,
         activeGuestSession,
         loginGuestByRoom,
+        loginGuestWithDatabase,
         logoutGuestSession,
         generateNewRoomPasscode,
         checkoutAndResetRoomPasscode,

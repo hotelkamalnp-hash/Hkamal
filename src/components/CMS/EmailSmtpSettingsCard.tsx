@@ -86,6 +86,8 @@ export const EmailSmtpSettingsCard: React.FC = () => {
     setDraft((prev) => ({
       ...smtpConfig,
       ...prev,
+      smtpPassword: '',
+      hasStoredPassword: smtpConfig.hasStoredPassword,
       lastTestedAt: smtpConfig.lastTestedAt,
       lastTestStatus: smtpConfig.lastTestStatus,
       lastTestMessage: smtpConfig.lastTestMessage,
@@ -110,9 +112,10 @@ export const EmailSmtpSettingsCard: React.FC = () => {
     'emailSubjectPrefix',
   ];
 
-  const isDirty = editableKeys.some(
-    (key) => JSON.stringify(draft[key]) !== JSON.stringify(smtpConfig[key])
-  );
+  const isDirty = editableKeys.some((key) => {
+    if (key === 'smtpPassword') return Boolean(draft.smtpPassword?.trim());
+    return JSON.stringify(draft[key]) !== JSON.stringify(smtpConfig[key]);
+  });
 
   const activePreset =
     SMTP_PRESETS.find((p) => p.id === (draft.providerPreset || 'gmail')) || SMTP_PRESETS[0];
@@ -130,20 +133,23 @@ export const EmailSmtpSettingsCard: React.FC = () => {
     }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const hasCreds = Boolean(
       draft.smtpHost?.trim() &&
         draft.senderEmail?.trim() &&
         draft.smtpUser?.trim() &&
-        draft.smtpPassword?.trim()
+        (draft.smtpPassword?.trim() || draft.hasStoredPassword)
     );
-    updateSmtpConfig({
-      ...draft,
+    const { hasStoredPassword: _ignored, ...payload } = draft;
+    await updateSmtpConfig({
+      ...payload,
+      smtpPassword: draft.smtpPassword?.trim() || undefined,
       smtpPort: Number(draft.smtpPort) || 587,
       otpExpiryMinutes: Number(draft.otpExpiryMinutes) || 10,
       isConfigured: hasCreds && smtpConfig.lastTestStatus === 'success',
     });
+    setDraft((prev) => ({ ...prev, smtpPassword: '' }));
   };
 
   const handleSendTest = async () => {
@@ -151,10 +157,12 @@ export const EmailSmtpSettingsCard: React.FC = () => {
     setTestResult(null);
     const savedPayload: Partial<SmtpConfig> = {
       ...draft,
+      smtpPassword: draft.smtpPassword?.trim() || undefined,
       smtpPort: Number(draft.smtpPort) || 587,
       otpExpiryMinutes: Number(draft.otpExpiryMinutes) || 10,
     };
     const res = await testSmtpConnection(testEmailTarget.trim() || draft.senderEmail, savedPayload);
+    setDraft((prev) => ({ ...prev, smtpPassword: '' }));
     setTestResult(res);
     setIsTesting(false);
   };
@@ -292,15 +300,26 @@ export const EmailSmtpSettingsCard: React.FC = () => {
             </div>
 
             <div className="sm:col-span-2 lg:col-span-2">
-              <label className="block font-semibold mb-1 text-stone-700 dark:text-stone-300">
-                SMTP Password / App Password *
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-semibold text-stone-700 dark:text-stone-300">
+                  SMTP Password / App Password *
+                </label>
+                {smtpConfig.hasStoredPassword && (
+                  <span className="text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400">
+                    Encrypted Secret Stored on Server
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={draft.smtpPassword || ''}
                   onChange={(e) => setDraft({ ...draft, smtpPassword: e.target.value })}
-                  placeholder="16-character App Password or API secret"
+                  placeholder={
+                    smtpConfig.hasStoredPassword
+                      ? '•••••••••••• (leave blank to keep encrypted secret)'
+                      : '16-character App Password or API secret'
+                  }
                   className="w-full p-2.5 pr-10 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 font-mono text-xs"
                 />
                 <button

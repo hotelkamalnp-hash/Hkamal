@@ -26,11 +26,11 @@ interface DigitalRestaurantMenuProps {
 
 const ORDERED_CATEGORIES = [
   'All',
-  'Nepali Heritage & Newari',
+  'Nepali Heritage & Cuisine',
   'Starters',
   'Himalayan Specials',
   'Main Course',
-  'Rooftop Bar & Beverages',
+  'Ground-Floor Bar & Beverages',
   'Desserts',
 ] as const;
 
@@ -56,7 +56,7 @@ export const DigitalRestaurantMenu: React.FC<DigitalRestaurantMenuProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [dietaryFilter, setDietaryFilter] = useState<'all' | 'veg' | 'chef' | 'spicy'>('all');
   const [destinationMode, setDestinationMode] = useState<'room' | 'rooftop_table'>('room');
-  const [rooftopTableNote, setRooftopTableNote] = useState<string>('Rooftop Terrace · Window');
+  const [rooftopTableNote, setRooftopTableNote] = useState<string>('Ground-Floor Terrace · Window');
 
   const [cart, setCart] = useState<{ item: MenuItem; quantity: number }[]>([]);
   const [specialNote, setSpecialNote] = useState<string>('');
@@ -150,7 +150,7 @@ export const DigitalRestaurantMenu: React.FC<DigitalRestaurantMenuProps> = ({
         discountUSD: res.discountAmountUSD,
         description: res.coupon.description,
       });
-      showToast('Dining Voucher Applied', `${res.coupon.code} applied to your rooftop order.`, 'success');
+      showToast('Dining Voucher Applied', `${res.coupon.code} applied to your ground-floor dining order.`, 'success');
     } else {
       setCouponError(res.message);
     }
@@ -166,7 +166,7 @@ export const DigitalRestaurantMenu: React.FC<DigitalRestaurantMenuProps> = ({
 
     const kitchenNotesParts = [
       destinationMode === 'rooftop_table'
-        ? `Guest dining on Rooftop (${rooftopTableNote}) · Billed to ${activeGuestSession.roomNumber}`
+        ? `Guest dining at Ground-Floor Garden (${rooftopTableNote}) · Billed to ${activeGuestSession.roomNumber}`
         : `In-Room Dining Delivery to ${activeGuestSession.roomNumber}`,
       specialNote.trim() ? `Notes: ${specialNote.trim()}` : '',
       appliedCoupon ? `Voucher: ${appliedCoupon.code} (-$${discountUSD.toFixed(2)})` : '',
@@ -206,26 +206,26 @@ export const DigitalRestaurantMenu: React.FC<DigitalRestaurantMenuProps> = ({
 
   const rooftopStatusLabel =
     themeConfig.rooftopDiningStatus === 'open'
-      ? 'Rooftop Kitchen Open · Live Service'
+      ? 'Ground-Floor Kitchen Open · Live Service'
       : themeConfig.rooftopDiningStatus === 'renovation'
-      ? 'Rooftop Terrace Upgrades · In-Room Kitchen Active'
-      : themeConfig.rooftopOpeningDateText || 'Rooftop & In-Room Culinary Service Open';
+      ? 'Garden Terrace Upgrades · In-Room Kitchen Active'
+      : themeConfig.rooftopOpeningDateText || 'Ground-Floor & In-Room Culinary Service Open';
 
   return (
     <div className="space-y-6">
-      {/* Header & Rooftop Offerings Overview */}
+      {/* Header & Ground-Floor Offerings Overview */}
       <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 p-5 shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="text-[11px] font-mono font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
               <Utensils className="w-3.5 h-3.5" />
-              <span>{themeConfig.hotelName} · Rooftop Restaurant &amp; Sky Lounge Menu</span>
+              <span>{themeConfig.hotelName} · Ground-Floor Restaurant &amp; Garden Lounge Menu</span>
             </div>
             <h3 className="text-xl font-serif font-bold text-stone-900 dark:text-stone-50">
               Digital Restaurant Menu
             </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400">
-              {rooftopStatusLabel} · Orders route directly to the Staff Service Requests queue &amp; Rooftop Kitchen.
+              {rooftopStatusLabel} · Orders route directly to the Staff Service Requests queue &amp; Ground-Floor Kitchen.
             </p>
           </div>
 
@@ -353,7 +353,7 @@ export const DigitalRestaurantMenu: React.FC<DigitalRestaurantMenuProps> = ({
         <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {filteredItems.length === 0 ? (
             <div className="col-span-full p-10 rounded-xl border border-dashed border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-center text-xs text-stone-500 dark:text-stone-400">
-              No rooftop menu dishes match your current filter. Try clearing your search or selecting All dishes.
+              No ground-floor menu dishes match your current filter. Try clearing your search or selecting All dishes.
             </div>
           ) : (
             filteredItems.map((dish) => {
@@ -502,7 +502,7 @@ export const DigitalRestaurantMenu: React.FC<DigitalRestaurantMenuProps> = ({
                     : 'text-stone-600 dark:text-stone-400'
                 }`}
               >
-                Dine at Rooftop
+                Dine at Ground Floor
               </button>
             </div>
 
@@ -513,7 +513,7 @@ export const DigitalRestaurantMenu: React.FC<DigitalRestaurantMenuProps> = ({
                   type="text"
                   value={rooftopTableNote}
                   onChange={(e) => setRooftopTableNote(e.target.value)}
-                  placeholder="Table or zone preference (e.g. T-02 Terrace)"
+                  placeholder="Table or zone preference (e.g. T-02 Garden Courtyard)"
                   className="w-full px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-xs text-stone-900 dark:text-stone-100"
                 />
               </div>
@@ -524,7 +524,7 @@ export const DigitalRestaurantMenu: React.FC<DigitalRestaurantMenuProps> = ({
           <div className="divide-y divide-stone-100 dark:divide-stone-800 max-h-60 overflow-y-auto">
             {cart.length === 0 ? (
               <div className="py-8 text-center text-stone-400 text-xs">
-                Select dishes from the Rooftop Restaurant Menu to build your order.
+                Select dishes from the Ground-Floor Restaurant Menu to build your order.
               </div>
             ) : (
               cart.map((c) => (
@@ -627,7 +627,7 @@ export const DigitalRestaurantMenu: React.FC<DigitalRestaurantMenuProps> = ({
                           setCouponInput(e.target.value.toUpperCase());
                           setCouponError('');
                         }}
-                        placeholder="Dining Voucher (e.g. ROOFTOP10)"
+                        placeholder="Dining Voucher (e.g. DINING10)"
                         className="flex-1 px-2.5 py-1.5 rounded-lg bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs font-mono uppercase text-stone-900 dark:text-stone-100"
                       />
                       <button

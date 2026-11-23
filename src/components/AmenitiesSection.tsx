@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useHotel } from '../context/HotelContext';
 import { getThemeClasses } from '../utils/theme';
 import { CheckCircle } from 'lucide-react';
-import rooftopImg from '../assets/images/amenity_rooftop_dining_1793848735329.jpg';
+import rooftopImg from '../assets/images/rooftop_candlelight_dining_1793983310740.jpg';
 
 export const AmenitiesSection: React.FC = () => {
   const { amenities, themeConfig, showToast } = useHotel();
@@ -17,7 +17,7 @@ export const AmenitiesSection: React.FC = () => {
     setVipRegistered(true);
     showToast(
       'Invitation Saved',
-      `You are on the preview list for Rooftop Dining at ${vipEmail}.`,
+      `You are on the preview list for Ground-Floor Dining at ${vipEmail}.`,
       'success'
     );
   };
@@ -25,32 +25,32 @@ export const AmenitiesSection: React.FC = () => {
   return (
     <section
       id="amenities"
-      className="py-16 lg:py-24 bg-white dark:bg-stone-900 border-y border-stone-200/70 dark:border-stone-800 transition-colors"
+      className="py-16 lg:py-24 bg-[#F3EDE2] dark:bg-[#14110E] border-y border-[#E2D8C8] dark:border-[#2A241E] transition-colors"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         {/* Clean Section Intro */}
         <div className="max-w-xl">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-amber-800 dark:text-amber-400 mb-2">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#96682E] dark:text-[#D4A76A] mb-2">
             {themeConfig.amenitiesSectionSubtitle || 'Dining & Hospitality'}
           </p>
-          <h2 className="text-3xl sm:text-4xl font-serif font-semibold text-stone-900 dark:text-stone-50 tracking-tight text-balance">
-            {themeConfig.amenitiesSectionTitle || 'Rooftop Dining & Essential Facilities'}
+          <h2 className="text-3xl sm:text-4xl font-serif font-semibold text-[#1A1714] dark:text-[#F4EFE6] tracking-tight text-balance">
+            {themeConfig.amenitiesSectionTitle || 'Ground-Floor Dining & Essential Facilities'}
           </h2>
-          <p className="mt-2.5 text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+          <p className="mt-2.5 text-sm text-[#5C544B] dark:text-[#C5BCB0] leading-relaxed">
             {themeConfig.amenitiesSectionDescription ||
-              'Thoughtful everyday essentials paired with our panoramic rooftop terrace overlooking Kathmandu Valley.'}
+              'Thoughtful everyday essentials paired with our serene ground-floor garden restaurant in Kamalpokhari.'}
           </p>
         </div>
 
-        {/* Clean 12-Col Rooftop Dining Feature */}
+        {/* Clean 12-Col Ground-Floor Dining Feature */}
         <div
           id="dining"
-          className="bg-stone-50 dark:bg-stone-950/60 rounded-xl overflow-hidden border border-stone-200/80 dark:border-stone-800 grid grid-cols-1 lg:grid-cols-12 items-stretch"
+          className="bg-white dark:bg-[#171411] rounded-2xl overflow-hidden border border-[#E6DFD3] dark:border-[#2A241E] shadow-[0_14px_38px_rgba(26,23,20,0.06)] grid grid-cols-1 lg:grid-cols-12 items-stretch"
         >
-          <div className="lg:col-span-7 relative aspect-[16/10] lg:aspect-auto lg:h-full min-h-[300px]">
+          <div className="lg:col-span-7 relative aspect-[16/10] lg:aspect-auto lg:h-full min-h-[320px]">
             <img
               src={themeConfig.rooftopDiningImage || rooftopImg}
-              alt="Rooftop dining terrace at Kamal Hotel Kathmandu"
+              alt="Ground-floor garden dining at Kamal Hotel Kathmandu"
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover"
             />
@@ -58,29 +58,29 @@ export const AmenitiesSection: React.FC = () => {
 
           <div className="lg:col-span-5 p-7 sm:p-10 flex flex-col justify-between space-y-6">
             <div className="space-y-3.5">
-              <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
-                <span className="font-medium text-amber-800 dark:text-amber-400">
+              <div className="flex items-center gap-2 text-xs text-[#6B6258] dark:text-[#AFA699]">
+                <span className="font-semibold text-[#96682E] dark:text-[#D4A76A] uppercase tracking-wider">
                   {themeConfig.rooftopDiningStatus === 'opening_soon' ? 'Opening Soon' : 'Now Open'}
                 </span>
                 <span aria-hidden="true">·</span>
                 <span>{themeConfig.rooftopOpeningDateText}</span>
               </div>
 
-              <h3 className="text-2xl font-serif font-semibold text-stone-900 dark:text-stone-50 leading-snug text-balance">
+              <h3 className="text-2xl font-serif font-semibold text-[#1A1714] dark:text-[#F4EFE6] leading-snug text-balance">
                 {themeConfig.rooftopTeaserHeadline}
               </h3>
 
-              <p className="text-sm text-stone-600 dark:text-stone-300 leading-relaxed">
+              <p className="text-sm text-[#5C544B] dark:text-[#C5BCB0] leading-relaxed">
                 {themeConfig.rooftopTeaserDescription}
               </p>
 
-              <p className="text-xs text-stone-500 dark:text-stone-400 pt-1">
-                Highland single-origin coffee <span aria-hidden="true">·</span> Newari &amp; Thakali dinners <span aria-hidden="true">·</span> Sunset valley views
+              <p className="text-xs text-[#6B6258] dark:text-[#AFA699] pt-1">
+                Highland single-origin coffee <span aria-hidden="true">·</span> Authentic Nepali dinners <span aria-hidden="true">·</span> Ground-floor courtyard ambiance
               </p>
             </div>
 
-            <div className="pt-5 border-t border-stone-200/80 dark:border-stone-800 space-y-2.5">
-              <span className="block text-xs font-medium text-stone-700 dark:text-stone-300">
+            <div className="pt-5 border-t border-[#EFE9DF] dark:border-[#2A241E] space-y-2.5">
+              <span className="block text-xs font-medium text-[#1A1714] dark:text-[#F4EFE6]">
                 Request opening preview invitation
               </span>
               {vipRegistered ? (
@@ -95,7 +95,7 @@ export const AmenitiesSection: React.FC = () => {
                     value={vipEmail}
                     onChange={(e) => setVipEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="flex-1 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-2 text-xs text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    className="flex-1 bg-[#FAF7F2] dark:bg-[#211B16] border border-[#E6DFD3] dark:border-[#342C24] rounded-lg px-3 py-2 text-xs text-[#1A1714] dark:text-[#F4EFE6] focus:outline-none focus:ring-1 focus:ring-[#96682E]"
                     required
                   />
                   <button
@@ -111,23 +111,23 @@ export const AmenitiesSection: React.FC = () => {
         </div>
 
         {/* Clean Numbered Architectural Amenities Grid (Zero icon-box clutter) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-t border-stone-200/80 dark:border-stone-800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border-t border-[#E2D8C8] dark:border-[#2A241E]">
           {amenities.map((amenity, idx) => (
             <div
               key={amenity.id}
-              className="py-7 sm:pr-8 border-b border-stone-200/80 dark:border-stone-800 flex flex-col justify-between gap-3"
+              className="py-7 sm:pr-8 border-b border-[#E2D8C8] dark:border-[#2A241E] flex flex-col justify-between gap-3"
             >
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs text-stone-400">
-                  <span className="font-serif text-sm text-amber-800 dark:text-amber-400 tabular-nums">
+                <div className="flex items-center gap-2 text-xs text-[#8E8477]">
+                  <span className="font-sans text-xs font-semibold tracking-tight text-[#96682E] dark:text-[#D4A76A] tabular-nums">
                     {String(idx + 1).padStart(2, '0')}.
                   </span>
                   <span>{amenity.category}</span>
                 </div>
-                <h3 className="text-base font-serif font-semibold text-stone-900 dark:text-stone-100">
+                <h3 className="text-base font-serif font-semibold text-[#1A1714] dark:text-[#F4EFE6]">
                   {amenity.name}
                 </h3>
-                <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                <p className="text-xs sm:text-sm text-[#5C544B] dark:text-[#C5BCB0] leading-relaxed">
                   {amenity.description}
                 </p>
               </div>

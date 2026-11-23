@@ -281,7 +281,7 @@ export const HousekeepingManager: React.FC = () => {
               Floor-by-Floor Cleaning Dispatch
             </h3>
             <div className="flex items-center gap-1.5 text-xs">
-              {['All', 'Ground', '1st', '2nd', '3rd', 'Rooftop'].map((fl) => (
+              {['All', 'Ground', '1st', '2nd', '3rd', '4th'].map((fl) => (
                 <button
                   key={fl}
                   type="button"
@@ -904,7 +904,7 @@ export const HousekeepingManager: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Room 204 or Rooftop Terrace"
+                  placeholder="e.g. Room 204 or Ground-Floor Terrace"
                   value={lostRoom}
                   onChange={(e) => setLostRoom(e.target.value)}
                   className="w-full text-xs px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100"

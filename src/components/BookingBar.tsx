@@ -33,15 +33,15 @@ export const BookingBar: React.FC<BookingBarProps> = ({ onSearch }) => {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto -mt-8 relative z-20 px-4 sm:px-6">
+    <div className="w-full max-w-5xl mx-auto -mt-9 relative z-20 px-4 sm:px-6">
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-stone-900 rounded-xl shadow-[0_18px_45px_rgba(0,0,0,0.12)] border border-stone-200/90 dark:border-stone-800 p-3 sm:p-4 transition-colors"
+        className="bg-white dark:bg-[#171411] rounded-xl shadow-[0_20px_50px_-14px_rgba(24,18,12,0.16)] border border-[#E6DFD3] dark:border-[#2E2720] p-3.5 sm:p-4 transition-colors"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 lg:gap-0 lg:divide-x divide-stone-200/80 dark:divide-stone-800 items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 lg:gap-0 lg:divide-x divide-[#EAE3D7] dark:divide-[#2A241E] items-center">
           {/* Check-In */}
-          <div className="lg:col-span-3 lg:pr-4 space-y-1">
-            <label className="block text-[11px] font-medium text-stone-500 dark:text-stone-400">
+          <div className="lg:col-span-3 lg:pr-5 space-y-1">
+            <label className="block text-[11px] font-medium text-[#6B6258] dark:text-[#A69C8F]">
               Check-in
             </label>
             <input
@@ -49,16 +49,16 @@ export const BookingBar: React.FC<BookingBarProps> = ({ onSearch }) => {
               value={checkIn}
               min={formatDate(today)}
               onChange={(e) => setCheckIn(e.target.value)}
-              className="w-full bg-transparent text-xs sm:text-sm font-medium text-stone-900 dark:text-stone-100 focus:outline-none tabular-nums cursor-pointer"
+              className="w-full bg-transparent text-xs sm:text-sm font-medium text-[#1A1714] dark:text-[#F4EFE6] focus:outline-none tabular-nums cursor-pointer"
               required
             />
           </div>
 
           {/* Check-Out */}
-          <div className="lg:col-span-3 lg:px-4 space-y-1">
-            <label className="flex items-center justify-between text-[11px] font-medium text-stone-500 dark:text-stone-400">
+          <div className="lg:col-span-3 lg:px-5 space-y-1">
+            <label className="flex items-center justify-between text-[11px] font-medium text-[#6B6258] dark:text-[#A69C8F]">
               <span>Check-out</span>
-              <span className="text-amber-700 dark:text-amber-400 tabular-nums">
+              <span className="text-[#8A5D25] dark:text-[#D4A76A] font-semibold tabular-nums">
                 {nights} {nights === 1 ? 'night' : 'nights'}
               </span>
             </label>
@@ -67,33 +67,33 @@ export const BookingBar: React.FC<BookingBarProps> = ({ onSearch }) => {
               value={checkOut}
               min={checkIn}
               onChange={(e) => setCheckOut(e.target.value)}
-              className="w-full bg-transparent text-xs sm:text-sm font-medium text-stone-900 dark:text-stone-100 focus:outline-none tabular-nums cursor-pointer"
+              className="w-full bg-transparent text-xs sm:text-sm font-medium text-[#1A1714] dark:text-[#F4EFE6] focus:outline-none tabular-nums cursor-pointer"
               required
             />
           </div>
 
           {/* Guests */}
-          <div className="lg:col-span-3 lg:px-4 space-y-1">
-            <label className="block text-[11px] font-medium text-stone-500 dark:text-stone-400">
+          <div className="lg:col-span-3 lg:px-5 space-y-1">
+            <label className="block text-[11px] font-medium text-[#6B6258] dark:text-[#A69C8F]">
               Guests
             </label>
             <select
               value={guests}
               onChange={(e) => setGuests(Number(e.target.value))}
-              className="w-full bg-transparent text-xs sm:text-sm font-medium text-stone-900 dark:text-stone-100 focus:outline-none cursor-pointer"
+              className="w-full bg-transparent text-xs sm:text-sm font-medium text-[#1A1714] dark:text-[#F4EFE6] focus:outline-none cursor-pointer"
             >
-              <option value={1} className="dark:bg-stone-900">1 Guest</option>
-              <option value={2} className="dark:bg-stone-900">2 Guests</option>
-              <option value={3} className="dark:bg-stone-900">3 Guests</option>
-              <option value={4} className="dark:bg-stone-900">4+ Guests</option>
+              <option value={1} className="dark:bg-[#171411]">1 Guest</option>
+              <option value={2} className="dark:bg-[#171411]">2 Guests</option>
+              <option value={3} className="dark:bg-[#171411]">3 Guests</option>
+              <option value={4} className="dark:bg-[#171411]">4+ Guests</option>
             </select>
           </div>
 
           {/* Submit Action */}
-          <div className="lg:col-span-3 lg:pl-4">
+          <div className="lg:col-span-3 lg:pl-5">
             <button
               type="submit"
-              className={`w-full py-2.5 px-4 rounded-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${themeClasses.primary}`}
+              className={`w-full py-2.5 px-4 rounded-lg font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${themeClasses.primary}`}
             >
               <Search className="w-3.5 h-3.5" />
               <span>Check Availability</span>

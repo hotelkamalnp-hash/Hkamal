@@ -80,7 +80,7 @@ export const MasterBillingManager: React.FC = () => {
   };
 
   const templates: { id: InvoiceTemplateId; name: string; desc: string }[] = [
-    { id: 'heritage-gold', name: 'Heritage Gold (Newari Border)', desc: 'Regal maroon and gold frame with authentic Newari borders and dual QR payment box' },
+    { id: 'heritage-gold', name: 'Heritage Gold (Nepali Border)', desc: 'Regal maroon and gold frame with authentic Nepali borders and dual QR payment box' },
     { id: 'executive-modern', name: 'Executive Modern (Corporate)', desc: 'High-contrast bold monochromatic typography with detailed service categorization' },
     { id: 'minimalist-clean', name: 'Minimalist Clean (Boutique)', desc: 'Understated elegance, airy whitespace, and subtle divider rules' },
     { id: 'regal-himalayan', name: 'Regal Himalayan (Burgundy)', desc: 'Rich mountain sapphire and burgundy accents ideal for suite luxury folios' },
@@ -616,7 +616,7 @@ export const MasterBillingManager: React.FC = () => {
                     <span className="font-mono">$170.00</span>
                   </div>
                   <div className="flex justify-between text-stone-600">
-                    <span>Rooftop Himalayan Sizzler (x2)</span>
+                    <span>Ground-Floor Himalayan Sizzler (x2)</span>
                     <span className="font-mono">$24.00</span>
                   </div>
                   <div className="flex justify-between text-stone-600">

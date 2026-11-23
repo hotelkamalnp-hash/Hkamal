@@ -37,83 +37,32 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({ onSuccess }) =
 
   const themeClasses = getThemeClasses(themeConfig.palette);
 
-  const [usernameOrEmail, setUsernameOrEmail] = useState('superadmin');
-  const [password, setPassword] = useState('KamalHotel@2026');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Preset role credentials
-  const demoAccounts: { role: StaffRole; label: string; user: string; pass: string; icon: React.ReactNode }[] = [
-    {
-      role: 'super_admin',
-      label: 'Super Admin',
-      user: 'superadmin',
-      pass: 'KamalHotel@2026',
-      icon: <ShieldCheck className="w-3.5 h-3.5 text-rose-600" />,
-    },
-    {
-      role: 'admin',
-      label: 'Hotel Admin',
-      user: 'admin',
-      pass: 'Admin@2026',
-      icon: <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />,
-    },
-    {
-      role: 'hotel_manager',
-      label: 'Hotel Manager',
-      user: 'manager',
-      pass: 'Manager@2026',
-      icon: <Briefcase className="w-3.5 h-3.5 text-amber-600" />,
-    },
-    {
-      role: 'restaurant_owner',
-      label: 'Restaurant Owner',
-      user: 'owner',
-      pass: 'Owner@2026',
-      icon: <Utensils className="w-3.5 h-3.5 text-orange-600" />,
-    },
-    {
-      role: 'receptionist',
-      label: 'Receptionist',
-      user: 'receptionist',
-      pass: 'Reception@2026',
-      icon: <Building2 className="w-3.5 h-3.5 text-sky-600" />,
-    },
-    {
-      role: 'chef',
-      label: 'Head Chef',
-      user: 'chef',
-      pass: 'Chef@2026',
-      icon: <Utensils className="w-3.5 h-3.5 text-emerald-600" />,
-    },
-    {
-      role: 'waiter',
-      label: 'Service / Waiter',
-      user: 'waiter',
-      pass: 'Waiter@2026',
-      icon: <Coffee className="w-3.5 h-3.5 text-indigo-600" />,
-    },
-    {
-      role: 'housekeeping',
-      label: 'Housekeeping',
-      user: 'housekeeping',
-      pass: 'Clean@2026',
-      icon: <Check className="w-3.5 h-3.5 text-stone-600" />,
-    },
+  // Dev-only username shortcuts (zero passwords stored in frontend code)
+  const devRoleUsernames: { role: StaffRole; label: string; user: string; icon: React.ReactNode }[] = [
+    { role: 'super_admin', label: 'Super Admin', user: 'superadmin', icon: <ShieldCheck className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" /> },
+    { role: 'admin', label: 'Hotel Admin', user: 'admin', icon: <ShieldCheck className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" /> },
+    { role: 'hotel_manager', label: 'Hotel Manager', user: 'manager', icon: <Briefcase className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" /> },
+    { role: 'restaurant_owner', label: 'Restaurant Owner', user: 'owner', icon: <Utensils className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" /> },
+    { role: 'receptionist', label: 'Receptionist', user: 'receptionist', icon: <Building2 className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" /> },
+    { role: 'chef', label: 'Head Chef', user: 'chef', icon: <Utensils className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" /> },
+    { role: 'waiter', label: 'Service / Waiter', user: 'waiter', icon: <Coffee className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" /> },
+    { role: 'housekeeping', label: 'Housekeeping', user: 'housekeeping', icon: <Check className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" /> },
   ];
 
-  // If a specific role was requested when opening the modal, pre-fill that role's credentials
+  // Clear stale password on modal open; in dev mode only prefill target username if requested
   useEffect(() => {
-    if (loginModalTargetRole) {
-      const target = demoAccounts.find((a) => a.role === loginModalTargetRole);
-      if (target) {
-        setUsernameOrEmail(target.user);
-        setPassword(target.pass);
-      }
-    } else {
-      setUsernameOrEmail('superadmin');
-      setPassword('KamalHotel@2026');
+    setPassword('');
+    if (import.meta.env.DEV && loginModalTargetRole) {
+      const target = devRoleUsernames.find((a) => a.role === loginModalTargetRole);
+      setUsernameOrEmail(target ? target.user : '');
+    } else if (isLoginModalOpen) {
+      setUsernameOrEmail('');
     }
     setErrorMessage('');
   }, [loginModalTargetRole, isLoginModalOpen]);
@@ -134,6 +83,7 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({ onSuccess }) =
     setIsSubmitting(false);
 
     if (res.success) {
+      setPassword('');
       closeLoginModal();
       if (onSuccess) onSuccess();
     } else {
@@ -141,25 +91,24 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({ onSuccess }) =
     }
   };
 
-  const handleSelectDemo = (user: string, pass: string) => {
+  const handleSelectDevUsername = (user: string) => {
     setUsernameOrEmail(user);
-    setPassword(pass);
     setErrorMessage('');
   };
 
   return (
     <div 
-      className="fixed inset-0 z-50 bg-stone-950/75 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-[#14110E]/75 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) closeLoginModal();
       }}
     >
-      <div className="bg-white dark:bg-stone-900 rounded-2xl max-w-md w-full max-h-[88vh] flex flex-col border border-stone-200 dark:border-stone-800 shadow-2xl overflow-hidden animate-fade-in">
+      <div className="bg-white dark:bg-[#171411] rounded-2xl max-w-md w-full max-h-[88vh] flex flex-col border border-[#E6DFD3] dark:border-[#2A241E] shadow-2xl overflow-hidden animate-fade-in">
         
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-stone-100/80 dark:bg-stone-800/60 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-5 bg-[#F5EFE6] dark:bg-[#1D1813] border-b border-[#E6DFD3] dark:border-[#2A241E] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl overflow-hidden bg-[#f8f6f0] border border-amber-700/30 shadow-xs shrink-0 flex items-center justify-center">
+            <div className="w-11 h-11 rounded-xl overflow-hidden bg-[#FAF7F2] border border-[#C69553]/40 shadow-xs shrink-0 flex items-center justify-center">
               <img
                 src={kamalLogo}
                 alt={`${themeConfig.hotelName} Himalayan emblem`}
@@ -168,11 +117,11 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({ onSuccess }) =
               />
             </div>
             <div>
-              <h3 className="font-serif font-bold text-base text-stone-900 dark:text-stone-50">
+              <h3 className="font-serif font-bold text-base text-[#1A1714] dark:text-[#F4EFE6]">
                 {themeConfig.hotelName} Staff Portal
               </h3>
-              <div className="text-[11px] text-stone-500 dark:text-stone-400 font-mono flex items-center gap-1">
-                <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="text-[11px] text-[#6B6258] dark:text-[#AFA699] font-mono flex items-center gap-1">
+                <Lock className="w-3 h-3 text-[#96682E] dark:text-[#D4A76A] shrink-0" />
                 <span>Kamalpokhari, Kathmandu · Role Access</span>
               </div>
             </div>
@@ -181,7 +130,7 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({ onSuccess }) =
           <ModalDismissButton onClose={closeLoginModal} ariaLabel="Close staff sign-in dialog" />
         </div>
 
-        {/* Supabase status pill */}
+        {/* Supabase status strip */}
         {themeConfig.supabaseConnected && (
           <div className="px-5 py-2 bg-emerald-50 dark:bg-emerald-950/30 border-b border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs flex items-center justify-between shrink-0">
             <span className="flex items-center gap-1.5 font-medium">
@@ -201,72 +150,76 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({ onSuccess }) =
           )}
 
           <div>
-            <label className="block font-semibold text-stone-700 dark:text-stone-300 mb-1">
+            <label className="block font-semibold text-[#3C352E] dark:text-[#D7CFC3] mb-1">
               Username or Official Email
             </label>
             <div className="relative">
               <input
                 type="text"
+                autoComplete="username"
                 value={usernameOrEmail}
                 onChange={(e) => setUsernameOrEmail(e.target.value)}
-                placeholder="e.g. superadmin or hotelkamal.np@gmail.com"
+                placeholder="Enter username or official staff email"
                 required
-                className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-md pl-9 pr-3 py-2 text-xs font-medium text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                className="w-full bg-[#FAF7F2] dark:bg-[#211B16] border border-[#E6DFD3] dark:border-[#342C24] rounded-md pl-9 pr-3 py-2 text-xs font-medium text-[#1A1714] dark:text-[#F4EFE6] focus:outline-none focus:ring-1 focus:ring-[#96682E]"
               />
-              <User className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+              <User className="w-4 h-4 text-[#8E8477] absolute left-3 top-2.5" />
             </div>
           </div>
 
           <div>
-            <label className="block font-semibold text-stone-700 dark:text-stone-300 mb-1">
+            <label className="block font-semibold text-[#3C352E] dark:text-[#D7CFC3] mb-1">
               Staff Password
             </label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
+                placeholder="Enter your staff password"
                 required
-                className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-md pl-9 pr-10 py-2 text-xs font-mono font-medium text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                className="w-full bg-[#FAF7F2] dark:bg-[#211B16] border border-[#E6DFD3] dark:border-[#342C24] rounded-md pl-9 pr-10 py-2 text-xs font-mono font-medium text-[#1A1714] dark:text-[#F4EFE6] focus:outline-none focus:ring-1 focus:ring-[#96682E]"
               />
-              <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+              <Lock className="w-4 h-4 text-[#8E8477] absolute left-3 top-2.5" />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200"
+                className="absolute right-3 top-2.5 text-[#8E8477] hover:text-[#1A1714] dark:hover:text-[#F4EFE6]"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
-          {/* Quick Credential Autofill Chips */}
-          <div className="pt-2">
-            <span className="block text-[11px] font-semibold text-stone-500 mb-1.5 uppercase tracking-wider font-mono">
-              Quick Test Credentials (Click to auto-fill):
-            </span>
-            <div className="grid grid-cols-2 gap-1.5">
-              {demoAccounts.map((acc) => (
-                <button
-                  key={acc.role}
-                  type="button"
-                  onClick={() => handleSelectDemo(acc.user, acc.pass)}
-                  className={`p-2 rounded-lg border text-left transition-all flex items-center gap-2 ${
-                    usernameOrEmail === acc.user
-                      ? 'border-amber-600 bg-amber-50 dark:bg-amber-950/40 text-stone-900 dark:text-stone-100 font-semibold'
-                      : 'border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800'
-                  }`}
-                >
-                  <div className="shrink-0">{acc.icon}</div>
-                  <div className="truncate">
-                    <div className="text-[11px] font-medium leading-tight">{acc.label}</div>
-                    <div className="text-[10px] text-stone-400 font-mono truncate">{acc.user}</div>
-                  </div>
-                </button>
-              ))}
+          {/* Dev-only username picker (zero passwords embedded; stripped in production builds) */}
+          {import.meta.env.DEV && (
+            <div className="pt-2">
+              <span className="block text-[11px] font-semibold text-[#6B6258] dark:text-[#AFA699] mb-1.5 uppercase tracking-wider font-mono">
+                Dev Role Usernames (Password Required):
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {devRoleUsernames.map((acc) => (
+                  <button
+                    key={acc.role}
+                    type="button"
+                    onClick={() => handleSelectDevUsername(acc.user)}
+                    className={`p-2 rounded-lg border text-left transition-all flex items-center gap-2 ${
+                      usernameOrEmail === acc.user
+                        ? 'border-[#96682E] bg-[#FAF3E6] dark:bg-[#261E14] text-[#1A1714] dark:text-[#F4EFE6] font-semibold'
+                        : 'border-[#E6DFD3] dark:border-[#2A241E] text-[#5C544B] dark:text-[#AFA699] hover:bg-[#FAF7F2] dark:hover:bg-[#211B16]'
+                    }`}
+                  >
+                    <div className="shrink-0">{acc.icon}</div>
+                    <div className="truncate">
+                      <div className="text-[11px] font-medium leading-tight">{acc.label}</div>
+                      <div className="text-[10px] text-[#8E8477] font-mono truncate">{acc.user}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="pt-3">
             <button
@@ -283,7 +236,7 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({ onSuccess }) =
         </form>
 
         {/* Footer info */}
-        <div className="px-6 py-3 bg-stone-50 dark:bg-stone-800/40 border-t border-stone-200 dark:border-stone-800 text-[11px] text-stone-500 flex items-center justify-between">
+        <div className="px-6 py-3 bg-[#FAF7F2] dark:bg-[#1D1813] border-t border-[#E6DFD3] dark:border-[#2A241E] text-[11px] text-[#6B6258] dark:text-[#AFA699] flex items-center justify-between">
           <span>Kamal Hotel RBAC Security</span>
           <span className="font-mono text-[10px]">Session: Encrypted</span>
         </div>

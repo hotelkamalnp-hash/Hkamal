@@ -37,7 +37,7 @@ import { InteractiveFloorPlanSelector } from './InteractiveFloorPlanSelector';
 export const InRoomGuestPortal: React.FC = () => {
   const { 
     activeGuestSession, 
-    loginGuestByRoom, 
+    loginGuestWithDatabase, 
     logoutGuestSession,
     restaurantOrders,
     guestChatMessages,
@@ -58,9 +58,10 @@ export const InRoomGuestPortal: React.FC = () => {
   const themeClasses = getThemeClasses(themeConfig.palette);
 
   // Login form state
-  const [inputRoom, setInputRoom] = useState('Room 302');
-  const [inputPasscode, setInputPasscode] = useState('4829');
+  const [inputRoom, setInputRoom] = useState('');
+  const [inputPasscode, setInputPasscode] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Active in-portal tab
   const [activeTab, setActiveTab] = useState<'dining' | 'floor_plan' | 'local_guide' | 'room_service' | 'intercom' | 'orders' | 'bill' | 'door_lock' | 'rewards' | 'wake_up'>('dining');
@@ -71,13 +72,18 @@ export const InRoomGuestPortal: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [selectedServiceTag, setSelectedServiceTag] = useState<'room_service' | 'housekeeping' | 'concierge' | 'front_desk'>('concierge');
 
-  // Handle guest login
-  const handleGuestLogin = (e?: React.FormEvent) => {
+  // Handle guest login (verified against server database when available)
+  const handleGuestLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setLoginError('');
-    const res = loginGuestByRoom(inputRoom, inputPasscode);
-    if (!res.success) {
-      setLoginError(res.message);
+    setIsLoggingIn(true);
+    try {
+      const res = await loginGuestWithDatabase(inputRoom, inputPasscode);
+      if (!res.success) {
+        setLoginError(res.message);
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -90,13 +96,14 @@ export const InRoomGuestPortal: React.FC = () => {
       if (roomParam && pinParam) {
         setInputRoom(roomParam);
         setInputPasscode(pinParam);
-        const res = loginGuestByRoom(roomParam, pinParam);
-        if (!res.success) {
-          setLoginError(res.message);
-        }
+        void loginGuestWithDatabase(roomParam, pinParam).then((res) => {
+          if (!res.success) {
+            setLoginError(res.message);
+          }
+        });
       }
     }
-  }, [activeGuestSession, loginGuestByRoom]);
+  }, [activeGuestSession, loginGuestWithDatabase]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,9 +153,9 @@ export const InRoomGuestPortal: React.FC = () => {
   if (!activeGuestSession) {
     return (
       <div className="py-12 px-4 max-w-5xl mx-auto">
-        <div className="max-w-md mx-auto bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 p-6 sm:p-8 shadow-xl text-xs space-y-5">
+        <div className="max-w-md mx-auto bg-white dark:bg-[#171411] rounded-2xl border border-[#E6DFD3] dark:border-[#2A241E] p-6 sm:p-8 shadow-xl text-xs space-y-5">
           <div className="text-center space-y-2.5">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#f8f6f0] border border-amber-700/25 shadow-sm mx-auto flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-[#FAF7F2] border border-[#C69553]/35 shadow-sm mx-auto flex items-center justify-center">
               <img
                 src={kamalLogo}
                 alt={`${themeConfig.hotelName} Himalayan emblem`}
@@ -156,14 +163,14 @@ export const InRoomGuestPortal: React.FC = () => {
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-mono font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-mono font-semibold text-[#96682E] dark:text-[#D4A76A] uppercase tracking-wider">
               <Key className="w-3.5 h-3.5" />
               <span>{themeConfig.hotelName} · Room Keycard Login</span>
             </div>
-            <h2 className="text-xl font-serif font-bold text-stone-900 dark:text-stone-50">
+            <h2 className="text-xl font-serif font-bold text-[#1A1714] dark:text-[#F4EFE6]">
               In-Room Guest Digital Concierge
             </h2>
-            <p className="text-stone-500 text-[11px] leading-relaxed">
+            <p className="text-[#6B6258] dark:text-[#AFA699] text-[11px] leading-relaxed">
               Log in with your assigned room number and the 4-digit stay passcode provided on your keycard envelope.
             </p>
           </div>
@@ -176,19 +183,19 @@ export const InRoomGuestPortal: React.FC = () => {
 
           <form onSubmit={handleGuestLogin} className="space-y-4">
             <div>
-              <label className="block font-semibold mb-1">Room Number</label>
+              <label className="block font-semibold text-[#3C352E] dark:text-[#D7CFC3] mb-1">Room Number</label>
               <input
                 type="text"
                 placeholder="e.g. Room 302"
                 value={inputRoom}
                 onChange={(e) => setInputRoom(e.target.value)}
                 required
-                className="w-full p-2.5 rounded-lg bg-stone-50 dark:bg-stone-800 border font-mono text-stone-900 dark:text-stone-100"
+                className="w-full p-2.5 rounded-lg bg-[#FAF7F2] dark:bg-[#211B16] border border-[#E6DFD3] dark:border-[#342C24] font-mono text-[#1A1714] dark:text-[#F4EFE6] focus:outline-none focus:ring-1 focus:ring-[#96682E]"
               />
             </div>
 
             <div>
-              <label className="block font-semibold mb-1">4-Digit Stay Passcode (PIN)</label>
+              <label className="block font-semibold text-[#3C352E] dark:text-[#D7CFC3] mb-1">4-Digit Stay Passcode (PIN)</label>
               <input
                 type="password"
                 maxLength={4}
@@ -196,64 +203,67 @@ export const InRoomGuestPortal: React.FC = () => {
                 value={inputPasscode}
                 onChange={(e) => setInputPasscode(e.target.value)}
                 required
-                className="w-full p-2.5 rounded-lg bg-stone-50 dark:bg-stone-800 border font-mono text-center text-lg tracking-widest text-stone-900 dark:text-stone-100"
+                className="w-full p-2.5 rounded-lg bg-[#FAF7F2] dark:bg-[#211B16] border border-[#E6DFD3] dark:border-[#342C24] font-mono text-center text-lg tracking-widest text-[#1A1714] dark:text-[#F4EFE6] focus:outline-none focus:ring-1 focus:ring-[#96682E]"
               />
-              <span className="text-[10px] text-stone-400 block mt-1">
+              <span className="text-[10px] text-[#8E8477] block mt-1">
                 Dynamic passcode changes with every guest check-in and resets on checkout.
               </span>
             </div>
 
             <button
               type="submit"
-              className={`w-full py-3 rounded-lg font-semibold uppercase tracking-wider text-xs shadow-md transition-all ${themeClasses.primary}`}
+              disabled={isLoggingIn}
+              className={`w-full py-3 rounded-lg font-semibold uppercase tracking-wider text-xs shadow-md transition-all cursor-pointer disabled:opacity-60 ${themeClasses.primary}`}
             >
-              Access My Room Services
+              {isLoggingIn ? 'Verifying Room PIN...' : 'Access My Room Services'}
             </button>
           </form>
 
-          {/* Quick Demo Fill */}
-          <div className="pt-2 border-t border-stone-200 dark:border-stone-800 text-center space-y-3">
-            <div>
-              <span className="text-[10px] text-stone-400 block uppercase font-mono mb-2">Quick Test Check-Ins:</span>
-              <div className="flex justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInputRoom('Room 302');
-                    setInputPasscode('4829');
-                  }}
-                  className="px-2.5 py-1 rounded bg-stone-100 dark:bg-stone-800 text-[11px] hover:bg-amber-100 font-mono text-amber-800 dark:text-amber-300"
-                >
-                  Room 302 (PIN 4829)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInputRoom('Room 205');
-                    setInputPasscode('6312');
-                  }}
-                  className="px-2.5 py-1 rounded bg-stone-100 dark:bg-stone-800 text-[11px] hover:bg-amber-100 font-mono text-amber-800 dark:text-amber-300"
-                >
-                  Room 205 (PIN 6312)
-                </button>
+          {/* Tools & Dev-only quick fill */}
+          <div className="pt-2 border-t border-[#E6DFD3] dark:border-[#2A241E] text-center space-y-3">
+            {import.meta.env.DEV && (
+              <div>
+                <span className="text-[10px] text-[#8E8477] block uppercase font-mono mb-2">Quick Test Check-Ins (Dev):</span>
+                <div className="flex justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputRoom('Room 302');
+                      setInputPasscode('4829');
+                    }}
+                    className="px-2.5 py-1 rounded bg-[#F3EDE2] dark:bg-[#231E19] text-[11px] hover:bg-[#EAD8B8] dark:hover:bg-[#342C24] font-mono text-[#7C531D] dark:text-[#DFBE88] cursor-pointer"
+                  >
+                    Room 302 (PIN 4829)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputRoom('Room 205');
+                      setInputPasscode('6312');
+                    }}
+                    className="px-2.5 py-1 rounded bg-[#F3EDE2] dark:bg-[#231E19] text-[11px] hover:bg-[#EAD8B8] dark:hover:bg-[#342C24] font-mono text-[#7C531D] dark:text-[#DFBE88] cursor-pointer"
+                  >
+                    Room 205 (PIN 6312)
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             <button
               type="button"
               onClick={() => setShowPreLoginReader((prev) => !prev)}
-              className="w-full py-2 px-3 rounded-lg border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="w-full py-2 px-3 rounded-lg border border-[#E6DFD3] dark:border-[#342C24] hover:bg-[#FAF7F2] dark:hover:bg-[#211B16] text-[#1A1714] dark:text-[#F4EFE6] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <QrCode className="w-3.5 h-3.5 text-amber-600" />
-              <span>{showPreLoginReader ? 'Hide Smart Door Lock QR Reader' : `Open Smart Door Lock Reader (${inputRoom || 'Room 302'})`}</span>
+              <QrCode className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" />
+              <span>{showPreLoginReader ? 'Hide Smart Door Lock QR Reader' : `Open Smart Door Lock Reader (${inputRoom || 'Room PIN'})`}</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowPreLoginFloorPlan((prev) => !prev)}
-              className="w-full py-2 px-3 rounded-lg border border-amber-300 dark:border-amber-700/70 bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100/80 dark:hover:bg-amber-900/40 text-amber-900 dark:text-amber-200 font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="w-full py-2 px-3 rounded-lg border border-[#C69553]/45 bg-[#FAF3E6] dark:bg-[#261E14] hover:bg-[#F3E6CE] dark:hover:bg-[#322719] text-[#7C531D] dark:text-[#EAD8B8] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <MapIcon className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+              <MapIcon className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" />
               <span>{showPreLoginFloorPlan ? 'Hide 2D Floor Plan Room Selector' : 'Browse 2D Floor Plan & Select Room'}</span>
             </button>
           </div>
@@ -279,21 +289,21 @@ export const InRoomGuestPortal: React.FC = () => {
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6 w-full overflow-x-hidden">
       
       {/* Active Guest Banner */}
-      <div className="bg-white dark:bg-stone-900 p-5 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#171411] p-5 rounded-2xl border border-[#E6DFD3] dark:border-[#2A241E] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-700 text-white flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-xl bg-[#96682E] dark:bg-[#C69553] text-white dark:text-[#14110E] flex items-center justify-center font-bold">
             <DoorClosed className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-serif font-bold text-stone-900 dark:text-stone-50">
+              <h2 className="text-lg font-serif font-bold text-[#1A1714] dark:text-[#F4EFE6]">
                 {activeGuestSession.roomNumber} · {activeGuestSession.guestName}
               </h2>
               <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-mono text-[10px] font-bold">
                 PASSCODE: {activeGuestSession.passcode}
               </span>
             </div>
-            <p className="text-xs text-stone-500 font-mono">
+            <p className="text-xs text-[#6B6258] dark:text-[#AFA699] font-mono">
               Reservation: {activeGuestSession.bookingCode} · Checkout: {activeGuestSession.checkOutDate} at 12:00 PM
             </p>
           </div>
@@ -303,21 +313,21 @@ export const InRoomGuestPortal: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('rewards')}
-            className="px-3.5 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700/70 bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg border border-[#C69553]/45 bg-[#FAF3E6] dark:bg-[#261E14] hover:bg-[#F3E6CE] dark:hover:bg-[#322719] text-[#7C531D] dark:text-[#EAD8B8] text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             title="View Kamal Rewards Balance & Redeem Perks"
           >
-            <Award className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <Award className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A]" />
             <span className="tabular-nums">
               Kamal Rewards: {guestPointsBalance.toLocaleString()} pts
             </span>
-            <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400">
+            <span className="text-[10px] font-mono text-[#96682E] dark:text-[#D4A76A]">
               · {guestLoyaltyTier}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab('door_lock')}
-            className="px-3.5 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow whitespace-nowrap shrink-0 cursor-pointer"
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow whitespace-nowrap shrink-0 cursor-pointer ${themeClasses.primary}`}
           >
             <QrCode className="w-3.5 h-3.5" />
             <span>Unlock Room Door (QR)</span>
@@ -325,7 +335,7 @@ export const InRoomGuestPortal: React.FC = () => {
 
           <button
             onClick={() => startVoipCall('Reception Desk')}
-            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow whitespace-nowrap shrink-0 cursor-pointer"
+            className="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow whitespace-nowrap shrink-0 cursor-pointer"
           >
             <PhoneCall className="w-3.5 h-3.5" />
             <span>VoIP Intercom to Reception</span>
@@ -333,7 +343,7 @@ export const InRoomGuestPortal: React.FC = () => {
 
           <button
             onClick={logoutGuestSession}
-            className="px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-semibold flex items-center gap-1 text-stone-600 dark:text-stone-300 whitespace-nowrap shrink-0 cursor-pointer"
+            className="px-3 py-1.5 rounded-lg border border-[#E6DFD3] dark:border-[#342C24] hover:bg-[#FAF7F2] dark:hover:bg-[#211B16] text-xs font-semibold flex items-center gap-1 text-[#5C544B] dark:text-[#C5BCB0] whitespace-nowrap shrink-0 cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Exit Portal</span>
@@ -343,10 +353,10 @@ export const InRoomGuestPortal: React.FC = () => {
 
       {/* VoIP Call Bar (If connected) */}
       {isVoipCallActive && (
-        <div className="p-4 rounded-xl bg-emerald-900 text-emerald-100 border border-emerald-700 shadow-lg flex items-center justify-between animate-pulse">
+        <div className="p-4 rounded-xl bg-emerald-950 text-emerald-100 border border-emerald-700 shadow-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-full bg-emerald-800">
-              <PhoneCall className="w-5 h-5 text-emerald-200 animate-bounce" />
+              <PhoneCall className="w-5 h-5 text-emerald-200" />
             </div>
             <div>
               <div className="font-bold text-sm">VoIP Intercom Call Live with {activeVoipTarget}</div>
@@ -375,11 +385,11 @@ export const InRoomGuestPortal: React.FC = () => {
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-stone-200 dark:border-stone-800 pb-2 text-xs font-semibold">
+      <div className="flex flex-wrap gap-2 border-b border-[#E6DFD3] dark:border-[#2A241E] pb-2.5 text-xs font-semibold">
         <button
           onClick={() => setActiveTab('door_lock')}
           className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'door_lock' ? 'bg-amber-800 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+            activeTab === 'door_lock' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
           }`}
         >
           <Lock className="w-4 h-4" />
@@ -389,7 +399,7 @@ export const InRoomGuestPortal: React.FC = () => {
         <button
           onClick={() => setActiveTab('dining')}
           className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'dining' ? 'bg-amber-800 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+            activeTab === 'dining' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
           }`}
         >
           <Utensils className="w-4 h-4" />
@@ -399,7 +409,7 @@ export const InRoomGuestPortal: React.FC = () => {
         <button
           onClick={() => setActiveTab('floor_plan')}
           className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'floor_plan' ? 'bg-amber-800 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+            activeTab === 'floor_plan' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
           }`}
         >
           <MapIcon className="w-4 h-4" />
@@ -409,7 +419,7 @@ export const InRoomGuestPortal: React.FC = () => {
         <button
           onClick={() => setActiveTab('local_guide')}
           className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'local_guide' ? 'bg-amber-800 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+            activeTab === 'local_guide' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
           }`}
         >
           <Compass className="w-4 h-4" />
@@ -419,7 +429,7 @@ export const InRoomGuestPortal: React.FC = () => {
         <button
           onClick={() => setActiveTab('room_service')}
           className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'room_service' ? 'bg-amber-800 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+            activeTab === 'room_service' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
           }`}
         >
           <ConciergeBell className="w-4 h-4" />
@@ -431,7 +441,7 @@ export const InRoomGuestPortal: React.FC = () => {
         <button
           onClick={() => setActiveTab('orders')}
           className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'orders' ? 'bg-amber-800 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+            activeTab === 'orders' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
           }`}
         >
           <ShoppingBag className="w-4 h-4" />
@@ -441,27 +451,27 @@ export const InRoomGuestPortal: React.FC = () => {
         <button
           onClick={() => setActiveTab('bill')}
           className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'bill' ? 'bg-amber-800 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+            activeTab === 'bill' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Live Room Bill & Folio</span>
+          <span>Live Room Bill &amp; Folio</span>
         </button>
 
         <button
           onClick={() => setActiveTab('intercom')}
           className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'intercom' ? 'bg-amber-800 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+            activeTab === 'intercom' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
           }`}
         >
           <MessageSquare className="w-4 h-4" />
-          <span>Direct Reception & Waiter Chat</span>
+          <span>Direct Reception &amp; Waiter Chat</span>
         </button>
 
         <button
           onClick={() => setActiveTab('rewards')}
           className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'rewards' ? 'bg-amber-800 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+            activeTab === 'rewards' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
           }`}
         >
           <Award className="w-4 h-4" />
@@ -471,7 +481,7 @@ export const InRoomGuestPortal: React.FC = () => {
         <button
           onClick={() => setActiveTab('wake_up')}
           className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'wake_up' ? 'bg-amber-800 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+            activeTab === 'wake_up' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
           }`}
         >
           <AlarmClock className="w-4 h-4" />
@@ -570,7 +580,7 @@ export const InRoomGuestPortal: React.FC = () => {
           </div>
 
           {/* Messages list */}
-          <div className="space-y-3 h-80 overflow-y-auto p-2 bg-stone-50 dark:bg-stone-800/40 rounded-xl">
+          <div className="space-y-3 h-80 overflow-y-auto p-2 bg-[#FAF7F2] dark:bg-[#14110E] rounded-xl border border-[#E6DFD3] dark:border-[#2A241E]">
             {guestChatMessages.map((msg) => {
               const isGuest = msg.sender === 'guest';
               return (
@@ -578,7 +588,7 @@ export const InRoomGuestPortal: React.FC = () => {
                   key={msg.id}
                   className={`flex flex-col ${isGuest ? 'items-end' : 'items-start'} text-xs`}
                 >
-                  <div className="flex items-center gap-1.5 text-[10px] text-stone-400 mb-0.5">
+                  <div className="flex items-center gap-1.5 text-[10px] text-[#8E8477] mb-0.5">
                     <span className="font-semibold">{msg.guestName || (isGuest ? 'You' : 'Staff')}</span>
                     <span>·</span>
                     <span>{msg.time}</span>
@@ -586,8 +596,8 @@ export const InRoomGuestPortal: React.FC = () => {
                   <div
                     className={`p-3 rounded-2xl max-w-sm text-xs leading-relaxed shadow-sm ${
                       isGuest
-                        ? 'bg-slate-900 text-white rounded-tr-none border border-slate-800 font-normal'
-                        : 'bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-tl-none font-medium'
+                        ? 'bg-[#1A1714] text-[#FAF7F2] rounded-tr-none border border-[#2A241E] font-normal'
+                        : 'bg-[#96682E] text-white rounded-tl-none font-medium'
                     }`}
                   >
                     {msg.text}
@@ -604,11 +614,11 @@ export const InRoomGuestPortal: React.FC = () => {
               placeholder={`Message receptionist about ${selectedServiceTag.replace('_', ' ')}...`}
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              className="flex-1 p-2.5 rounded-lg bg-stone-50 dark:bg-stone-800 border text-xs"
+              className="flex-1 p-2.5 rounded-lg bg-[#FAF7F2] dark:bg-[#211B16] border border-[#E6DFD3] dark:border-[#342C24] text-xs text-[#1A1714] dark:text-[#F4EFE6]"
             />
             <button
               type="submit"
-              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-1 shadow ${themeClasses.primary}`}
+              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-1 shadow cursor-pointer ${themeClasses.primary}`}
             >
               <Send className="w-3.5 h-3.5" />
               <span>Send</span>
@@ -629,23 +639,23 @@ export const InRoomGuestPortal: React.FC = () => {
         const diningTotalUSD = myOrders.reduce((acc, o) => acc + o.totalAmountUSD, 0);
 
         return (
-          <div className="bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 p-6 shadow-sm space-y-6 max-w-3xl mx-auto text-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4">
+          <div className="bg-white dark:bg-[#171411] rounded-2xl border border-[#E6DFD3] dark:border-[#2A241E] p-6 shadow-sm space-y-6 max-w-3xl mx-auto text-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E6DFD3] dark:border-[#2A241E] pb-4">
               <div>
-                <span className="font-mono font-bold uppercase text-amber-700 dark:text-amber-400">
+                <span className="font-mono font-bold uppercase text-[#96682E] dark:text-[#D4A76A]">
                   Live Guest Statement & Folio
                 </span>
-                <h3 className="text-xl font-serif font-bold text-stone-900 dark:text-stone-50">
+                <h3 className="text-xl font-serif font-bold text-[#1A1714] dark:text-[#F4EFE6]">
                   {activeGuestSession.roomNumber} · {activeGuestSession.guestName}
                 </h3>
-                <p className="text-stone-500 text-[11px] font-mono">
+                <p className="text-[#6B6258] dark:text-[#AFA699] text-[11px] font-mono">
                   Stay Dates: {activeGuestSession.checkInDate} &rarr; {activeGuestSession.checkOutDate} · PIN: {activeGuestSession.passcode}
                 </p>
               </div>
 
               <div className="text-right">
-                <span className="text-[10px] text-stone-400 uppercase font-mono block">Current Balance Due</span>
-                <span className="text-2xl font-serif font-bold text-amber-900 dark:text-amber-300">
+                <span className="text-[10px] text-[#8E8477] uppercase font-mono block">Current Balance Due</span>
+                <span className="text-2xl font-sans font-semibold tracking-tight text-[#96682E] dark:text-[#DFBE88] tabular-nums">
                   {matchedInv 
                     ? formatCurrency(convertPrice(matchedInv.balanceDueUSD + diningTotalUSD, currentCurrency), currentCurrency)
                     : formatCurrency(convertPrice(diningTotalUSD || 43.5, currentCurrency), currentCurrency)

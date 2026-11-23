@@ -431,7 +431,7 @@ export const RevenueTrendsWidget: React.FC = () => {
           <div className="text-[11px] font-medium text-stone-500 dark:text-stone-400">
             Confirmed &amp; Settled
           </div>
-          <div className="mt-1 text-xl sm:text-2xl font-serif font-bold text-stone-900 dark:text-stone-50">
+          <div className="mt-1 text-xl sm:text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-50">
             {formatCurrency(summary.paidWindowEarnings, currentCurrency)}
           </div>
           <div className="mt-0.5 text-[11px] text-stone-500 dark:text-stone-400">
@@ -445,7 +445,7 @@ export const RevenueTrendsWidget: React.FC = () => {
           <div className="text-[11px] font-medium text-stone-500 dark:text-stone-400">
             Reservations &amp; Room Nights
           </div>
-          <div className="mt-1 text-xl sm:text-2xl font-serif font-bold text-stone-900 dark:text-stone-50">
+          <div className="mt-1 text-xl sm:text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-50">
             {summary.totalBookingsCount}
             <span className="text-sm font-sans font-normal text-stone-500 dark:text-stone-400 ml-1.5">
               / {summary.totalNights} nights
@@ -460,7 +460,7 @@ export const RevenueTrendsWidget: React.FC = () => {
           <div className="text-[11px] font-medium text-stone-500 dark:text-stone-400">
             Peak {granularity === 'monthly' ? 'Month' : 'Week'}
           </div>
-          <div className="mt-1 text-xl sm:text-2xl font-serif font-bold text-amber-700 dark:text-amber-400">
+          <div className="mt-1 text-xl sm:text-2xl font-sans font-semibold tracking-tight tabular-nums text-amber-700 dark:text-amber-400">
             {summary.peakBucket && summary.peakBucket.totalEarnings > 0
               ? formatCurrency(summary.peakBucket.totalEarnings, currentCurrency)
               : formatCurrency(0, currentCurrency)}

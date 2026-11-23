@@ -1,10 +1,44 @@
 import 'dotenv/config';
+import crypto from 'crypto';
 import express, { type Request, type Response } from 'express';
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import nodemailer from 'nodemailer';
+import {
+  authenticateStaffCredentials,
+  clearSessionCookie,
+  createRateLimiter,
+  createStaffAccount,
+  deleteStaffAccount,
+  getServerSmtpSettings,
+  listStaffDirectory,
+  redactSmtpSettings,
+  requireAuth,
+  requireRole,
+  resolveAuthFromRequest,
+  revokeSessionId,
+  saveServerSmtpSettings,
+  setSessionCookie,
+  signEmailVerificationProof,
+  signSessionToken,
+  updateStaffAccount,
+  verifyEmailVerificationProof,
+  isProductionMode,
+  type AuthenticatedRequest,
+  type ServerSmtpSettings,
+} from './server/security.ts';
+import {
+  deleteOtpChallenge,
+  getOtpChallenge,
+  getSqliteDb,
+  incrementOtpAttempts,
+  saveOtpChallenge,
+} from './server/db.ts';
+import { registerPmsRoutes } from './server/pmsRoutes.ts';
+import { attachWebSocketServer } from './server/realtime.ts';
+import { startBackgroundWorkers } from './server/jobs.ts';
 
 interface GroundedSource {
   title: string;
@@ -179,8 +213,10 @@ Return ONLY valid JSON with this exact structure (no markdown commentary outside
     temperatureC: String(weatherRaw.temperatureC || 'See grounded sources'),
     feelsLikeOrRange: String(weatherRaw.feelsLikeOrRange || 'Seasonal Kathmandu Valley temperature'),
     humidityOrWind: String(weatherRaw.humidityOrWind || 'Updated via live search'),
-    himalayanVisibility: String(weatherRaw.himalayanVisibility || 'Clear morning hours typically offer best Langtang & Ganesh Himal views'),
-    guestTip: String(weatherRaw.guestTip || 'Carry a light layer for evening rooftop dining breezes.'),
+    himalayanVisibility: String(
+      weatherRaw.himalayanVisibility || 'Clear morning hours typically offer best Langtang & Ganesh Himal views'
+    ),
+    guestTip: String(weatherRaw.guestTip || 'Carry a light layer for evening courtyard dining breezes.'),
   };
 
   const eventsRaw = Array.isArray(parsed?.events) ? parsed.events : [];
@@ -224,30 +260,17 @@ Return ONLY valid JSON with this exact structure (no markdown commentary outside
   };
 }
 
-interface VerificationOtpRecord {
-  code: string;
-  email: string;
-  guestName: string;
-  expiresAt: number;
-  verified: boolean;
+const MAX_OTP_ATTEMPTS = 5;
+
+function hashOtpCode(code: string, salt: string): string {
+  return crypto.createHmac('sha256', salt).update(code.trim()).digest('hex');
 }
 
-const bookingEmailOtpStore = new Map<string, VerificationOtpRecord>();
-
-interface IncomingSmtpPayload {
-  smtpHost?: string;
-  smtpPort?: number;
-  smtpUser?: string;
-  smtpPassword?: string;
-  senderEmail?: string;
-  senderName?: string;
-  replyToEmail?: string;
-  notificationEmail?: string;
-  encryption?: 'ssl' | 'tls' | 'none';
-  sendBookingConfirmationEmail?: boolean;
-  requireRealEmailOtp?: boolean;
-  otpExpiryMinutes?: number;
-  emailSubjectPrefix?: string;
+function timingSafeHexEqual(aHex: string, bHex: string): boolean {
+  const a = Buffer.from(aHex, 'hex');
+  const b = Buffer.from(bHex, 'hex');
+  if (a.length !== b.length || a.length === 0) return false;
+  return crypto.timingSafeEqual(a, b);
 }
 
 interface ResolvedSmtpConfig {
@@ -276,16 +299,25 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function resolveEffectiveSmtp(input?: IncomingSmtpPayload): ResolvedSmtpConfig {
-  const host = (input?.smtpHost || process.env.SMTP_HOST || '').trim();
-  const port = Number(input?.smtpPort || process.env.SMTP_PORT || 587) || 587;
-  const user = (input?.smtpUser || process.env.SMTP_USER || '').trim();
-  const pass = (input?.smtpPassword || process.env.SMTP_PASS || '').trim();
-  const senderEmail = (input?.senderEmail || process.env.SMTP_FROM_EMAIL || user || '').trim();
-  const senderName = (input?.senderName || process.env.SMTP_FROM_NAME || 'Kamal Hotel Reservations').trim();
-  const replyToEmail = (input?.replyToEmail || senderEmail || '').trim() || undefined;
-  const notificationEmail = (input?.notificationEmail || '').trim() || undefined;
-  const rawEnc = input?.encryption || (process.env.SMTP_ENCRYPTION as 'ssl' | 'tls' | 'none' | undefined) || (port === 465 ? 'ssl' : 'tls');
+function resolveEffectiveSmtpFromServer(override?: Partial<ServerSmtpSettings>): ResolvedSmtpConfig {
+  const stored = getServerSmtpSettings();
+  const host = (override?.smtpHost || stored.smtpHost || '').trim();
+  const port = Number(override?.smtpPort || stored.smtpPort || 587) || 587;
+  const user = (override?.smtpUser || stored.smtpUser || '').trim();
+  const pass = (
+    typeof override?.smtpPassword === 'string' && override.smtpPassword.trim()
+      ? override.smtpPassword.trim()
+      : stored.smtpPassword || ''
+  ).trim();
+  const senderEmail = (override?.senderEmail || stored.senderEmail || user || '').trim();
+  const senderName = (
+    override?.senderName ||
+    stored.senderName ||
+    'Kamal Hotel Reservations'
+  ).trim();
+  const replyToEmail = (override?.replyToEmail || stored.replyToEmail || senderEmail || '').trim() || undefined;
+  const notificationEmail = (override?.notificationEmail || stored.notificationEmail || '').trim() || undefined;
+  const rawEnc = override?.encryption || stored.encryption || (port === 465 ? 'ssl' : 'tls');
   const encryption: 'ssl' | 'tls' | 'none' =
     rawEnc === 'ssl' || rawEnc === 'none' ? rawEnc : 'tls';
 
@@ -311,10 +343,16 @@ function resolveEffectiveSmtp(input?: IncomingSmtpPayload): ResolvedSmtpConfig {
     replyToEmail,
     notificationEmail,
     encryption,
-    sendBookingConfirmationEmail: input?.sendBookingConfirmationEmail !== false,
-    requireRealEmailOtp: Boolean(input?.requireRealEmailOtp),
-    otpExpiryMinutes: Math.min(60, Math.max(3, Number(input?.otpExpiryMinutes) || 10)),
-    subjectPrefix: (input?.emailSubjectPrefix || '').trim(),
+    sendBookingConfirmationEmail:
+      override?.sendBookingConfirmationEmail !== undefined
+        ? override.sendBookingConfirmationEmail !== false
+        : stored.sendBookingConfirmationEmail !== false,
+    requireRealEmailOtp: Boolean(override?.requireRealEmailOtp ?? stored.requireRealEmailOtp),
+    otpExpiryMinutes: Math.min(
+      60,
+      Math.max(3, Number(override?.otpExpiryMinutes ?? stored.otpExpiryMinutes) || 10)
+    ),
+    subjectPrefix: (override?.emailSubjectPrefix ?? stored.emailSubjectPrefix ?? '').trim(),
     hasRealCredentials,
   };
 }
@@ -344,12 +382,16 @@ function formatSmtpErrorHint(err: unknown): string {
   return msg;
 }
 
-function getGoogleMapsApiKey(): string {
+function getGoogleMapsPlacesApiKey(): string {
   return (
-    process.env.VITE_GOOGLE_MAPS_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
+    process.env.VITE_GOOGLE_MAPS_API_KEY ||
     ''
   ).trim();
+}
+
+function getBrowserGoogleMapsJsKey(): string {
+  return (process.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
 }
 
 const NEIGHBORHOOD_CATEGORY_TYPES: Record<string, string[]> = {
@@ -374,27 +416,383 @@ const NEIGHBORHOOD_CATEGORY_TYPES: Record<string, string[]> = {
   transit: ['transit_station', 'bus_station', 'taxi_stand', 'airport'],
 };
 
-async function startServer(): Promise<void> {
+export function createApiApp(): express.Express {
   const app = express();
-  const httpServer = http.createServer(app);
-  const port = Number(process.env.PORT) || 3000;
 
-  app.use(express.json());
+  getSqliteDb();
+  app.set('trust proxy', true);
+  app.use(
+    express.json({
+      limit: '15mb',
+      verify: (req, _res, buf) => {
+        (req as Request & { rawBody?: Buffer }).rawBody = buf;
+      },
+    })
+  );
+
+  // Serve persistent media uploads statically
+  const localUploadDir = path.resolve(process.cwd(), 'public', 'uploads');
+  if (!fs.existsSync(localUploadDir)) {
+    fs.mkdirSync(localUploadDir, { recursive: true });
+  }
+  app.use('/uploads', express.static(localUploadDir));
+
+  // Baseline security headers (preserve iframe embed compatibility for preview)
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-XSS-Protection', '0');
+    next();
+  });
+
+  const loginLimiter = createRateLimiter({
+    windowMs: 5 * 60 * 1000,
+    maxRequests: 20,
+    keyPrefix: 'auth-login',
+  });
+  const otpSendLimiter = createRateLimiter({
+    windowMs: 10 * 60 * 1000,
+    maxRequests: 12,
+    keyPrefix: 'otp-send',
+  });
+  const otpVerifyLimiter = createRateLimiter({
+    windowMs: 10 * 60 * 1000,
+    maxRequests: 20,
+    keyPrefix: 'otp-verify',
+  });
+  const placesLimiter = createRateLimiter({
+    windowMs: 60 * 1000,
+    maxRequests: 30,
+    keyPrefix: 'places',
+  });
+  const guideLimiter = createRateLimiter({
+    windowMs: 5 * 60 * 1000,
+    maxRequests: 20,
+    keyPrefix: 'local-guide',
+  });
 
   app.get('/api/health', (_req: Request, res: Response) => {
     res.json({ ok: true, service: 'kamal-hotel-pms' });
   });
 
-  app.get('/api/maps/config', (_req: Request, res: Response) => {
-    const apiKey = getGoogleMapsApiKey();
+  // ----------------- AUTHENTICATION & SESSION ENDPOINTS -----------------
+  app.post('/api/auth/login', loginLimiter, async (req: Request, res: Response) => {
+    const usernameOrEmail =
+      typeof req.body?.usernameOrEmail === 'string' ? req.body.usernameOrEmail.trim() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+
+    if (!usernameOrEmail || !password) {
+      res.status(400).json({
+        ok: false,
+        message: 'Username/email and password are required.',
+      });
+      return;
+    }
+
+    const result = await authenticateStaffCredentials(usernameOrEmail, password);
+    if (!result.ok) {
+      res.status(result.status).json({
+        ok: false,
+        message: result.message,
+      });
+      return;
+    }
+
+    const { token, expiresAt } = signSessionToken(result.user, {
+      supabaseAccessToken: result.supabaseAccessToken,
+    });
+    setSessionCookie(req, res, token);
+
     res.json({
-      hasKey: Boolean(apiKey),
-      apiKey,
+      ok: true,
+      user: result.user,
+      token,
+      expiresAt,
+      message: 'Login successful!',
+    });
+  });
+
+  app.post('/api/auth/logout', async (req: Request, res: Response) => {
+    const resolved = await resolveAuthFromRequest(req);
+    if (resolved?.payload?.jti) {
+      revokeSessionId(resolved.payload.jti, resolved.payload.exp);
+    }
+    clearSessionCookie(req, res);
+    res.json({ ok: true, message: 'Signed out cleanly.' });
+  });
+
+  app.get('/api/auth/session', async (req: Request, res: Response) => {
+    const resolved = await resolveAuthFromRequest(req);
+    if (!resolved) {
+      res.status(401).json({
+        ok: false,
+        authenticated: false,
+        user: null,
+        error: 'No active authenticated staff session.',
+      });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      authenticated: true,
+      user: resolved.user,
+      expiresAt: resolved.payload?.exp ? resolved.payload.exp * 1000 : null,
+    });
+  });
+
+  // ----------------- PROTECTED STAFF RBAC MANAGEMENT -----------------
+  app.get(
+    '/api/auth/staff',
+    requireAuth,
+    requireRole(['super_admin', 'admin', 'hotel_manager']),
+    async (_req: AuthenticatedRequest, res: Response) => {
+      const staffList = await listStaffDirectory();
+      res.json({ ok: true, staff: staffList });
+    }
+  );
+
+  app.post(
+    '/api/auth/staff',
+    requireAuth,
+    requireRole(['super_admin']),
+    async (req: AuthenticatedRequest, res: Response) => {
+      const result = await createStaffAccount({
+        name: String(req.body?.name || ''),
+        username: String(req.body?.username || ''),
+        email: String(req.body?.email || ''),
+        phone: String(req.body?.phone || ''),
+        password: String(req.body?.password || ''),
+        role: req.body?.role,
+        department: String(req.body?.department || 'Hotel Operations'),
+      });
+      if (!result.ok) {
+        res.status(result.status).json({ ok: false, error: result.error });
+        return;
+      }
+      res.status(201).json({ ok: true, user: result.user });
+    }
+  );
+
+  app.patch(
+    '/api/auth/staff/:id',
+    requireAuth,
+    requireRole(['super_admin']),
+    async (req: AuthenticatedRequest, res: Response) => {
+      const result = await updateStaffAccount(String(req.params.id), {
+        name: typeof req.body?.name === 'string' ? req.body.name : undefined,
+        username: typeof req.body?.username === 'string' ? req.body.username : undefined,
+        role: req.body?.role,
+        status: req.body?.status,
+        department: typeof req.body?.department === 'string' ? req.body.department : undefined,
+        password: typeof req.body?.password === 'string' && req.body.password.trim()
+          ? req.body.password.trim()
+          : undefined,
+      });
+      if (!result.ok) {
+        res.status(result.status).json({ ok: false, error: result.error });
+        return;
+      }
+      res.json({ ok: true, user: result.user });
+    }
+  );
+
+  app.patch(
+    '/api/auth/staff/:id/password',
+    requireAuth,
+    requireRole(['super_admin']),
+    async (req: AuthenticatedRequest, res: Response) => {
+      const newPassword = typeof req.body?.password === 'string' ? req.body.password.trim() : '';
+      if (!newPassword || newPassword.length < 8) {
+        res.status(400).json({
+          ok: false,
+          error: 'New password must be at least 8 characters.',
+        });
+        return;
+      }
+      const result = await updateStaffAccount(String(req.params.id), { password: newPassword });
+      if (!result.ok) {
+        res.status(result.status).json({ ok: false, error: result.error });
+        return;
+      }
+      res.json({ ok: true, user: result.user, message: 'Password updated securely.' });
+    }
+  );
+
+  app.delete(
+    '/api/auth/staff/:id',
+    requireAuth,
+    requireRole(['super_admin']),
+    async (req: AuthenticatedRequest, res: Response) => {
+      const result = await deleteStaffAccount(String(req.params.id));
+      if (!result.ok) {
+        res.status(result.status).json({ ok: false, error: result.error });
+        return;
+      }
+      res.json({ ok: true });
+    }
+  );
+
+  // ----------------- PROTECTED SMTP SETTINGS & TEST -----------------
+  app.get(
+    '/api/settings/smtp',
+    requireAuth,
+    requireRole(['super_admin', 'admin']),
+    (_req: AuthenticatedRequest, res: Response) => {
+      res.json({
+        ok: true,
+        smtp: redactSmtpSettings(getServerSmtpSettings()),
+      });
+    }
+  );
+
+  app.put(
+    '/api/settings/smtp',
+    requireAuth,
+    requireRole(['super_admin', 'admin']),
+    (req: AuthenticatedRequest, res: Response) => {
+      const body = req.body || {};
+      const redacted = saveServerSmtpSettings({
+        providerPreset: body.providerPreset,
+        smtpHost: typeof body.smtpHost === 'string' ? body.smtpHost.trim() : undefined,
+        smtpPort: body.smtpPort !== undefined ? Number(body.smtpPort) : undefined,
+        smtpUser: typeof body.smtpUser === 'string' ? body.smtpUser.trim() : undefined,
+        smtpPassword:
+          typeof body.smtpPassword === 'string' && body.smtpPassword.trim()
+            ? body.smtpPassword.trim()
+            : undefined,
+        senderEmail: typeof body.senderEmail === 'string' ? body.senderEmail.trim() : undefined,
+        senderName: typeof body.senderName === 'string' ? body.senderName.trim() : undefined,
+        replyToEmail: typeof body.replyToEmail === 'string' ? body.replyToEmail.trim() : undefined,
+        notificationEmail:
+          typeof body.notificationEmail === 'string' ? body.notificationEmail.trim() : undefined,
+        encryption: body.encryption,
+        sendBookingConfirmationEmail:
+          typeof body.sendBookingConfirmationEmail === 'boolean'
+            ? body.sendBookingConfirmationEmail
+            : undefined,
+        requireRealEmailOtp:
+          typeof body.requireRealEmailOtp === 'boolean' ? body.requireRealEmailOtp : undefined,
+        otpExpiryMinutes:
+          body.otpExpiryMinutes !== undefined ? Number(body.otpExpiryMinutes) : undefined,
+        emailSubjectPrefix:
+          typeof body.emailSubjectPrefix === 'string' ? body.emailSubjectPrefix.trim() : undefined,
+      });
+
+      res.json({ ok: true, smtp: redacted });
+    }
+  );
+
+  app.post(
+    '/api/email/test-smtp',
+    requireAuth,
+    requireRole(['super_admin', 'admin']),
+    async (req: AuthenticatedRequest, res: Response) => {
+      const testEmail =
+        typeof req.body?.testEmail === 'string' ? req.body.testEmail.trim() : '';
+      const incoming = (req.body?.smtpConfig || {}) as Partial<ServerSmtpSettings>;
+      const smtpCfg = resolveEffectiveSmtpFromServer(incoming);
+      const hotelName =
+        typeof req.body?.hotelName === 'string' && req.body.hotelName.trim()
+          ? req.body.hotelName.trim()
+          : smtpCfg.senderName || 'Kamal Hotel';
+
+      if (!smtpCfg.host || !smtpCfg.senderEmail) {
+        res.status(400).json({
+          ok: false,
+          error: 'SMTP Host and Sender From Email are required.',
+        });
+        return;
+      }
+      if (!smtpCfg.hasRealCredentials) {
+        res.status(400).json({
+          ok: false,
+          error:
+            'SMTP Username and real Password / App Password are required to connect to your mail server.',
+        });
+        return;
+      }
+
+      const recipient = testEmail || smtpCfg.senderEmail;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(recipient)) {
+        res.status(400).json({
+          ok: false,
+          error: 'Please enter a valid recipient email address for the test email.',
+        });
+        return;
+      }
+
+      try {
+        const transporter = createMailTransporter(smtpCfg);
+        await transporter.verify();
+
+        const prefix = smtpCfg.subjectPrefix ? `${smtpCfg.subjectPrefix} ` : '';
+        const info = await transporter.sendMail({
+          from: `"${smtpCfg.senderName}" <${smtpCfg.senderEmail}>`,
+          to: recipient,
+          replyTo: smtpCfg.replyToEmail || smtpCfg.senderEmail,
+          subject: `${prefix}SMTP Connection Verified — ${hotelName}`,
+          text: `Your outgoing mail server (${smtpCfg.host}:${smtpCfg.port}, ${smtpCfg.encryption.toUpperCase()}) is connected and ready to deliver guest verification codes and booking vouchers for ${hotelName}.`,
+          html: `
+            <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; max-width: 560px; margin: 0 auto; padding: 28px; color: #1c1917; border: 1px solid #e7e5e4; border-radius: 12px;">
+              <p style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #92400e; margin: 0 0 8px;">${escapeHtml(hotelName)} · Mail Gateway</p>
+              <h2 style="font-family: Georgia, serif; font-size: 22px; margin: 0 0 14px; color: #1c1917;">SMTP Delivery Verified</h2>
+              <p style="font-size: 14px; line-height: 1.6; color: #44403c; margin: 0 0 18px;">
+                This test message confirms that your real SMTP server is authenticated and ready to send booking OTP codes and confirmation vouchers.
+              </p>
+              <div style="background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 8px; padding: 14px; font-size: 13px; color: #57534e;">
+                <div><strong>SMTP Host:</strong> ${escapeHtml(smtpCfg.host)}:${smtpCfg.port} (${smtpCfg.encryption.toUpperCase()})</div>
+                <div style="margin-top: 4px;"><strong>Sender:</strong> ${escapeHtml(smtpCfg.senderName)} &lt;${escapeHtml(smtpCfg.senderEmail)}&gt;</div>
+                <div style="margin-top: 4px;"><strong>Tested At:</strong> ${new Date().toUTCString()}</div>
+              </div>
+            </div>
+          `,
+        });
+
+        const msg = `Connected to ${smtpCfg.host}:${smtpCfg.port} and delivered real test email to ${recipient} (ID: ${info.messageId}).`;
+        const updatedRedacted = saveServerSmtpSettings({
+          ...incoming,
+          lastTestedAt: new Date().toISOString(),
+          lastTestStatus: 'success',
+          lastTestMessage: msg,
+        });
+
+        res.json({
+          ok: true,
+          messageId: info.messageId,
+          accepted: info.accepted,
+          smtp: updatedRedacted,
+          message: msg,
+        });
+      } catch (error: unknown) {
+        const hint = formatSmtpErrorHint(error);
+        console.error('SMTP test error:', error);
+        saveServerSmtpSettings({
+          lastTestedAt: new Date().toISOString(),
+          lastTestStatus: 'failed',
+          lastTestMessage: hint,
+        });
+        res.status(502).json({
+          ok: false,
+          error: hint,
+        });
+      }
+    }
+  );
+
+  // ----------------- MAPS & NEIGHBORHOOD PROXY -----------------
+  // Never leak private GOOGLE_MAPS_API_KEY; expose only explicitly public VITE_GOOGLE_MAPS_API_KEY
+  app.get('/api/maps/config', (_req: Request, res: Response) => {
+    const publicJsKey = getBrowserGoogleMapsJsKey();
+    res.json({
+      hasKey: Boolean(publicJsKey),
+      apiKey: publicJsKey,
     });
   });
 
   const handleNeighborhoodPlaces = async (req: Request, res: Response) => {
-    const apiKey = getGoogleMapsApiKey();
+    const apiKey = getGoogleMapsPlacesApiKey();
     if (!apiKey) {
       res.status(503).json({
         error: 'Google Maps API key is not configured on the server.',
@@ -544,87 +942,12 @@ async function startServer(): Promise<void> {
     }
   };
 
-  app.post('/api/neighborhood/places', handleNeighborhoodPlaces);
-  app.get('/api/neighborhood/places', handleNeighborhoodPlaces);
+  app.post('/api/neighborhood/places', placesLimiter, handleNeighborhoodPlaces);
+  app.get('/api/neighborhood/places', placesLimiter, handleNeighborhoodPlaces);
 
-  app.post('/api/email/test-smtp', async (req: Request, res: Response) => {
-    const testEmail =
-      typeof req.body?.testEmail === 'string' ? req.body.testEmail.trim() : '';
-    const smtpCfg = resolveEffectiveSmtp(req.body?.smtpConfig);
-    const hotelName =
-      typeof req.body?.hotelName === 'string' && req.body.hotelName.trim()
-        ? req.body.hotelName.trim()
-        : smtpCfg.senderName || 'Kamal Hotel';
-
-    if (!smtpCfg.host || !smtpCfg.senderEmail) {
-      res.status(400).json({
-        ok: false,
-        error: 'SMTP Host and Sender From Email are required.',
-      });
-      return;
-    }
-    if (!smtpCfg.hasRealCredentials) {
-      res.status(400).json({
-        ok: false,
-        error:
-          'SMTP Username and real Password / App Password are required to connect to your mail server.',
-      });
-      return;
-    }
-
-    const recipient = testEmail || smtpCfg.senderEmail;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(recipient)) {
-      res.status(400).json({
-        ok: false,
-        error: 'Please enter a valid recipient email address for the test email.',
-      });
-      return;
-    }
-
-    try {
-      const transporter = createMailTransporter(smtpCfg);
-      await transporter.verify();
-
-      const prefix = smtpCfg.subjectPrefix ? `${smtpCfg.subjectPrefix} ` : '';
-      const info = await transporter.sendMail({
-        from: `"${smtpCfg.senderName}" <${smtpCfg.senderEmail}>`,
-        to: recipient,
-        replyTo: smtpCfg.replyToEmail || smtpCfg.senderEmail,
-        subject: `${prefix}SMTP Connection Verified — ${hotelName}`,
-        text: `Your outgoing mail server (${smtpCfg.host}:${smtpCfg.port}, ${smtpCfg.encryption.toUpperCase()}) is connected and ready to deliver guest verification codes and booking vouchers for ${hotelName}.`,
-        html: `
-          <div style="font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; max-width: 560px; margin: 0 auto; padding: 28px; color: #1c1917; border: 1px solid #e7e5e4; border-radius: 12px;">
-            <p style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #92400e; margin: 0 0 8px;">${escapeHtml(hotelName)} · Mail Gateway</p>
-            <h2 style="font-family: Georgia, serif; font-size: 22px; margin: 0 0 14px; color: #1c1917;">SMTP Delivery Verified</h2>
-            <p style="font-size: 14px; line-height: 1.6; color: #44403c; margin: 0 0 18px;">
-              This test message confirms that your real SMTP server is authenticated and ready to send booking OTP codes and confirmation vouchers.
-            </p>
-            <div style="background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 8px; padding: 14px; font-size: 13px; color: #57534e;">
-              <div><strong>SMTP Host:</strong> ${escapeHtml(smtpCfg.host)}:${smtpCfg.port} (${smtpCfg.encryption.toUpperCase()})</div>
-              <div style="margin-top: 4px;"><strong>Sender:</strong> ${escapeHtml(smtpCfg.senderName)} &lt;${escapeHtml(smtpCfg.senderEmail)}&gt;</div>
-              <div style="margin-top: 4px;"><strong>Tested At:</strong> ${new Date().toUTCString()}</div>
-            </div>
-          </div>
-        `,
-      });
-
-      res.json({
-        ok: true,
-        messageId: info.messageId,
-        accepted: info.accepted,
-        message: `Connected to ${smtpCfg.host}:${smtpCfg.port} and delivered real test email to ${recipient} (ID: ${info.messageId}).`,
-      });
-    } catch (error: unknown) {
-      console.error('SMTP test error:', error);
-      res.status(502).json({
-        ok: false,
-        error: formatSmtpErrorHint(error),
-      });
-    }
-  });
-
-  app.post('/api/bookings/send-verification-code', async (req: Request, res: Response) => {
+  // ----------------- HARDENED BOOKING OTP & EMAIL ROUTES -----------------
+  // Always resolves SMTP from server-side encrypted vault / .env — NEVER trusts client smtpPassword
+  app.post('/api/bookings/send-verification-code', otpSendLimiter, async (req: Request, res: Response) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const guestName = typeof req.body?.guestName === 'string' ? req.body.guestName.trim() : 'Valued Guest';
     const hotelName =
@@ -638,16 +961,18 @@ async function startServer(): Promise<void> {
       return;
     }
 
-    const smtpCfg = resolveEffectiveSmtp(req.body?.smtpConfig);
+    const smtpCfg = resolveEffectiveSmtpFromServer();
     const ttlMs = smtpCfg.otpExpiryMinutes * 60 * 1000;
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = String(crypto.randomInt(100000, 1000000));
+    const salt = crypto.randomBytes(16).toString('hex');
 
-    bookingEmailOtpStore.set(email, {
-      code,
+    saveOtpChallenge({
       email,
+      otpHash: hashOtpCode(code, salt),
+      salt,
       guestName,
       expiresAt: Date.now() + ttlMs,
-      verified: false,
+      attempts: 0,
     });
 
     if (smtpCfg.hasRealCredentials) {
@@ -699,7 +1024,7 @@ async function startServer(): Promise<void> {
       }
     }
 
-    if (smtpCfg.requireRealEmailOtp) {
+    if (smtpCfg.requireRealEmailOtp || isProductionMode()) {
       res.status(422).json({
         ok: false,
         deliveryMode: 'smtp_unconfigured',
@@ -717,11 +1042,11 @@ async function startServer(): Promise<void> {
       smtpSent: false,
       previewCode: code,
       verificationCodePreview: code,
-      message: `SMTP not configured yet — showing sandbox preview code. Add Gmail/SMTP in CMS to email ${email} directly.`,
+      message: `SMTP not configured yet — showing development sandbox code. Add Gmail/SMTP in CMS to email ${email} directly.`,
     });
   });
 
-  app.post('/api/bookings/verify-email-code', (req: Request, res: Response) => {
+  app.post('/api/bookings/verify-email-code', otpVerifyLimiter, (req: Request, res: Response) => {
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
 
@@ -730,7 +1055,7 @@ async function startServer(): Promise<void> {
       return;
     }
 
-    const record = bookingEmailOtpStore.get(email);
+    const record = getOtpChallenge(email);
     if (!record) {
       res.status(400).json({
         ok: false,
@@ -741,7 +1066,7 @@ async function startServer(): Promise<void> {
     }
 
     if (Date.now() > record.expiresAt) {
-      bookingEmailOtpStore.delete(email);
+      deleteOtpChallenge(email);
       res.status(400).json({
         ok: false,
         verified: false,
@@ -750,23 +1075,35 @@ async function startServer(): Promise<void> {
       return;
     }
 
-    if (record.code !== code) {
-      res.status(400).json({
+    if (record.attempts >= MAX_OTP_ATTEMPTS) {
+      deleteOtpChallenge(email);
+      res.status(429).json({
         ok: false,
         verified: false,
-        error: 'Invalid verification code. Please check your email and try again.',
+        error: 'Maximum verification attempts exceeded. Please request a new 6-digit code.',
       });
       return;
     }
 
-    record.verified = true;
-    bookingEmailOtpStore.set(email, record);
+    if (!timingSafeHexEqual(record.otpHash, hashOtpCode(code, record.salt))) {
+      const nextAttempts = incrementOtpAttempts(email);
+      res.status(400).json({
+        ok: false,
+        verified: false,
+        error: `Invalid verification code (${Math.max(0, MAX_OTP_ATTEMPTS - nextAttempts)} attempts remaining).`,
+      });
+      return;
+    }
+
+    deleteOtpChallenge(email);
+    const verificationToken = signEmailVerificationProof(email);
 
     res.json({
       ok: true,
       verified: true,
       email,
       verifiedAt: new Date().toISOString(),
+      verificationToken,
     });
   });
 
@@ -775,6 +1112,32 @@ async function startServer(): Promise<void> {
     const guestName = typeof req.body?.guestName === 'string' ? req.body.guestName.trim() : 'Valued Guest';
     const guestPhone = typeof req.body?.guestPhone === 'string' ? req.body.guestPhone.trim() : '';
     const bookingCode = typeof req.body?.bookingCode === 'string' ? req.body.bookingCode.trim() : '';
+    const verificationToken =
+      typeof req.body?.verificationToken === 'string' ? req.body.verificationToken.trim() : '';
+
+    if (!guestEmail || !bookingCode) {
+      res.status(400).json({ ok: false, sent: false, error: 'Guest email and booking reference code are required.' });
+      return;
+    }
+
+    // Authorization check: requires either authenticated front-office/management staff OR signed OTP proof for guestEmail
+    const resolvedAuth = await resolveAuthFromRequest(req);
+    const isAuthorizedStaff = Boolean(
+      resolvedAuth &&
+        ['super_admin', 'admin', 'hotel_manager', 'receptionist'].includes(resolvedAuth.user.role)
+    );
+    const hasGuestProof = verifyEmailVerificationProof(verificationToken, guestEmail);
+
+    if (!isAuthorizedStaff && !hasGuestProof) {
+      res.status(401).json({
+        ok: false,
+        sent: false,
+        error: 'Unauthorized: requires authenticated staff session or verified guest email proof token.',
+        code: 'UNAUTHORIZED',
+      });
+      return;
+    }
+
     const roomName = typeof req.body?.roomName === 'string' ? req.body.roomName.trim() : 'Suite';
     const assignedRoomNumber = typeof req.body?.assignedRoomNumber === 'string' ? req.body.assignedRoomNumber.trim() : '';
     const checkInDate = typeof req.body?.checkInDate === 'string' ? req.body.checkInDate.trim() : '';
@@ -802,12 +1165,7 @@ async function startServer(): Promise<void> {
     const checkOutTime = typeof req.body?.checkOutTime === 'string' ? req.body.checkOutTime : '12:00 PM';
     const googleMapsUrl = typeof req.body?.googleMapsUrl === 'string' ? req.body.googleMapsUrl : '';
 
-    if (!guestEmail || !bookingCode) {
-      res.status(400).json({ ok: false, sent: false, error: 'Guest email and booking reference code are required.' });
-      return;
-    }
-
-    const smtpCfg = resolveEffectiveSmtp(req.body?.smtpConfig);
+    const smtpCfg = resolveEffectiveSmtpFromServer();
     if (!smtpCfg.sendBookingConfirmationEmail) {
       res.json({ ok: true, sent: false, deliveryMode: 'disabled', message: 'Booking confirmation emails are disabled in SMTP settings.' });
       return;
@@ -971,8 +1329,24 @@ async function startServer(): Promise<void> {
     }
   };
 
-  app.post('/api/local-guide/kathmandu', handleLocalGuideRequest);
-  app.get('/api/local-guide/kathmandu', handleLocalGuideRequest);
+  app.post('/api/local-guide/kathmandu', guideLimiter, handleLocalGuideRequest);
+  app.get('/api/local-guide/kathmandu', guideLimiter, handleLocalGuideRequest);
+
+  registerPmsRoutes(app);
+
+  return app;
+}
+
+async function startServer(): Promise<void> {
+  const app = createApiApp();
+  const { getSupabaseAdminClient } = await import('./server/security.ts');
+  const { syncSupabaseOnBoot } = await import('./server/databaseAdmin.ts');
+  getSupabaseAdminClient();
+  void syncSupabaseOnBoot();
+  const httpServer = http.createServer(app);
+  attachWebSocketServer(httpServer);
+  startBackgroundWorkers();
+  const port = Number(process.env.PORT) || 3000;
 
   if (process.env.NODE_ENV !== 'production') {
     const [{ createServer: createViteServer }, viteConfigModule] = await Promise.all([
@@ -1046,7 +1420,16 @@ async function startServer(): Promise<void> {
   });
 }
 
-startServer().catch((err) => {
-  console.error('Failed to start Kamal Hotel server:', err);
-  process.exit(1);
-});
+// Start HTTP server only when executed directly (not when imported by test suites)
+const isDirectExecution =
+  typeof process !== 'undefined' &&
+  Array.isArray(process.argv) &&
+  Boolean(process.argv[1]) &&
+  (process.argv[1].endsWith('server.ts') || process.argv[1].endsWith('server.js'));
+
+if (isDirectExecution) {
+  startServer().catch((err) => {
+    console.error('Failed to start Kamal Hotel server:', err);
+    process.exit(1);
+  });
+}

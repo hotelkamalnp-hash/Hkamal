@@ -37,7 +37,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   return (
     <nav 
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-stone-950/95 backdrop-blur-md border-t border-stone-200 dark:border-stone-800 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] px-1 py-1 pb-safe"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FAF7F2]/95 dark:bg-[#0F0D0B]/95 backdrop-blur-md border-t border-[#E6DFD3] dark:border-[#2A241E] shadow-[0_-4px_16px_rgba(20,17,14,0.06)] px-1 py-1 pb-safe"
     >
       <div className="grid grid-cols-5 items-center max-w-md mx-auto">
         
@@ -46,8 +46,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           onClick={() => handleNav('guest')}
           className={`min-h-[48px] flex flex-col items-center justify-center py-1 transition-colors ${
             currentView === 'guest'
-              ? 'text-amber-700 dark:text-amber-400 font-semibold'
-              : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'
+              ? 'text-[#96682E] dark:text-[#D4A76A] font-semibold'
+              : 'text-[#6B6258] hover:text-[#1A1714] dark:text-[#A69C8F] dark:hover:text-[#F4EFE6]'
           }`}
         >
           <Compass className="w-5 h-5 mb-0.5" />
@@ -57,7 +57,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {/* 2. Rooms */}
         <button
           onClick={() => handleNav('guest', '#rooms')}
-          className="min-h-[48px] flex flex-col items-center justify-center py-1 text-stone-500 hover:text-stone-900 dark:hover:text-stone-200 transition-colors"
+          className="min-h-[48px] flex flex-col items-center justify-center py-1 text-[#6B6258] hover:text-[#1A1714] dark:text-[#A69C8F] dark:hover:text-[#F4EFE6] transition-colors"
         >
           <BedDouble className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight">Rooms</span>
@@ -66,7 +66,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {/* 3. Dining */}
         <button
           onClick={() => handleNav('guest', '#dining')}
-          className="min-h-[48px] flex flex-col items-center justify-center py-1 text-stone-500 hover:text-stone-900 dark:hover:text-stone-200 transition-colors"
+          className="min-h-[48px] flex flex-col items-center justify-center py-1 text-[#6B6258] hover:text-[#1A1714] dark:text-[#A69C8F] dark:hover:text-[#F4EFE6] transition-colors"
         >
           <Utensils className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight">Dining</span>
@@ -77,8 +77,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           onClick={() => handleNav('in_room_guest')}
           className={`min-h-[48px] flex flex-col items-center justify-center py-1 transition-colors ${
             currentView === 'in_room_guest'
-              ? 'text-amber-700 dark:text-amber-400 font-semibold'
-              : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'
+              ? 'text-[#96682E] dark:text-[#D4A76A] font-semibold'
+              : 'text-[#6B6258] hover:text-[#1A1714] dark:text-[#A69C8F] dark:hover:text-[#F4EFE6]'
           }`}
         >
           <Key className="w-5 h-5 mb-0.5" />
@@ -91,8 +91,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             onClick={() => handleNav('dashboard')}
             className={`min-h-[48px] flex flex-col items-center justify-center py-1 transition-colors ${
               currentView === 'dashboard'
-                ? 'text-amber-700 dark:text-amber-400 font-semibold'
-                : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-200'
+                ? 'text-[#96682E] dark:text-[#D4A76A] font-semibold'
+                : 'text-[#6B6258] hover:text-[#1A1714] dark:text-[#A69C8F] dark:hover:text-[#F4EFE6]'
             }`}
           >
             <LayoutDashboard className="w-5 h-5 mb-0.5" />
@@ -102,7 +102,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <button
             type="button"
             onClick={() => openBookingModal()}
-            className="min-h-[48px] flex flex-col items-center justify-center py-1 text-amber-700 dark:text-amber-400 hover:text-amber-800 font-bold"
+            className="min-h-[48px] flex flex-col items-center justify-center py-1 text-[#96682E] dark:text-[#D4A76A] font-bold"
           >
             <CalendarCheck className="w-5 h-5 mb-0.5" />
             <span className="text-[10px] tracking-tight">Reserve</span>

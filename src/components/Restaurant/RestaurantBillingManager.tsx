@@ -61,11 +61,11 @@ export const RestaurantBillingManager: React.FC = () => {
 
   const categories: ('All' | MenuItemCategory)[] = [
     'All',
-    'Nepali Heritage & Newari',
+    'Nepali Heritage & Cuisine',
     'Main Course',
     'Himalayan Specials',
     'Starters',
-    'Rooftop Bar & Beverages',
+    'Ground-Floor Bar & Beverages',
     'Desserts'
   ];
 
@@ -384,7 +384,7 @@ export const RestaurantBillingManager: React.FC = () => {
                   className="w-full p-2 rounded bg-stone-50 dark:bg-stone-800 border"
                 >
                   <option value="room">Room Service Delivery</option>
-                  <option value="rooftop_table">Rooftop Garden Table</option>
+                  <option value="rooftop_table">Ground-Floor Garden Table</option>
                   <option value="courtyard">Courtyard Lounge</option>
                 </select>
               </div>
@@ -590,14 +590,14 @@ export const RestaurantBillingManager: React.FC = () => {
                   <label className="block font-semibold mb-1">Category</label>
                   <select
                     name="category"
-                    defaultValue={editingDish?.category || 'Nepali Heritage & Newari'}
+                    defaultValue={editingDish?.category || 'Nepali Heritage & Cuisine'}
                     className="w-full p-2 rounded bg-stone-50 dark:bg-stone-800 border"
                   >
-                    <option value="Nepali Heritage & Newari">Nepali Heritage & Newari</option>
+                    <option value="Nepali Heritage & Cuisine">Nepali Heritage & Cuisine</option>
                     <option value="Main Course">Main Course</option>
                     <option value="Himalayan Specials">Himalayan Specials</option>
                     <option value="Starters">Starters</option>
-                    <option value="Rooftop Bar & Beverages">Rooftop Bar & Beverages</option>
+                    <option value="Ground-Floor Bar & Beverages">Ground-Floor Bar & Beverages</option>
                     <option value="Desserts">Desserts</option>
                   </select>
                 </div>

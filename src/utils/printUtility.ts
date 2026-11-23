@@ -679,7 +679,7 @@ export function downloadKeycardSlipPdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(87, 83, 78);
-  doc.text('Scan QR or enter your In-Room Portal PIN to order rooftop dining, inspect your live folio, or call reception.', 22, y + 23.5);
+  doc.text('Scan QR or enter your In-Room Portal PIN to order ground-floor dining, inspect your live folio, or call reception.', 22, y + 23.5);
 
   y += 38;
 
@@ -711,7 +711,7 @@ export function downloadKeycardSlipPdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(68, 64, 60);
-  doc.text('• Order Room Dining & Rooftop Grill', 88, y + 46);
+  doc.text('• Order Room Dining & Ground-Floor Grill', 88, y + 46);
   doc.text('• Audio Intercom directly to Reception', 88, y + 52);
   doc.text('• Live Folios & Housekeeping Requests', 88, y + 58);
 

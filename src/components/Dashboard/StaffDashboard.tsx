@@ -71,6 +71,7 @@ import {
   ArchiveRestore,
   Zap,
   Crown,
+  BookOpen,
   Download,
   Printer
 } from 'lucide-react';
@@ -108,6 +109,7 @@ import { LostAndFoundTrackerPanel } from './LostAndFoundTrackerPanel';
 import { ExpressTurnoverPanel } from './ExpressTurnoverPanel';
 import { VipGuestFlagPanel } from './VipGuestFlagPanel';
 import { ServiceRequestsQueuePanel } from './ServiceRequestsQueuePanel';
+import { OperationsGuidePanel } from './OperationsGuidePanel';
 import { useRenderTracker } from '../../hooks/useRenderTracker';
 
 interface StaffDashboardProps {
@@ -211,7 +213,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
     | 'notifications' 
     | 'audit'
     | 'perf_monitor'
-    | 'surveys';
+    | 'surveys'
+    | 'ops_guide';
 
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
 
@@ -401,16 +404,21 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
   };
 
   // Handle Staff Form Submit
-  const handleSaveStaff = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveStaff = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const role = formData.get('role') as StaffRole;
+    const rawPassword = String(formData.get('password') || '').trim();
+    if (rawPassword.length < 8) {
+      showToast('Password Policy', 'Staff password must be at least 8 characters.', 'warning');
+      return;
+    }
     const permissions = getDefaultPermissionsForRole(role);
 
-    addStaff({
+    await addStaff({
       name: formData.get('name') as string,
       username: (formData.get('username') as string).trim().toLowerCase(),
-      password: (formData.get('password') as string) || 'KamalHotel@2026',
+      password: rawPassword,
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
       role,
@@ -438,40 +446,40 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
   };
 
   return (
-    <div className="min-h-screen bg-stone-100 dark:bg-stone-950 transition-colors py-8 w-full max-w-full overflow-x-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="min-h-screen bg-[#FAF7F2] dark:bg-[#0F0D0B] text-[#1A1714] dark:text-[#F4EFE6] transition-colors py-6 lg:py-8 w-full max-w-full overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
-        {/* Dashboard Title & Active Persona Banner */}
-        <div className="bg-white dark:bg-stone-900 rounded-xl p-6 border border-stone-200 dark:border-stone-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Dashboard Title & Active Persona Header */}
+        <div className="bg-white dark:bg-[#171411] rounded-2xl p-5 sm:p-6 border border-[#E6DFD3] dark:border-[#2A241E] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#96682E] dark:text-[#D4A76A]">
                 Kamal Hotel PMS · Kamalpokhari, Kathmandu
               </span>
-              <span className="text-xs text-stone-400">·</span>
+              <span className="text-xs text-[#8E8477]">·</span>
               <span className={`text-xs px-2 py-0.5 rounded font-mono ${
                 themeConfig.supabaseConnected 
                   ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300' 
-                  : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
+                  : 'bg-[#F3EDE2] dark:bg-[#261E14] text-[#7C531D] dark:text-[#DFBE88]'
               }`}>
                 {themeConfig.supabaseConnected ? 'Supabase Sync Active' : 'Local Storage Mode'}
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 dark:text-stone-50">
-              Operations, CMS & Database Console
+            <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-[#1A1714] dark:text-[#F4EFE6] tracking-tight">
+              Operations, CMS &amp; Database Console
             </h1>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <div className="text-xs font-semibold text-stone-900 dark:text-stone-100">
+              <div className="text-xs font-semibold text-[#1A1714] dark:text-[#F4EFE6]">
                 {activeUser ? activeUser.name : 'Authorized Staff'}
               </div>
-              <div className="text-[11px] text-stone-500 font-mono uppercase">
+              <div className="text-[11px] text-[#6B6258] dark:text-[#AFA699] font-mono uppercase">
                 Role: {activeRole.replace('_', ' ')}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-stone-800 text-amber-800 dark:text-amber-400 font-bold flex items-center justify-center font-serif text-lg">
+            <div className="w-10 h-10 rounded-full bg-[#F3EDE2] dark:bg-[#261E14] border border-[#E6DFD3] dark:border-[#342C24] text-[#96682E] dark:text-[#DFBE88] font-bold flex items-center justify-center font-serif text-base">
               {activeRole === 'super_admin'
                 ? 'SA'
                 : activeRole === 'admin'
@@ -497,14 +505,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
           if (vipAlerts.length === 0) return null;
           const latest = vipAlerts[0];
           return (
-            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-400 dark:border-amber-700 rounded-xl px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="bg-[#FAF3E6] dark:bg-[#261E14] border border-[#C69553] rounded-xl px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div className="flex items-start gap-2.5">
-                <Crown className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
+                <Crown className="w-4 h-4 text-[#96682E] dark:text-[#D4A76A] shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-bold text-amber-950 dark:text-amber-100">
+                  <div className="font-bold text-[#1A1714] dark:text-[#F4EFE6]">
                     {latest.title}
                   </div>
-                  <div className="text-amber-900 dark:text-amber-300 mt-0.5">
+                  <div className="text-[#5C544B] dark:text-[#D7CFC3] mt-0.5">
                     {latest.message}
                   </div>
                 </div>
@@ -513,14 +521,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                 <button
                   type="button"
                   onClick={() => setActiveTab('vip_guests')}
-                  className="px-3 py-1.5 rounded-lg border border-amber-500 text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50 font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg border border-[#C69553] text-[#7C531D] dark:text-[#EAD8B8] hover:bg-[#F3E6CE] dark:hover:bg-[#322719] font-semibold whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   Open VIP Watchlist
                 </button>
                 <button
                   type="button"
                   onClick={() => markAlertAsRead(latest.id)}
-                  className="px-3 py-1.5 rounded-lg bg-stone-900 dark:bg-amber-600 hover:bg-stone-800 dark:hover:bg-amber-700 text-white font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-[#1A1714] dark:bg-[#C69553] hover:bg-[#2E2721] dark:hover:bg-[#D4A76A] text-white dark:text-[#14110E] font-semibold whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   Acknowledge
                 </button>
@@ -529,313 +537,178 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
           );
         })()}
 
-        {/* Dashboard Navigation Tabs strictly filtered by RBAC */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-stone-200 dark:border-stone-800">
-          {[
-            { 
-              id: 'overview', 
-              label: 'Overview & KPIs', 
-              icon: <LayoutDashboard className="w-4 h-4" />, 
-              perm: true 
-            },
-            { 
-              id: 'tenant_setup', 
-              label: 'Tenant Onboarding & Fresh Setup', 
-              icon: <Building2 className="w-4 h-4 text-amber-500" />, 
-              perm: activeRole === 'super_admin'
-            },
-            { 
-              id: 'reception', 
-              label: 'Front Desk & GRC Check-in', 
-              icon: <ConciergeBell className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'service_requests', 
-              label: (() => {
-                const openFood = restaurantOrders.filter(
-                  (o) => o.status !== 'delivered' && o.status !== 'cancelled'
-                ).length;
-                const openAmenities = roomServiceRequests.filter(
-                  (r) => r.status === 'pending' || r.status === 'acknowledged' || r.status === 'in_progress'
-                ).length;
-                const totalOpen = openFood + openAmenities;
-                return totalOpen > 0 ? `Service Requests (${totalOpen})` : 'Service Requests';
-              })(), 
-              icon: <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' || activeRole === 'restaurant_owner' || activeRole === 'waiter' || activeRole === 'chef' || activeRole === 'housekeeping'
-            },
-            { 
-              id: 'waiter_pos', 
-              label: 'Waiter POS & Dine-in Tables', 
-              icon: <UtensilsCrossed className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'restaurant_owner' || activeRole === 'hotel_manager' || activeRole === 'waiter'
-            },
-            { 
-              id: 'kitchen_kds', 
-              label: 'Kitchen Display (KDS)', 
-              icon: <ChefHat className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'restaurant_owner' || activeRole === 'hotel_manager' || activeRole === 'chef'
-            },
-            { 
-              id: 'housekeeping', 
-              label: (() => {
-                const pendingRs = roomServiceRequests.filter(
-                  (r) => r.status === 'pending' || r.status === 'acknowledged' || r.status === 'in_progress'
-                ).length;
-                return pendingRs > 0
-                  ? `Housekeeping (${pendingRs} Room Req)`
-                  : 'Housekeeping & Turnaround';
-              })(), 
-              icon: <Sparkles className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'housekeeping'
-            },
-            { 
-              id: 'vip_guests', 
-              label: `VIP Guests (${vipGuestProfiles.filter((v) => v.isActive).length})`, 
-              icon: <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'express_turnover', 
-              label: `Express Turnover (${expressTurnovers.filter((j) => j.status !== 'completed').length})`, 
-              icon: <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'housekeeping' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'lost_found', 
-              label: `Lost & Found (${lostAndFound.filter((i) => i.status === 'stored').length})`, 
-              icon: <ArchiveRestore className="w-4 h-4 text-amber-600 dark:text-amber-400" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'housekeeping' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'maintenance', 
-              label: 'Maintenance & Housekeeping Checklist', 
-              icon: <Wrench className="w-4 h-4 text-rose-600 dark:text-rose-400" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'housekeeping' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'night_audit', 
-              label: 'Night Audit & Day Close', 
-              icon: <Moon className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager'
-            },
-            { 
-              id: 'room_floors', 
-              label: 'Rooms & Floors Manager', 
-              icon: <Layers className="w-4 h-4 text-amber-600 dark:text-amber-400" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'qa_test_suite', 
-              label: 'Operational QA Test Bench', 
-              icon: <Terminal className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />, 
-              perm: true
-            },
-            { 
-              id: 'admin_users', 
-              label: 'Staff Credentials & Balancer', 
-              icon: <ShieldAlert className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin'
-            },
-            { 
-              id: 'billing', 
-              label: 'Billing & Folios (5 Templates)', 
-              icon: <Receipt className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'dynamic_invoicing', 
-              label: 'Dynamic Invoicing', 
-              icon: <Calculator className="w-4 h-4 text-amber-600 dark:text-amber-400" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'restaurant', 
-              label: 'Rooftop Dining & POS', 
-              icon: <Utensils className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'restaurant_owner' || activeRole === 'hotel_manager' || activeRole === 'chef' || activeRole === 'waiter'
-            },
-            { 
-              id: 'inventory', 
-              label: 'Stock & Inventory', 
-              icon: <Boxes className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'restaurant_owner' || activeRole === 'hotel_manager' || activeRole === 'chef' || activeRole === 'housekeeping'
-            },
-            { 
-              id: 'accounting', 
-              label: 'Accounting & P&L', 
-              icon: <BarChart3 className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'restaurant_owner' || activeRole === 'hotel_manager'
-            },
-            { 
-              id: 'bookings', 
-              label: `Reservations (${bookings.length})`, 
-              icon: <CalendarDays className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'coupons', 
-              label: 'Coupons & Vouchers', 
-              icon: <Ticket className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'intercom', 
-              label: unreadChatMessagesCount > 0 ? `Guest Intercom (${unreadChatMessagesCount})` : 'Guest Intercom & Chat', 
-              icon: <MessageSquare className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' || activeRole === 'waiter'
-            },
-            { 
-              id: 'passcodes', 
-              label: 'Guest Passcodes & PINs', 
-              icon: <Key className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'digital_keycards', 
-              label: 'Digital Keycards (QR)', 
-              icon: <QrCode className="w-4 h-4 text-amber-600 dark:text-amber-400" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist'
-            },
-            { 
-              id: 'rooms', 
-              label: `Room Inventory (${rooms.length})`, 
-              icon: <BedDouble className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' || activeRole === 'housekeeping'
-            },
-            { 
-              id: 'media', 
-              label: 'Hero & Photos CMS', 
-              icon: <ImageIcon className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin'
-            },
-            { 
-              id: 'cms', 
-              label: 'CMS Page & Rates Editor', 
-              icon: <Sliders className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin'
-            },
-            { 
-              id: 'supabase', 
-              label: 'Supabase Backend & DB', 
-              icon: <Database className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin'
-            },
-            { 
-              id: 'staff', 
-              label: `Staff & RBAC (${staff.length})`, 
-              icon: <Users className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin'
-            },
-            { 
-              id: 'shift_scheduling', 
-              label: 'Shift Scheduling', 
-              icon: <CalendarClock className="w-4 h-4 text-amber-600 dark:text-amber-400" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'restaurant_owner' || activeRole === 'receptionist' || activeRole === 'housekeeping'
-            },
-            { 
-              id: 'notifications', 
-              label: `Alerts (${notifications.length})`, 
-              icon: <Bell className="w-4 h-4" />, 
-              perm: true 
-            },
-            { 
-              id: 'audit', 
-              label: `Audit Logs (${auditLogs.length})`, 
-              icon: <ShieldCheck className="w-4 h-4" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager'
-            },
-            { 
-              id: 'perf_monitor', 
-              label: 'Performance & Cache Monitor', 
-              icon: <Activity className="w-4 h-4 text-emerald-500" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager'
-            },
-            { 
-              id: 'surveys', 
-              label: 'Guest Surveys & Feedback', 
-              icon: <Star className="w-4 h-4 text-amber-500" />, 
-              perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' || activeRole === 'restaurant_owner'
-            },
-          ]
-            .filter((tab) => tab.perm)
-            .map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as DashboardTab)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === tab.id
-                    ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm'
-                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-200 dark:hover:bg-stone-800'
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            ))}
-        </div>
+        {/* Dashboard Navigation & Active Workspace */}
+        {(() => {
+          const openFood = restaurantOrders.filter(
+            (o) => o.status !== 'delivered' && o.status !== 'cancelled'
+          ).length;
+          const openAmenities = roomServiceRequests.filter(
+            (r) => r.status === 'pending' || r.status === 'acknowledged' || r.status === 'in_progress'
+          ).length;
+          const totalOpenService = openFood + openAmenities;
+
+          type NavGroup = 'Overview' | 'Front Office' | 'Dining & Kitchen' | 'Housekeeping' | 'Finance & Billing' | 'Admin & CMS';
+          type NavItem = {
+            id: DashboardTab;
+            group: NavGroup;
+            label: string;
+            icon: React.ReactNode;
+            perm: boolean;
+          };
+
+          const rawNavItems: NavItem[] = [
+            { id: 'overview', group: 'Overview', label: 'Overview & KPIs', icon: <LayoutDashboard className="w-4 h-4 shrink-0" />, perm: true },
+            { id: 'ops_guide', group: 'Overview', label: 'Operations Guide', icon: <BookOpen className="w-4 h-4 shrink-0" />, perm: true },
+            { id: 'notifications', group: 'Overview', label: `Alerts (${notifications.length})`, icon: <Bell className="w-4 h-4 shrink-0" />, perm: true },
+            { id: 'perf_monitor', group: 'Overview', label: 'Performance & Cache Monitor', icon: <Activity className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' },
+
+            { id: 'reception', group: 'Front Office', label: 'Front Desk & GRC Check-in', icon: <ConciergeBell className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' },
+            { id: 'bookings', group: 'Front Office', label: `Reservations (${bookings.length})`, icon: <CalendarDays className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' },
+            { id: 'passcodes', group: 'Front Office', label: 'Guest Passcodes & PINs', icon: <Key className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' },
+            { id: 'digital_keycards', group: 'Front Office', label: 'Digital Keycards (QR)', icon: <QrCode className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' },
+            { id: 'vip_guests', group: 'Front Office', label: `VIP Guests (${vipGuestProfiles.filter((v) => v.isActive).length})`, icon: <Crown className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' },
+            { id: 'intercom', group: 'Front Office', label: unreadChatMessagesCount > 0 ? `Guest Intercom (${unreadChatMessagesCount})` : 'Guest Intercom & Chat', icon: <MessageSquare className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' || activeRole === 'waiter' },
+            { id: 'surveys', group: 'Front Office', label: 'Guest Surveys & Feedback', icon: <Star className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' || activeRole === 'restaurant_owner' },
+
+            { id: 'waiter_pos', group: 'Dining & Kitchen', label: 'Waiter POS & Dine-in Tables', icon: <UtensilsCrossed className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'restaurant_owner' || activeRole === 'hotel_manager' || activeRole === 'waiter' },
+            { id: 'kitchen_kds', group: 'Dining & Kitchen', label: 'Kitchen Display (KDS)', icon: <ChefHat className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'restaurant_owner' || activeRole === 'hotel_manager' || activeRole === 'chef' },
+            { id: 'restaurant', group: 'Dining & Kitchen', label: 'Ground-Floor Dining & POS', icon: <Utensils className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'restaurant_owner' || activeRole === 'hotel_manager' || activeRole === 'chef' || activeRole === 'waiter' },
+            { id: 'service_requests', group: 'Dining & Kitchen', label: totalOpenService > 0 ? `Service Requests (${totalOpenService})` : 'Service Requests', icon: <Bell className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' || activeRole === 'restaurant_owner' || activeRole === 'waiter' || activeRole === 'chef' || activeRole === 'housekeeping' },
+            { id: 'inventory', group: 'Dining & Kitchen', label: 'Stock & Inventory', icon: <Boxes className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'restaurant_owner' || activeRole === 'hotel_manager' || activeRole === 'chef' || activeRole === 'housekeeping' },
+
+            { id: 'housekeeping', group: 'Housekeeping', label: openAmenities > 0 ? `Housekeeping (${openAmenities} Req)` : 'Housekeeping & Turnaround', icon: <Sparkles className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'housekeeping' },
+            { id: 'express_turnover', group: 'Housekeeping', label: `Express Turnover (${expressTurnovers.filter((j) => j.status !== 'completed').length})`, icon: <Zap className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'housekeeping' || activeRole === 'receptionist' },
+            { id: 'maintenance', group: 'Housekeeping', label: 'Maintenance & Checklist', icon: <Wrench className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'housekeeping' || activeRole === 'receptionist' },
+            { id: 'lost_found', group: 'Housekeeping', label: `Lost & Found (${lostAndFound.filter((i) => i.status === 'stored').length})`, icon: <ArchiveRestore className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'housekeeping' || activeRole === 'receptionist' },
+            { id: 'room_floors', group: 'Housekeeping', label: 'Rooms & Floors Manager', icon: <Layers className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' },
+            { id: 'rooms', group: 'Housekeeping', label: `Room Inventory (${rooms.length})`, icon: <BedDouble className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' || activeRole === 'housekeeping' },
+
+            { id: 'billing', group: 'Finance & Billing', label: 'Billing & Folios (5 Templates)', icon: <Receipt className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' },
+            { id: 'dynamic_invoicing', group: 'Finance & Billing', label: 'Dynamic Invoicing', icon: <Calculator className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' },
+            { id: 'accounting', group: 'Finance & Billing', label: 'Accounting & P&L', icon: <BarChart3 className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'restaurant_owner' || activeRole === 'hotel_manager' },
+            { id: 'coupons', group: 'Finance & Billing', label: 'Coupons & Vouchers', icon: <Ticket className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'receptionist' },
+            { id: 'night_audit', group: 'Finance & Billing', label: 'Night Audit & Day Close', icon: <Moon className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' },
+
+            { id: 'cms', group: 'Admin & CMS', label: 'CMS Page & Rates Editor', icon: <Sliders className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' },
+            { id: 'media', group: 'Admin & CMS', label: 'Hero & Photos CMS', icon: <ImageIcon className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' },
+            { id: 'staff', group: 'Admin & CMS', label: `Staff & RBAC (${staff.length})`, icon: <Users className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' },
+            { id: 'admin_users', group: 'Admin & CMS', label: 'Staff Credentials & Balancer', icon: <ShieldAlert className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' },
+            { id: 'shift_scheduling', group: 'Admin & CMS', label: 'Shift Scheduling', icon: <CalendarClock className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' || activeRole === 'restaurant_owner' || activeRole === 'receptionist' || activeRole === 'housekeeping' },
+            { id: 'audit', group: 'Admin & CMS', label: `Audit Logs (${auditLogs.length})`, icon: <ShieldCheck className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' || activeRole === 'admin' || activeRole === 'hotel_manager' },
+            { id: 'supabase', group: 'Admin & CMS', label: 'Supabase Backend & DB', icon: <Database className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' },
+            { id: 'tenant_setup', group: 'Admin & CMS', label: 'Tenant Onboarding & Setup', icon: <Building2 className="w-4 h-4 shrink-0" />, perm: activeRole === 'super_admin' },
+            { id: 'qa_test_suite', group: 'Admin & CMS', label: 'Operational QA Test Bench', icon: <Terminal className="w-4 h-4 shrink-0" />, perm: import.meta.env.DEV || activeRole === 'super_admin' || activeRole === 'admin' },
+          ];
+          const navItems = rawNavItems.filter((tab) => tab.perm);
+
+          const groupOrder: NavGroup[] = [
+            'Overview',
+            'Front Office',
+            'Dining & Kitchen',
+            'Housekeeping',
+            'Finance & Billing',
+            'Admin & CMS',
+          ];
+
+          return (
+            <div className="lg:grid lg:grid-cols-[248px_1fr] gap-6 items-start">
+              {/* Unified Responsive Department Navigation (Horizontal strip < lg, Grouped Left Sidebar >= lg) */}
+              <aside className="flex items-center gap-1.5 overflow-x-auto pb-2.5 mb-5 border-b border-[#E6DFD3] dark:border-[#2A241E] lg:block lg:mb-0 lg:bg-white lg:dark:bg-[#171411] lg:rounded-2xl lg:border lg:p-3.5 lg:shadow-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:space-y-4">
+                {groupOrder.map((groupName) => {
+                  const groupTabs = navItems.filter((t) => t.group === groupName);
+                  if (groupTabs.length === 0) return null;
+                  return (
+                    <div key={groupName} className="contents lg:block lg:space-y-1">
+                      <div className="hidden lg:block px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8E8477]">
+                        {groupName}
+                      </div>
+                      {groupTabs.map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`whitespace-nowrap shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer lg:w-full lg:gap-2.5 lg:px-3 lg:text-left ${
+                              isActive
+                                ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E] font-semibold shadow-xs'
+                                : 'text-[#5C544B] dark:text-[#C5BCB0] hover:text-[#1A1714] dark:hover:text-[#F4EFE6] hover:bg-[#EFE9DF] dark:hover:bg-[#211B16]'
+                            }`}
+                          >
+                            <span className={isActive ? 'text-[#DFBE88] dark:text-[#14110E]' : 'text-[#96682E] dark:text-[#D4A76A]'}>
+                              {tab.icon}
+                            </span>
+                            <span className="lg:truncate">{tab.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </aside>
+
+              {/* Right Workspace Content Column */}
+              <div className="min-w-0 space-y-6">
 
         {/* TAB 1: OVERVIEW & REAL-TIME KPIS */}
         {activeTab === 'overview' && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <div className="bg-white dark:bg-stone-900 p-6 rounded-xl border border-stone-200 dark:border-stone-800 shadow-sm">
-                <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
+              <div className="bg-white dark:bg-[#171411] p-6 rounded-2xl border border-[#E6DFD3] dark:border-[#2A241E] shadow-sm">
+                <div className="flex items-center justify-between text-xs text-[#6B6258] dark:text-[#AFA699] font-medium">
                   <span>Occupancy Rate</span>
-                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  <TrendingUp className="w-4 h-4 text-[#96682E] dark:text-[#D4A76A]" />
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-serif font-bold text-stone-900 dark:text-stone-50 tabular-nums">
+                  <span className="text-3xl font-sans font-semibold tracking-tight text-[#1A1714] dark:text-[#F4EFE6] tabular-nums">
                     {occupancyRate}%
                   </span>
-                  <span className="text-xs text-stone-400">
-                    ({occupiedRooms} of {totalRoomsCount} rooms in Kamalpokhari)
+                  <span className="text-xs text-[#8E8477]">
+                    ({occupiedRooms} of {totalRoomsCount} rooms)
                   </span>
                 </div>
-                <div className="mt-3 w-full bg-stone-100 dark:bg-stone-800 h-1.5 rounded-full overflow-hidden">
+                <div className="mt-3 w-full bg-[#EFE9DF] dark:bg-[#2A241E] h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-amber-600 h-full rounded-full transition-all"
+                    className="bg-[#96682E] dark:bg-[#C69553] h-full rounded-full transition-all"
                     style={{ width: `${occupancyRate}%` }}
                   />
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-stone-900 p-6 rounded-xl border border-stone-200 dark:border-stone-800 shadow-sm">
-                <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
+              <div className="bg-white dark:bg-[#171411] p-6 rounded-2xl border border-[#E6DFD3] dark:border-[#2A241E] shadow-sm">
+                <div className="flex items-center justify-between text-xs text-[#6B6258] dark:text-[#AFA699] font-medium">
                   <span>Total Confirmed Revenue</span>
-                  <DollarSign className="w-4 h-4 text-emerald-500" />
+                  <DollarSign className="w-4 h-4 text-[#96682E] dark:text-[#D4A76A]" />
                 </div>
-                <div className="mt-2 text-3xl font-serif font-bold text-stone-900 dark:text-stone-50 tabular-nums">
+                <div className="mt-2 text-3xl font-sans font-semibold tracking-tight text-[#1A1714] dark:text-[#F4EFE6] tabular-nums">
                   {formatCurrency(totalRevenue, currentCurrency)}
                 </div>
-                <div className="mt-2 text-[11px] text-stone-400">
-                  Across {bookings.length} reservations (NPR, USD & INR supported)
+                <div className="mt-2 text-[11px] text-[#8E8477]">
+                  Across {bookings.length} reservations (NPR, USD &amp; INR)
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-stone-900 p-6 rounded-xl border border-stone-200 dark:border-stone-800 shadow-sm">
-                <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
+              <div className="bg-white dark:bg-[#171411] p-6 rounded-2xl border border-[#E6DFD3] dark:border-[#2A241E] shadow-sm">
+                <div className="flex items-center justify-between text-xs text-[#6B6258] dark:text-[#AFA699] font-medium">
                   <span>Pending Arrivals / Check-Ins</span>
-                  <Clock className="w-4 h-4 text-amber-500" />
+                  <Clock className="w-4 h-4 text-[#96682E] dark:text-[#D4A76A]" />
                 </div>
-                <div className="mt-2 text-3xl font-serif font-bold text-stone-900 dark:text-stone-50 tabular-nums">
+                <div className="mt-2 text-3xl font-sans font-semibold tracking-tight text-[#1A1714] dark:text-[#F4EFE6] tabular-nums">
                   {todayCheckIns}
                 </div>
-                <div className="mt-2 text-[11px] text-stone-400">
+                <div className="mt-2 text-[11px] text-[#8E8477]">
                   Front Desk ready in Kamalpokhari
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-stone-900 p-6 rounded-xl border border-stone-200 dark:border-stone-800 shadow-sm">
-                <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
-                  <span>Rooftop Dining Status</span>
-                  <Utensils className="w-4 h-4 text-sky-500" />
+              <div className="bg-white dark:bg-[#171411] p-6 rounded-2xl border border-[#E6DFD3] dark:border-[#2A241E] shadow-sm">
+                <div className="flex items-center justify-between text-xs text-[#6B6258] dark:text-[#AFA699] font-medium">
+                  <span>Ground-Floor Dining Status</span>
+                  <Utensils className="w-4 h-4 text-[#96682E] dark:text-[#D4A76A]" />
                 </div>
-                <div className="mt-2 text-xl font-serif font-bold text-stone-900 dark:text-stone-50 uppercase">
+                <div className="mt-2 text-xl font-serif font-bold text-[#1A1714] dark:text-[#F4EFE6] uppercase">
                   {themeConfig.rooftopDiningStatus.replace('_', ' ')}
                 </div>
-                <div className="mt-2 text-[11px] text-amber-700 dark:text-amber-400 font-semibold">
+                <div className="mt-2 text-[11px] text-[#96682E] dark:text-[#D4A76A] font-semibold">
                   {themeConfig.rooftopOpeningDateText}
                 </div>
               </div>
@@ -1215,7 +1088,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-4 font-serif font-bold text-stone-900 dark:text-stone-100 tabular-nums">
+                      <td className="py-3 px-4 font-sans font-semibold tracking-tight text-stone-900 dark:text-stone-100 tabular-nums">
                         {formatCurrency(b.totalAmount, b.currency)}
                       </td>
                       <td className="py-3 px-4">
@@ -1598,7 +1471,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                       <textarea
                         name="description"
                         rows={2}
-                        defaultValue={editingRoom?.description || 'Authentic boutique hotel comfort in Kamalpokhari with hand-carved Newari wood accents.'}
+                        defaultValue={editingRoom?.description || 'Authentic boutique hotel comfort in Kamalpokhari with hand-carved Nepali wood accents.'}
                         className="w-full bg-stone-50 dark:bg-stone-800 border rounded p-2 text-stone-900 dark:text-stone-100"
                       />
                     </div>
@@ -2295,13 +2168,13 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                   </div>
 
                   <form
-                    onSubmit={(e) => {
+                    onSubmit={async (e) => {
                       e.preventDefault();
-                      if (newPasswordInput.trim().length < 6) {
-                        showToast('Password Error', 'Password must be at least 6 characters.', 'error');
+                      if (newPasswordInput.trim().length < 8) {
+                        showToast('Password Error', 'Password must be at least 8 characters.', 'error');
                         return;
                       }
-                      changeUserPassword(selectedStaffForPassword.id, newPasswordInput.trim());
+                      await changeUserPassword(selectedStaffForPassword.id, newPasswordInput.trim());
                       setSelectedStaffForPassword(null);
                     }}
                     className="p-5 space-y-4 text-xs overflow-y-auto flex-1"
@@ -2309,15 +2182,16 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                     <div>
                       <label className="block font-semibold mb-1">New Secure Password</label>
                       <input
-                        type="text"
+                        type="password"
+                        minLength={8}
                         value={newPasswordInput}
                         onChange={(e) => setNewPasswordInput(e.target.value)}
-                        placeholder="e.g. KamalChef@2026"
+                        placeholder="Minimum 8 characters"
                         required
                         className="w-full bg-stone-50 dark:bg-stone-800 border rounded p-2 font-mono text-stone-900 dark:text-stone-100"
                       />
                       <span className="text-[10px] text-stone-400 mt-1 block">
-                        Minimum 6 characters. The user will use their username (@{selectedStaffForPassword.username}) and this new password.
+                        Minimum 8 characters. The user will sign in using @{selectedStaffForPassword.username} and this password.
                       </span>
                     </div>
 
@@ -2370,8 +2244,8 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                         <input name="username" placeholder="e.g. rajesh" required className="w-full bg-stone-50 dark:bg-stone-800 border rounded p-2 font-mono" />
                       </div>
                       <div>
-                        <label className="block font-semibold mb-1">Initial Password</label>
-                        <input name="password" defaultValue="KamalHotel@2026" required className="w-full bg-stone-50 dark:bg-stone-800 border rounded p-2 font-mono" />
+                        <label className="block font-semibold mb-1">Initial Password (min 8 chars)</label>
+                        <input name="password" type="password" minLength={8} placeholder="Enter strong password" required className="w-full bg-stone-50 dark:bg-stone-800 border rounded p-2 font-mono" />
                       </div>
                     </div>
 
@@ -2581,6 +2455,15 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
         {activeTab === 'shift_scheduling' && (
           <ShiftSchedulingPanel />
         )}
+
+        {/* TAB: END-TO-END OPERATIONS GUIDE */}
+        {activeTab === 'ops_guide' && (
+          <OperationsGuidePanel onNavigateTab={(tab) => setActiveTab(tab as DashboardTab)} />
+        )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* MODAL: PHYSICAL ROOM NUMBER ASSIGNMENT */}
         {assigningBooking && (
@@ -2805,7 +2688,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                       </div>
                       <div className="text-right">
                         <div className="text-[10px] font-mono uppercase text-stone-500 dark:text-stone-400">Current Balance</div>
-                        <div className="text-xl font-serif font-bold text-amber-700 dark:text-amber-400 tabular-nums">
+                        <div className="text-xl font-sans font-semibold tracking-tight text-amber-700 dark:text-amber-400 tabular-nums">
                           {currentBalance.toLocaleString()} pts
                         </div>
                       </div>

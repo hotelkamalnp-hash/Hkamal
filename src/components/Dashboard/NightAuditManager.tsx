@@ -1,47 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHotel } from '../../context/HotelContext';
-import { NightAuditRecord } from '../../types/hotel';
-import { 
-  Moon, 
-  CheckCircle, 
-  TrendingUp, 
-  DollarSign, 
-  Receipt, 
-  ShieldCheck, 
-  FileSpreadsheet, 
-  Coins, 
+import { formatCurrency } from '../../utils/theme';
+import {
+  Moon,
+  CheckCircle,
+  TrendingUp,
+  DollarSign,
+  Receipt,
+  ShieldCheck,
+  FileSpreadsheet,
+  Coins,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 
+interface DailySummaryResponse {
+  roomStayRevenueUSD: number;
+  restaurantRevenueUSD: number;
+  servicesRevenueUSD: number;
+  totalGrossRevenueUSD: number;
+  serviceChargeCollectedUSD: number;
+  taxCollectedUSD: number;
+  expectedCashDrawerUSD: number;
+}
+
 export const NightAuditManager: React.FC = () => {
-  const { 
-    nightAudits, 
-    runNightAudit, 
-    roomUnits, 
-    bookings, 
-    restaurantOrders, 
-    invoices, 
+  const {
+    nightAudits,
+    runNightAudit,
+    roomUnits,
+    bookings,
+    restaurantOrders,
+    invoices,
+    themeConfig,
     activeUser,
-    showToast 
+    showToast,
   } = useHotel();
 
-  const [physicalCashDrawerNPR, setPhysicalCashDrawerNPR] = useState(42500);
-  const [expectedCashDrawerNPR, setExpectedCashDrawerNPR] = useState(42500);
+  const nprRate = themeConfig.exchangeRates?.NPR || 135;
+  const [liveSummary, setLiveSummary] = useState<DailySummaryResponse | null>(null);
+  const [loadingLive, setLoadingLive] = useState(false);
+
+  // Derived fallback directly from real state records (zero fabricated multipliers or hardcoded amounts)
+  const localRoomRevenue = bookings
+    .filter((b) => b.bookingStatus === 'checked-in' || b.bookingStatus === 'checked-out')
+    .reduce((acc, b) => acc + Number(b.subtotal || 0) / Math.max(1, b.nights || 1), 0);
+  const localFAndBRevenue = restaurantOrders.reduce((acc, o) => acc + Number(o.subtotalUSD || 0), 0);
+  const localServicesRevenue = invoices
+    .flatMap((inv) => inv.items || [])
+    .filter((it) => it.category !== 'room_stay' && it.category !== 'restaurant_dining')
+    .reduce((acc, it) => acc + Number(it.amountUSD || 0), 0);
+  const localExpectedCashUSD = invoices
+    .filter((inv) => inv.paymentMethod === 'onsite' && inv.paymentStatus === 'paid')
+    .reduce((acc, inv) => acc + Number(inv.amountPaidUSD || 0), 0);
+
+  const [expectedCashDrawerNPR, setExpectedCashDrawerNPR] = useState(() =>
+    Math.round(localExpectedCashUSD * nprRate)
+  );
+  const [physicalCashDrawerNPR, setPhysicalCashDrawerNPR] = useState(() =>
+    Math.round(localExpectedCashUSD * nprRate)
+  );
   const [isAuditing, setIsAuditing] = useState(false);
+
+  const fetchDailyAccounting = async () => {
+    setLoadingLive(true);
+    try {
+      const res = await fetch('/api/accounting/summary?range=daily', { credentials: 'include' });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.ok && data?.report) {
+        const rep = data.report;
+        setLiveSummary({
+          roomStayRevenueUSD: Number(rep.roomStayRevenueUSD || 0),
+          restaurantRevenueUSD: Number(rep.restaurantRevenueUSD || 0),
+          servicesRevenueUSD: Number(rep.servicesRevenueUSD || 0),
+          totalGrossRevenueUSD: Number(rep.totalGrossRevenueUSD || 0),
+          serviceChargeCollectedUSD: Number(rep.serviceChargeCollectedUSD || 0),
+          taxCollectedUSD: Number(rep.taxCollectedUSD || 0),
+          expectedCashDrawerUSD: Number(rep.expectedCashDrawerUSD || 0),
+        });
+        const expectedNpr = Math.round(Number(rep.expectedCashDrawerUSD || 0) * nprRate);
+        setExpectedCashDrawerNPR(expectedNpr);
+        setPhysicalCashDrawerNPR(expectedNpr);
+      }
+    } catch {
+      // Keep derived state
+    } finally {
+      setLoadingLive(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDailyAccounting();
+  }, [invoices.length, bookings.length, restaurantOrders.length]);
 
   const totalOccupied = roomUnits.filter((u) => u.occupancyStatus === 'occupied').length;
   const occupancyPercent = Math.round((totalOccupied / (roomUnits.length || 1)) * 100);
 
-  const roomRevenue = bookings
-    .filter((b) => b.bookingStatus === 'checked-in')
-    .reduce((acc, b) => acc + (b.subtotal / (b.nights || 1)), 0);
-
-  const fAndBRevenue = restaurantOrders.reduce((acc, o) => acc + o.subtotalUSD, 0);
-  const estimatedServices = 45;
-  const totalGrossRevenue = roomRevenue + fAndBRevenue + estimatedServices;
-  const serviceCharge10 = totalGrossRevenue * 0.10;
-  const vat13 = (totalGrossRevenue + serviceCharge10) * 0.13;
+  const roomRevenue = liveSummary ? liveSummary.roomStayRevenueUSD : localRoomRevenue;
+  const fAndBRevenue = liveSummary ? liveSummary.restaurantRevenueUSD : localFAndBRevenue;
+  const servicesRevenue = liveSummary ? liveSummary.servicesRevenueUSD : localServicesRevenue;
+  const totalGrossRevenue = liveSummary
+    ? liveSummary.totalGrossRevenueUSD
+    : roomRevenue + fAndBRevenue + servicesRevenue;
+  const serviceCharge10 = liveSummary ? liveSummary.serviceChargeCollectedUSD : totalGrossRevenue * 0.1;
+  const vat13 = liveSummary ? liveSummary.taxCollectedUSD : (totalGrossRevenue + serviceCharge10) * 0.13;
   const grandTotalRevenue = totalGrossRevenue + serviceCharge10 + vat13;
 
   const adr = totalOccupied > 0 ? roomRevenue / totalOccupied : 0;
@@ -51,10 +114,12 @@ export const NightAuditManager: React.FC = () => {
 
   const handleRunAudit = () => {
     setIsAuditing(true);
+    const countedUSD = Math.round((physicalCashDrawerNPR / nprRate) * 100) / 100;
+    runNightAudit(activeUser?.name || 'Hotel Duty Auditor', countedUSD);
     setTimeout(() => {
-      runNightAudit(activeUser?.name || 'Kamal Dev Sharma (Super Admin)');
       setIsAuditing(false);
-    }, 600);
+      fetchDailyAccounting();
+    }, 350);
   };
 
   return (
@@ -88,7 +153,7 @@ export const NightAuditManager: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white dark:bg-stone-900 p-4 rounded-xl border border-stone-200 dark:border-stone-800 shadow-xs">
           <div className="text-[11px] text-stone-500 font-medium">Occupancy Rate</div>
-          <div className="text-2xl font-serif font-bold text-stone-900 dark:text-stone-100 mt-1 font-mono">
+          <div className="text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-100 mt-1">
             {occupancyPercent}%
           </div>
           <div className="text-[10px] text-stone-400 mt-1">
@@ -98,7 +163,7 @@ export const NightAuditManager: React.FC = () => {
 
         <div className="bg-white dark:bg-stone-900 p-4 rounded-xl border border-stone-200 dark:border-stone-800 shadow-xs">
           <div className="text-[11px] text-stone-500 font-medium">Average Daily Rate (ADR)</div>
-          <div className="text-2xl font-serif font-bold text-stone-900 dark:text-stone-100 mt-1 font-mono">
+          <div className="text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-100 mt-1">
             ${adr.toFixed(2)}
           </div>
           <div className="text-[10px] text-stone-400 mt-1">
@@ -108,7 +173,7 @@ export const NightAuditManager: React.FC = () => {
 
         <div className="bg-white dark:bg-stone-900 p-4 rounded-xl border border-stone-200 dark:border-stone-800 shadow-xs">
           <div className="text-[11px] text-stone-500 font-medium">RevPAR (Rev/Avail Room)</div>
-          <div className="text-2xl font-serif font-bold text-stone-900 dark:text-stone-100 mt-1 font-mono">
+          <div className="text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-100 mt-1">
             ${revPar.toFixed(2)}
           </div>
           <div className="text-[10px] text-stone-400 mt-1">
@@ -118,7 +183,7 @@ export const NightAuditManager: React.FC = () => {
 
         <div className="bg-white dark:bg-stone-900 p-4 rounded-xl border border-stone-200 dark:border-stone-800 shadow-xs">
           <div className="text-[11px] text-stone-500 font-medium">Grand Operating Total</div>
-          <div className="text-2xl font-serif font-bold text-amber-700 dark:text-amber-400 mt-1 font-mono">
+          <div className="text-2xl font-sans font-semibold tracking-tight tabular-nums text-amber-700 dark:text-amber-400 mt-1">
             ${grandTotalRevenue.toFixed(2)}
           </div>
           <div className="text-[10px] text-stone-400 mt-1">
@@ -182,12 +247,12 @@ export const NightAuditManager: React.FC = () => {
               <span className="font-bold text-stone-900 dark:text-stone-100">${roomRevenue.toFixed(2)}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-stone-100 dark:border-stone-800 font-mono">
-              <span className="text-stone-600 dark:text-stone-400">Rooftop Restaurant & Bar F&B:</span>
+              <span className="text-stone-600 dark:text-stone-400">Ground-Floor Restaurant & Bar F&B:</span>
               <span className="font-bold text-stone-900 dark:text-stone-100">${fAndBRevenue.toFixed(2)}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-stone-100 dark:border-stone-800 font-mono">
-              <span className="text-stone-600 dark:text-stone-400">Services & Incidentals (Laundry, Taxi):</span>
-              <span className="font-bold text-stone-900 dark:text-stone-100">${estimatedServices.toFixed(2)}</span>
+              <span className="text-stone-600 dark:text-stone-400">Services & Incidentals (Laundry, Transfers):</span>
+              <span className="font-bold text-stone-900 dark:text-stone-100">${servicesRevenue.toFixed(2)}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-stone-100 dark:border-stone-800 font-mono">
               <span className="text-stone-600 dark:text-stone-400">10% Hotel Service Charge Collected:</span>

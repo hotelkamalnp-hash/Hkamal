@@ -79,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
       role: 'restaurant_owner', 
       label: 'Restaurant Owner', 
       icon: <Utensils className="w-4 h-4 text-orange-600 dark:text-orange-400" />,
-      desc: 'Rooftop dining POS, live KOTs & revenue'
+      desc: 'Ground-floor dining POS, live KOTs & revenue'
     },
     { 
       role: 'receptionist', 
@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
       role: 'chef', 
       label: 'Head Chef', 
       icon: <Utensils className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
-      desc: 'Rooftop kitchen & dining menu'
+      desc: 'Ground-floor kitchen & dining menu'
     },
     { 
       role: 'waiter', 
@@ -128,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
   return (
     <>
       {/* Clean 3-Zone Editorial Header */}
-      <header className="sticky top-0 z-40 w-full bg-white/90 dark:bg-stone-950/90 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800/80 transition-colors">
+      <header className="sticky top-0 z-40 w-full bg-[#FAF7F2]/92 dark:bg-[#0F0D0B]/92 backdrop-blur-md border-b border-[#E6DFD3]/90 dark:border-[#2A241E] transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
           
           {/* Zone 1: Clean Single-Line Wordmark */}
@@ -141,33 +141,33 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
               src={kamalLogo}
               alt={`${themeConfig.hotelName} emblem`}
               referrerPolicy="no-referrer"
-              className="w-8 h-8 rounded-md object-cover border border-stone-200 dark:border-stone-800 shrink-0"
+              className="w-8 h-8 rounded-md object-cover border border-[#E6DFD3] dark:border-[#2E2720] shrink-0"
             />
-            <span className="text-lg sm:text-xl font-serif font-semibold tracking-tight text-stone-900 dark:text-stone-50 group-hover:text-amber-800 dark:group-hover:text-amber-400 transition-colors whitespace-nowrap">
+            <span className="text-lg sm:text-xl font-serif font-semibold tracking-tight text-[#1A1714] dark:text-[#F4EFE6] group-hover:text-[#96682E] dark:group-hover:text-[#D4A76A] transition-colors whitespace-nowrap">
               {themeConfig.hotelName}
             </span>
           </button>
 
           {/* Zone 2: Minimalist Single-Line Nav Links */}
-          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-stone-600 dark:text-stone-300">
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-[#5E554C] dark:text-[#AFA699]">
             {currentView === 'guest' ? (
               <>
-                <a href="#rooms" className="hover:text-stone-950 dark:hover:text-white transition-colors whitespace-nowrap shrink-0">
+                <a href="#rooms" className="hover:text-[#1A1714] dark:hover:text-[#FAF7F2] underline-offset-4 hover:underline transition-colors whitespace-nowrap shrink-0">
                   Suites
                 </a>
-                <a href="#dining" className="hover:text-stone-950 dark:hover:text-white transition-colors whitespace-nowrap shrink-0">
+                <a href="#dining" className="hover:text-[#1A1714] dark:hover:text-[#FAF7F2] underline-offset-4 hover:underline transition-colors whitespace-nowrap shrink-0">
                   Dining
                 </a>
-                <a href="#amenities" className="hover:text-stone-950 dark:hover:text-white transition-colors whitespace-nowrap shrink-0">
+                <a href="#amenities" className="hover:text-[#1A1714] dark:hover:text-[#FAF7F2] underline-offset-4 hover:underline transition-colors whitespace-nowrap shrink-0">
                   Amenities
                 </a>
-                <a href="#location" className="hover:text-stone-950 dark:hover:text-white transition-colors whitespace-nowrap shrink-0">
+                <a href="#location" className="hover:text-[#1A1714] dark:hover:text-[#FAF7F2] underline-offset-4 hover:underline transition-colors whitespace-nowrap shrink-0">
                   Neighborhood
                 </a>
               </>
             ) : (
-              <div className="flex items-center gap-2 text-xs text-stone-500">
-                <span className="text-stone-900 dark:text-stone-100 font-medium">Operations Portal</span>
+              <div className="flex items-center gap-2 text-xs text-[#6B6258] dark:text-[#A69C8F]">
+                <span className="text-[#1A1714] dark:text-[#F4EFE6] font-medium">Operations Portal</span>
                 <span aria-hidden="true">/</span>
                 <span className="capitalize">{activeRole.replace('_', ' ')}</span>
               </div>
@@ -222,8 +222,8 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
               onClick={() => setCurrentView(currentView === 'in_room_guest' ? 'guest' : 'in_room_guest')}
               className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
                 currentView === 'in_room_guest'
-                  ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-                  : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-900'
+                  ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#F4EFE6] dark:text-[#14110E]'
+                  : 'text-[#5E554C] dark:text-[#C8BFB2] hover:bg-[#EFE8DC] dark:hover:bg-[#1E1A16]'
               }`}
               title="Guest In-Room Portal"
             >
@@ -242,10 +242,10 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
                 <button
                   type="button"
                   onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 text-stone-800 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-[#E6DFD3] dark:border-[#2E2720] bg-[#FFFFFF] dark:bg-[#171411] text-[#1A1714] dark:text-[#F4EFE6] hover:bg-[#F3EDE2] dark:hover:bg-[#1E1A16] transition-colors cursor-pointer whitespace-nowrap"
                   aria-label="Staff Profile"
                 >
-                  <UserCheck className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
+                  <UserCheck className="w-3.5 h-3.5 text-[#96682E] dark:text-[#C69553]" />
                   <span className="hidden sm:inline max-w-[80px] truncate">
                     {activeUser.name.split(' ')[0]}
                   </span>
@@ -275,26 +275,44 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
                       </button>
                     </div>
 
-                    <div className="px-3 py-1 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">
-                      Switch Role
-                    </div>
-
-                    {roles.map((item) => (
-                      <button
-                        key={item.role}
-                        type="button"
-                        onClick={() => handleRoleSelect(item.role)}
-                        className={`w-full px-3 py-1.5 text-left flex items-start gap-2 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors ${
-                          activeRole === item.role ? 'bg-amber-50 dark:bg-stone-800/80 font-medium' : ''
-                        }`}
-                      >
-                        <div className="mt-0.5">{item.icon}</div>
-                        <div>
-                          <div className="text-xs text-stone-900 dark:text-stone-100">{item.label}</div>
-                          <div className="text-[10px] text-stone-500 dark:text-stone-400 leading-tight">{item.desc}</div>
+                    {import.meta.env.DEV ? (
+                      <>
+                        <div className="px-3 py-1 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">
+                          Dev Role Switcher
                         </div>
-                      </button>
-                    ))}
+
+                        {roles.map((item) => (
+                          <button
+                            key={item.role}
+                            type="button"
+                            onClick={() => handleRoleSelect(item.role)}
+                            className={`w-full px-3 py-1.5 text-left flex items-start gap-2 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors ${
+                              activeRole === item.role ? 'bg-amber-50 dark:bg-stone-800/80 font-medium' : ''
+                            }`}
+                          >
+                            <div className="mt-0.5">{item.icon}</div>
+                            <div>
+                              <div className="text-xs text-stone-900 dark:text-stone-100">{item.label}</div>
+                              <div className="text-[10px] text-stone-500 dark:text-stone-400 leading-tight">{item.desc}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    ) : (
+                      <div className="p-2 border-b border-stone-100 dark:border-stone-800">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRoleDropdownOpen(false);
+                            openLoginModal();
+                          }}
+                          className="w-full py-1.5 px-2 rounded text-xs font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition text-left flex items-center gap-2"
+                        >
+                          <Key className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Switch Staff Account (Sign In)</span>
+                        </button>
+                      </div>
+                    )}
 
                     <div className="pt-1.5 mt-1 border-t border-stone-100 dark:border-stone-800">
                       <button
@@ -315,7 +333,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
             ) : (
               <button
                 type="button"
-                onClick={() => openLoginModal('super_admin')}
+                onClick={() => openLoginModal()}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors cursor-pointer whitespace-nowrap"
                 title="Staff Sign In"
               >
@@ -380,12 +398,9 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
               <a
                 href="#dining"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-1.5 hover:text-amber-700 flex items-center justify-between"
+                className="py-1.5 hover:text-amber-700"
               >
-                <span>Rooftop Dining</span>
-                <span className="text-[10px] font-mono bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded font-semibold">
-                  Himalayan View
-                </span>
+                Ground-Floor Dining
               </a>
               <a
                 href="#amenities"

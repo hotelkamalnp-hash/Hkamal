@@ -23,7 +23,7 @@ export interface Room {
   isFeatured?: boolean;
 }
 
-export type BookingStatus = 'confirmed' | 'checked-in' | 'checked-out' | 'cancelled';
+export type BookingStatus = 'confirmed' | 'checked-in' | 'checked-out' | 'cancelled' | 'no_show';
 export type PaymentStatus = 'paid' | 'pending' | 'refunded';
 export type PaymentMethod = 'card' | 'esewa' | 'khalti' | 'onsite';
 
@@ -126,11 +126,12 @@ export interface PostCheckoutSurvey {
 
 export interface StaffUser {
   id: string;
+  authUserId?: string;
+  authSource?: 'supabase' | 'server_jwt';
   name: string;
   username: string;
   email: string;
   phone: string;
-  password?: string;
   role: StaffRole;
   permissions: string[];
   status: 'active' | 'on-leave' | 'inactive';
@@ -339,6 +340,7 @@ export interface SmtpConfig {
   smtpPort: number;
   smtpUser: string;
   smtpPassword?: string;
+  hasStoredPassword?: boolean;
   senderEmail: string;
   senderName: string;
   replyToEmail?: string;
@@ -389,7 +391,7 @@ export interface CSRChatMessage {
 }
 
 // ----------------- RESTAURANT & DINING -----------------
-export type MenuItemCategory = 'Starters' | 'Main Course' | 'Nepali Heritage & Newari' | 'Himalayan Specials' | 'Rooftop Bar & Beverages' | 'Desserts';
+export type MenuItemCategory = 'Starters' | 'Main Course' | 'Nepali Heritage & Cuisine' | 'Himalayan Specials' | 'Ground-Floor Bar & Beverages' | 'Desserts';
 
 export interface MenuItem {
   id: string;
@@ -552,6 +554,19 @@ export interface AccountingSummary {
   totalInvoicesCount: number;
   paidInvoicesCount: number;
   pendingInvoicesCount: number;
+}
+
+export interface ExpenseRecord {
+  id: string;
+  category: string;
+  description: string;
+  vendor?: string;
+  amountUSD: number;
+  paymentMethod: string;
+  expenseDate: string;
+  referenceNo?: string;
+  recordedBy: string;
+  createdAt?: string;
 }
 
 // ----------------- COUPONS & PROMO VOUCHERS -----------------

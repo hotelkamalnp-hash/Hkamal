@@ -31,7 +31,7 @@ import { printElement, downloadBookingVoucherPdf } from '../utils/printUtility';
 const AVAILABLE_ADDONS: BookingAddon[] = [
   {
     id: 'addon-breakfast',
-    name: 'Rooftop Himalayan Breakfast Buffet',
+    name: 'Ground-Floor Himalayan Breakfast Buffet',
     priceUSD: 8,
     description: 'Fresh organic fruits, highland coffee, eggs, and freshly baked pastries daily.',
     selected: true,
@@ -65,14 +65,13 @@ export const BookingCheckoutModal: React.FC = () => {
     closeBookingModal, 
     selectedRoomForBooking, 
     themeConfig, 
-    smtpConfig,
     billSettings,
     currentCurrency, 
     setCurrentCurrency, 
-    createBooking,
+    applyServerCreatedBooking,
+    refreshBootstrapFromServer,
     markBookingEmailSent,
     validateAndApplyCoupon,
-    redeemCoupon,
     showToast
   } = useHotel();
 
@@ -113,13 +112,27 @@ export const BookingCheckoutModal: React.FC = () => {
   } | null>(null);
   const [couponError, setCouponError] = useState<string>('');
 
-  // Payment Form State
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
-  const [cardNumber, setCardNumber] = useState<string>('4242 •••• •••• 4242');
-  const [cardExpiry, setCardExpiry] = useState<string>('12/28');
-  const [cardCvv, setCardCvv] = useState<string>('888');
-  const [cardHolder, setCardHolder] = useState<string>('KAMAL GUEST');
+  // Payment & Gateway State (Zero raw PAN/CVV fields — hosted redirects / pay at check-in only)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('onsite');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [paymentError, setPaymentError] = useState<string>('');
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() =>
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `idem-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  );
+  const [gatewayStatus, setGatewayStatus] = useState<{
+    esewa?: { configured: boolean; env?: string };
+    khalti?: { configured: boolean; env?: string };
+    stripeCard?: { configured: boolean; webhookConfigured?: boolean };
+  } | null>(null);
+
+  // Live room availability state from server
+  const [availabilityState, setAvailabilityState] = useState<{
+    loading: boolean;
+    availableCount: number | null;
+    error?: string;
+  }>({ loading: false, availableCount: null });
 
   // Confirmed booking state
   const [confirmedBookingCode, setConfirmedBookingCode] = useState<string>('');
@@ -140,6 +153,7 @@ export const BookingCheckoutModal: React.FC = () => {
   const [emailVerified, setEmailVerified] = useState<boolean>(false);
   const [verifiedEmail, setVerifiedEmail] = useState<string>('');
   const [verifiedAt, setVerifiedAt] = useState<string>('');
+  const [emailVerificationToken, setEmailVerificationToken] = useState<string>('');
   const [otpSent, setOtpSent] = useState<boolean>(false);
   const [otpCodeInput, setOtpCodeInput] = useState<string>('');
   const [otpPreviewCode, setOtpPreviewCode] = useState<string>('');
@@ -156,15 +170,25 @@ export const BookingCheckoutModal: React.FC = () => {
     messageId?: string;
   }>({ state: 'idle' });
 
+  const isStaticGithubPagesHost =
+    typeof window !== 'undefined' && window.location.hostname === 'hotelkamalnp-hash.github.io';
+
   useEffect(() => {
     if (isBookingModalOpen && selectedRoomForBooking) {
       setStep(1);
       setIsProcessing(false);
+      setPaymentError('');
+      setIdempotencyKey(
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `idem-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+      );
       setConfirmedBookingCode('');
       setConfirmedSummary(null);
       setEmailVerified(false);
       setVerifiedEmail('');
       setVerifiedAt('');
+      setEmailVerificationToken('');
       setOtpSent(false);
       setOtpCodeInput('');
       setOtpPreviewCode('');
@@ -172,8 +196,61 @@ export const BookingCheckoutModal: React.FC = () => {
       setOtpError('');
       setOtpMessage('');
       setConfirmationEmailStatus({ state: 'idle' });
+
+      fetch('/api/payments/status')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d?.ok && d?.gateways) {
+            setGatewayStatus(d.gateways);
+          }
+        })
+        .catch(() => {});
     }
   }, [isBookingModalOpen, selectedRoomForBooking?.id]);
+
+  // Live server-side date-overlap availability lookup
+  useEffect(() => {
+    if (!isBookingModalOpen || !selectedRoomForBooking) return;
+    if (!checkIn || !checkOut || checkOut <= checkIn) {
+      setAvailabilityState({
+        loading: false,
+        availableCount: 0,
+        error: 'Check-out date must be after check-in date.',
+      });
+      return;
+    }
+
+    let cancelled = false;
+    setAvailabilityState((prev) => ({ ...prev, loading: true, error: undefined }));
+    const params = new URLSearchParams({
+      checkIn,
+      checkOut,
+      guests: String(adults + children),
+    });
+    fetch(`/api/availability?${params.toString()}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.ok || !Array.isArray(data.availability)) return;
+        const match = data.availability.find(
+          (a: any) =>
+            a.roomId === selectedRoomForBooking.id || a.roomTypeId === selectedRoomForBooking.id
+        );
+        setAvailabilityState({
+          loading: false,
+          availableCount: match ? Number(match.availableCount || 0) : null,
+          error: match && match.availableCount <= 0 ? 'No physical rooms available for these exact dates.' : undefined,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAvailabilityState({ loading: false, availableCount: null });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isBookingModalOpen, selectedRoomForBooking?.id, checkIn, checkOut, adults, children]);
 
   useModalDismiss({
     isOpen: isBookingModalOpen && Boolean(selectedRoomForBooking),
@@ -274,11 +351,10 @@ export const BookingCheckoutModal: React.FC = () => {
           email: cleanEmail,
           guestName: guestName.trim() || 'Guest',
           hotelName: themeConfig.hotelName,
-          smtpConfig,
         }),
       });
       const contentType = res.headers.get('content-type') || '';
-      if (res.status === 404 || !contentType.includes('application/json')) {
+      if ((res.status === 404 || !contentType.includes('application/json')) && isStaticGithubPagesHost) {
         const fallbackCode = String(Math.floor(100000 + Math.random() * 900000));
         sessionStorage.setItem(
           `kamal_static_otp_${cleanEmail}`,
@@ -289,6 +365,10 @@ export const BookingCheckoutModal: React.FC = () => {
         setOtpDeliveryMode('sandbox_preview');
         setOtpMessage(`Static-host sandbox code ready for ${cleanEmail} (valid 10 mins).`);
         showToast('Verification Code Ready', `Use sandbox code ${fallbackCode} to verify ${cleanEmail}.`, 'info');
+        return;
+      }
+      if (!contentType.includes('application/json')) {
+        setOtpError('Verification server returned an unexpected response. Please retry shortly.');
         return;
       }
       const data = await res.json().catch(() => ({}));
@@ -305,19 +385,23 @@ export const BookingCheckoutModal: React.FC = () => {
         data?.smtpSent ? 'Verification Email Sent' : 'Verification Code Ready',
         data?.smtpSent
           ? `Check ${cleanEmail} inbox for your 6-digit verification code.`
-          : `Sandbox code generated for ${cleanEmail}. Configure SMTP in CMS for live inbox delivery.`,
+          : `Verification code generated for ${cleanEmail}. Configure SMTP in CMS for live inbox delivery.`,
         data?.smtpSent ? 'success' : 'info'
       );
     } catch {
-      const fallbackCode = String(Math.floor(100000 + Math.random() * 900000));
-      sessionStorage.setItem(
-        `kamal_static_otp_${cleanEmail}`,
-        JSON.stringify({ code: fallbackCode, expiresAt: Date.now() + 10 * 60 * 1000 })
-      );
-      setOtpSent(true);
-      setOtpPreviewCode(fallbackCode);
-      setOtpDeliveryMode('sandbox_preview');
-      setOtpMessage(`Offline/static sandbox code ready for ${cleanEmail}.`);
+      if (isStaticGithubPagesHost) {
+        const fallbackCode = String(Math.floor(100000 + Math.random() * 900000));
+        sessionStorage.setItem(
+          `kamal_static_otp_${cleanEmail}`,
+          JSON.stringify({ code: fallbackCode, expiresAt: Date.now() + 10 * 60 * 1000 })
+        );
+        setOtpSent(true);
+        setOtpPreviewCode(fallbackCode);
+        setOtpDeliveryMode('sandbox_preview');
+        setOtpMessage(`Offline/static sandbox code ready for ${cleanEmail}.`);
+      } else {
+        setOtpError('Unable to reach the verification server. Please check your connection and try again.');
+      }
     } finally {
       setOtpLoading(false);
     }
@@ -342,7 +426,7 @@ export const BookingCheckoutModal: React.FC = () => {
         }),
       });
       const contentType = res.headers.get('content-type') || '';
-      if (res.status === 404 || !contentType.includes('application/json')) {
+      if ((res.status === 404 || !contentType.includes('application/json')) && isStaticGithubPagesHost) {
         const storedRaw = sessionStorage.getItem(`kamal_static_otp_${cleanEmail}`);
         const stored = storedRaw ? JSON.parse(storedRaw) : null;
         if (!stored || stored.expiresAt < Date.now() || stored.code !== cleanCode) {
@@ -365,18 +449,21 @@ export const BookingCheckoutModal: React.FC = () => {
       setEmailVerified(true);
       setVerifiedEmail(cleanEmail);
       setVerifiedAt(data?.verifiedAt || new Date().toISOString());
+      setEmailVerificationToken(typeof data?.verificationToken === 'string' ? data.verificationToken : '');
       setOtpMessage('Email verified. You may continue to confirm your booking.');
       showToast('Email Verified', `${cleanEmail} confirmed for reservation.`, 'success');
     } catch {
-      const storedRaw = sessionStorage.getItem(`kamal_static_otp_${cleanEmail}`);
-      const stored = storedRaw ? JSON.parse(storedRaw) : null;
-      if (stored && stored.expiresAt >= Date.now() && stored.code === cleanCode) {
-        sessionStorage.removeItem(`kamal_static_otp_${cleanEmail}`);
-        setEmailVerified(true);
-        setVerifiedEmail(cleanEmail);
-        setVerifiedAt(new Date().toISOString());
-        setOtpMessage('Email verified. You may continue to confirm your booking.');
-        return;
+      if (isStaticGithubPagesHost) {
+        const storedRaw = sessionStorage.getItem(`kamal_static_otp_${cleanEmail}`);
+        const stored = storedRaw ? JSON.parse(storedRaw) : null;
+        if (stored && stored.expiresAt >= Date.now() && stored.code === cleanCode) {
+          sessionStorage.removeItem(`kamal_static_otp_${cleanEmail}`);
+          setEmailVerified(true);
+          setVerifiedEmail(cleanEmail);
+          setVerifiedAt(new Date().toISOString());
+          setOtpMessage('Email verified. You may continue to confirm your booking.');
+          return;
+        }
       }
       setOtpError('Network error verifying code. Please try again.');
     } finally {
@@ -386,6 +473,14 @@ export const BookingCheckoutModal: React.FC = () => {
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!checkIn || !checkOut || checkOut <= checkIn) {
+      showToast('Invalid Stay Dates', 'Check-out date must be after check-in date.', 'warning');
+      return;
+    }
+    if (availabilityState.availableCount !== null && availabilityState.availableCount <= 0) {
+      showToast('Room Unavailable', 'All units of this suite type are booked for your selected dates. Please pick another date or room.', 'error');
+      return;
+    }
     const cleanEmail = guestEmail.trim().toLowerCase();
     if (!emailVerified || verifiedEmail !== cleanEmail) {
       setOtpError('Please verify your email address with the 6-digit code before continuing.');
@@ -396,10 +491,11 @@ export const BookingCheckoutModal: React.FC = () => {
       );
       return;
     }
+    setPaymentError('');
     setStep(2);
   };
 
-  const handlePaymentSubmit = (e: React.FormEvent) => {
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = guestEmail.trim().toLowerCase();
     if (!emailVerified || verifiedEmail !== cleanEmail) {
@@ -408,74 +504,196 @@ export const BookingCheckoutModal: React.FC = () => {
       setStep(1);
       return;
     }
+
     setIsProcessing(true);
+    setPaymentError('');
 
-    // Simulate 3D Secure Authorization
-    setTimeout(() => {
-      const created = createBooking({
-        guestName,
-        guestEmail,
-        guestPhone,
-        guestCountry,
-        roomTypeId: room.id,
-        roomName: room.name,
-        roomType: room.type,
-        checkInDate: checkIn,
-        checkOutDate: checkOut,
-        nights,
-        adults,
-        children,
-        addons: selectedAddons,
-        subtotal: discountedSubtotal,
-        taxAmount,
-        totalAmount: grandTotal,
-        currency: currentCurrency,
-        paymentStatus: 'paid',
-        paymentMethod,
-        cardLast4: paymentMethod === 'card' ? cardNumber.slice(-4).replace(/\s/g, '') || '4242' : undefined,
-        bookingStatus: 'confirmed',
-        emailVerified: true,
-        verifiedAt: verifiedAt || new Date().toISOString(),
-        specialRequests: appliedCouponData 
-          ? `${specialRequests ? specialRequests + ' | ' : ''}Promo applied: ${appliedCouponData.code} (-$${appliedCouponData.discountUSD.toFixed(2)})`
-          : specialRequests,
-      });
+    const bookingPayload = {
+      guestName: guestName.trim(),
+      guestEmail: cleanEmail,
+      guestPhone: guestPhone.trim(),
+      guestCountry: guestCountry.trim() || 'Nepal',
+      roomTypeId: room.id,
+      checkInDate: checkIn,
+      checkOutDate: checkOut,
+      adults,
+      children,
+      addons: selectedAddons,
+      couponCode: appliedCouponData?.code,
+      currency: currentCurrency,
+      paymentMethod,
+      specialRequests: appliedCouponData
+        ? `${specialRequests ? specialRequests + ' | ' : ''}Promo applied: ${appliedCouponData.code} (-$${appliedCouponData.discountUSD.toFixed(2)})`
+        : specialRequests,
+      emailVerified: true,
+      verifiedAt: verifiedAt || new Date().toISOString(),
+      emailVerificationToken,
+      idempotencyKey,
+    };
 
-      if (appliedCouponData) {
-        redeemCoupon(appliedCouponData.code);
+    try {
+      if (paymentMethod === 'onsite') {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
+          credentials: 'include',
+          body: JSON.stringify(bookingPayload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok || !data?.booking) {
+          const msg = data?.error || data?.message || 'Unable to lock room reservation. Please try again.';
+          setPaymentError(msg);
+          showToast('Booking Failed', msg, 'error');
+          if (data?.code === 'INVALID_OTP_PROOF' || data?.code === 'EMAIL_VERIFICATION_REQUIRED') {
+            setStep(1);
+          }
+          setIsProcessing(false);
+          return;
+        }
+
+        const createdBooking: Booking = data.booking;
+        applyServerCreatedBooking({
+          booking: createdBooking,
+          invoice: data.invoice,
+          guestSession: data.guestSession,
+        });
+        await refreshBootstrapFromServer().catch(() => {});
+
+        const formattedAddons = selectedAddons.map((addon) => {
+          const unitCurr = convertPrice(addon.priceUSD, currentCurrency, themeConfig.exchangeRates);
+          const lineCurr = addon.id === 'addon-breakfast' ? unitCurr * nights * adults : unitCurr;
+          return {
+            name: addon.id === 'addon-breakfast' ? `${addon.name} (${adults} guests × ${nights}n)` : addon.name,
+            priceFormatted: formatCurrency(lineCurr, currentCurrency),
+          };
+        });
+
+        const serverTotals = data.quote || {};
+        const summarySnapshot = {
+          booking: createdBooking,
+          authCode: 'ONSITE-HOLD',
+          roomSubtotalFormatted: formatCurrency(
+            serverTotals.roomSubtotalCurr ?? roomSubtotal,
+            currentCurrency
+          ),
+          addons: formattedAddons,
+          couponCode: appliedCouponData?.code,
+          discountFormatted:
+            appliedCouponData || serverTotals.discountCurr
+              ? formatCurrency(serverTotals.discountCurr ?? couponDiscountInCurrency, currentCurrency)
+              : undefined,
+          serviceChargeFormatted: formatCurrency(
+            serverTotals.serviceChargeCurr ?? serviceChargeAmount,
+            currentCurrency
+          ),
+          taxFormatted: formatCurrency(serverTotals.taxCurr ?? taxAmount, currentCurrency),
+          totalAmountFormatted: formatCurrency(
+            serverTotals.totalCurr ?? createdBooking.totalAmount ?? grandTotal,
+            currentCurrency
+          ),
+          currency: currentCurrency,
+        };
+
+        setConfirmedBookingCode(createdBooking.bookingCode);
+        setConfirmedSummary(summarySnapshot);
+        setIsProcessing(false);
+        setStep(3);
+        dispatchConfirmationEmail(summarySnapshot, cleanEmail);
+        return;
       }
 
-      const authCode = String(Math.floor(100000 + Math.random() * 900000));
-      const formattedAddons = selectedAddons.map((addon) => {
-        const unitCurr = convertPrice(addon.priceUSD, currentCurrency, themeConfig.exchangeRates);
-        const lineCurr = addon.id === 'addon-breakfast' ? unitCurr * nights * adults : unitCurr;
-        return {
-          name: addon.id === 'addon-breakfast' ? `${addon.name} (${adults} guests × ${nights}n)` : addon.name,
-          priceFormatted: formatCurrency(lineCurr, currentCurrency),
-        };
-      });
-      const summarySnapshot = {
-        booking: created,
-        authCode,
-        roomSubtotalFormatted: formatCurrency(roomSubtotal, currentCurrency),
-        addons: formattedAddons,
-        couponCode: appliedCouponData?.code,
-        discountFormatted: appliedCouponData
-          ? formatCurrency(couponDiscountInCurrency, currentCurrency)
-          : undefined,
-        serviceChargeFormatted: formatCurrency(serviceChargeAmount, currentCurrency),
-        taxFormatted: formatCurrency(taxAmount, currentCurrency),
-        totalAmountFormatted: formatCurrency(grandTotal, currentCurrency),
-        currency: currentCurrency,
-      };
+      if (paymentMethod === 'esewa') {
+        const res = await fetch('/api/payments/esewa/initiate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
+          credentials: 'include',
+          body: JSON.stringify({ bookingPayload, idempotencyKey }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok || !data?.actionUrl || !data?.formFields) {
+          const msg =
+            data?.error ||
+            'eSewa ePay v2 is currently unavailable on the server. Choose Pay at Check-In or another active gateway.';
+          setPaymentError(msg);
+          showToast('eSewa Unavailable', msg, 'warning');
+          setIsProcessing(false);
+          return;
+        }
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = data.actionUrl;
+        Object.entries(data.formFields as Record<string, string>).forEach(([k, v]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = k;
+          input.value = String(v);
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        return;
+      }
 
-      setConfirmedBookingCode(created.bookingCode);
-      setConfirmedSummary(summarySnapshot);
+      if (paymentMethod === 'khalti') {
+        const res = await fetch('/api/payments/khalti/initiate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
+          credentials: 'include',
+          body: JSON.stringify({ bookingPayload, idempotencyKey }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok || !data?.paymentUrl) {
+          const msg =
+            data?.error ||
+            'Khalti ePayment v2 is currently unavailable on the server. Choose Pay at Check-In or another active gateway.';
+          setPaymentError(msg);
+          showToast('Khalti Unavailable', msg, 'warning');
+          setIsProcessing(false);
+          return;
+        }
+        window.location.href = data.paymentUrl;
+        return;
+      }
+
+      if (paymentMethod === 'card') {
+        const res = await fetch('/api/payments/card/initiate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
+          credentials: 'include',
+          body: JSON.stringify({ bookingPayload, idempotencyKey }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok || !data?.checkoutUrl) {
+          const msg =
+            data?.error ||
+            'Hosted Card Checkout is not configured on the server. Choose Pay at Check-In to confirm without pre-charge.';
+          setPaymentError(msg);
+          showToast('Card Gateway Unavailable', msg, 'warning');
+          setIsProcessing(false);
+          return;
+        }
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+    } catch {
+      const msg = 'Network error communicating with booking server. Please retry.';
+      setPaymentError(msg);
+      showToast('Network Error', msg, 'error');
+    } finally {
       setIsProcessing(false);
-      setStep(3);
-
-      dispatchConfirmationEmail(summarySnapshot, cleanEmail);
-    }, 900);
+    }
   };
 
   const dispatchConfirmationEmail = (
@@ -486,6 +704,7 @@ export const BookingCheckoutModal: React.FC = () => {
     fetch('/api/bookings/send-confirmation-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({
         bookingCode: summary.booking.bookingCode,
         guestName: summary.booking.guestName,
@@ -517,7 +736,7 @@ export const BookingCheckoutModal: React.FC = () => {
         checkInTime: themeConfig.checkInTime,
         checkOutTime: themeConfig.checkOutTime,
         googleMapsUrl: themeConfig.googleMapsUrl,
-        smtpConfig,
+        verificationToken: emailVerificationToken,
       }),
     })
       .then(async (res) => {
@@ -1043,6 +1262,23 @@ export const BookingCheckoutModal: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Live Inventory Check */}
+                  {availabilityState.availableCount !== null && (
+                    <div
+                      className={`p-2.5 rounded-lg border text-[11px] font-medium flex items-center justify-between ${
+                        availabilityState.availableCount > 0
+                          ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                          : 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300'
+                      }`}
+                    >
+                      <span>
+                        {availabilityState.availableCount > 0
+                          ? `${availabilityState.availableCount} unit(s) available for ${checkIn} → ${checkOut}`
+                          : availabilityState.error || 'Sold out for selected dates'}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Trust guarantees */}
                   <div className="p-3 bg-white dark:bg-stone-900 rounded-lg border border-stone-200/80 dark:border-stone-700/60 text-[11px] text-stone-500 space-y-1">
                     <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
@@ -1057,7 +1293,8 @@ export const BookingCheckoutModal: React.FC = () => {
 
                 <button
                   type="submit"
-                  className={`w-full py-3 px-4 rounded-lg font-semibold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 ${themeClasses.primary}`}
+                  disabled={availabilityState.availableCount === 0}
+                  className={`w-full py-3 px-4 rounded-lg font-semibold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${themeClasses.primary}`}
                 >
                   <span>Continue to Secure Payment</span>
                   <ArrowRight className="w-4 h-4" />
@@ -1090,40 +1327,15 @@ export const BookingCheckoutModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* Payment Methods Tabs */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* Payment Methods Tabs (PCI-DSS Compliant: Hosted Redirects & Pay at Check-In Only) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('card')}
-                  className={`p-3 rounded-lg border text-left text-xs transition-all ${
-                    paymentMethod === 'card'
-                      ? 'border-amber-600 bg-amber-50/60 dark:bg-amber-950/30 text-stone-900 dark:text-stone-100 font-medium shadow-sm'
-                      : 'border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400'
-                  }`}
-                >
-                  <CreditCard className="w-4 h-4 mb-1 text-amber-700 dark:text-amber-400" />
-                  <div>Credit / Debit Card</div>
-                  <div className="text-[10px] text-stone-400">Visa, MC, UPI/Amex</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('esewa')}
-                  className={`p-3 rounded-lg border text-left text-xs transition-all ${
-                    paymentMethod === 'esewa'
-                      ? 'border-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/30 text-stone-900 dark:text-stone-100 font-medium shadow-sm'
-                      : 'border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400'
-                  }`}
-                >
-                  <Smartphone className="w-4 h-4 mb-1 text-emerald-600" />
-                  <div>eSewa / Khalti QR</div>
-                  <div className="text-[10px] text-stone-400">Nepal Mobile Wallet</div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('onsite')}
-                  className={`p-3 rounded-lg border text-left text-xs transition-all ${
+                  onClick={() => {
+                    setPaymentMethod('onsite');
+                    setPaymentError('');
+                  }}
+                  className={`p-3 rounded-lg border text-left text-xs transition-all cursor-pointer ${
                     paymentMethod === 'onsite'
                       ? 'border-sky-600 bg-sky-50/60 dark:bg-sky-950/30 text-stone-900 dark:text-stone-100 font-medium shadow-sm'
                       : 'border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400'
@@ -1131,83 +1343,83 @@ export const BookingCheckoutModal: React.FC = () => {
                 >
                   <Lock className="w-4 h-4 mb-1 text-sky-600" />
                   <div>Pay at Check-In</div>
-                  <div className="text-[10px] text-stone-400">Card Hold Guarantee</div>
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400">Always Available</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod('esewa');
+                    setPaymentError('');
+                  }}
+                  className={`p-3 rounded-lg border text-left text-xs transition-all cursor-pointer ${
+                    paymentMethod === 'esewa'
+                      ? 'border-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/30 text-stone-900 dark:text-stone-100 font-medium shadow-sm'
+                      : 'border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400'
+                  }`}
+                >
+                  <Smartphone className="w-4 h-4 mb-1 text-emerald-600" />
+                  <div>eSewa ePay v2</div>
+                  <div className="text-[10px] text-stone-400">
+                    {gatewayStatus?.esewa?.configured ? 'Ready (HMAC)' : 'Requires Merchant Keys'}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod('khalti');
+                    setPaymentError('');
+                  }}
+                  className={`p-3 rounded-lg border text-left text-xs transition-all cursor-pointer ${
+                    paymentMethod === 'khalti'
+                      ? 'border-purple-600 bg-purple-50/60 dark:bg-purple-950/30 text-stone-900 dark:text-stone-100 font-medium shadow-sm'
+                      : 'border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400'
+                  }`}
+                >
+                  <Smartphone className="w-4 h-4 mb-1 text-purple-600" />
+                  <div>Khalti Wallet</div>
+                  <div className="text-[10px] text-stone-400">
+                    {gatewayStatus?.khalti?.configured ? 'Ready (v2)' : 'Requires Merchant Key'}
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod('card');
+                    setPaymentError('');
+                  }}
+                  className={`p-3 rounded-lg border text-left text-xs transition-all cursor-pointer ${
+                    paymentMethod === 'card'
+                      ? 'border-amber-600 bg-amber-50/60 dark:bg-amber-950/30 text-stone-900 dark:text-stone-100 font-medium shadow-sm'
+                      : 'border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-400'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4 mb-1 text-amber-700 dark:text-amber-400" />
+                  <div>Card Checkout</div>
+                  <div className="text-[10px] text-stone-400">
+                    {gatewayStatus?.stripeCard?.configured ? 'Stripe Hosted' : 'Requires Stripe Key'}
+                  </div>
                 </button>
               </div>
 
-              {/* Card Details Inputs */}
               {paymentMethod === 'card' && (
-                <div className="p-5 bg-stone-50 dark:bg-stone-800/60 rounded-xl border border-stone-200 dark:border-stone-700 space-y-4">
+                <div className="p-5 bg-stone-50 dark:bg-stone-800/60 rounded-xl border border-stone-200 dark:border-stone-700 space-y-3 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-stone-700 dark:text-stone-300">
-                      Card Details
+                    <span className="font-semibold text-stone-800 dark:text-stone-200 flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-amber-600" />
+                      Hosted Card Checkout (PCI-DSS Compliant)
                     </span>
-                    <div className="flex items-center gap-2 text-[10px] text-stone-400 font-mono">
-                      <span>256-BIT ENCRYPTION</span>
-                      <Lock className="w-3 h-3 text-emerald-500" />
-                    </div>
+                    <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      NO CARD DATA STORED ON SERVER
+                    </span>
                   </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-stone-500 mb-1">
-                      Cardholder Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={cardHolder}
-                      onChange={(e) => setCardHolder(e.target.value)}
-                      placeholder="Name on card"
-                      className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-md px-3 py-2 text-xs font-medium text-stone-900 dark:text-stone-100 uppercase"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-stone-500 mb-1">
-                      Card Number
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        placeholder="4242 4242 4242 4242"
-                        className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-md px-3 py-2 text-xs font-mono font-medium text-stone-900 dark:text-stone-100"
-                        required
-                      />
-                      <CreditCard className="w-4 h-4 text-stone-400 absolute right-3 top-2.5" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-stone-500 mb-1">
-                        Expiry Date
-                      </label>
-                      <input
-                        type="text"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                        placeholder="MM/YY"
-                        className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-md px-3 py-2 text-xs font-mono font-medium text-stone-900 dark:text-stone-100"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-stone-500 mb-1">
-                        Security Code (CVV)
-                      </label>
-                      <input
-                        type="password"
-                        maxLength={4}
-                        value={cardCvv}
-                        onChange={(e) => setCardCvv(e.target.value)}
-                        placeholder="•••"
-                        className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-md px-3 py-2 text-xs font-mono font-medium text-stone-900 dark:text-stone-100"
-                        required
-                      />
-                    </div>
-                  </div>
+                  <p className="text-stone-600 dark:text-stone-300 text-[11px] leading-relaxed">
+                    You will be redirected to Stripe&apos;s official encrypted Checkout session to authorize{' '}
+                    <strong>{formatCurrency(grandTotal, currentCurrency)}</strong>. Kamal Hotel never collects or stores your raw card number or CVV.
+                  </p>
                 </div>
               )}
 
@@ -1215,10 +1427,22 @@ export const BookingCheckoutModal: React.FC = () => {
                 <div className="p-5 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs space-y-3">
                   <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold">
                     <Smartphone className="w-4 h-4" />
-                    <span>eSewa / Khalti Mobile Wallet Integration</span>
+                    <span>eSewa ePay v2 Signed Redirect</span>
                   </div>
                   <p className="text-stone-600 dark:text-stone-300 text-[11px] leading-relaxed">
-                    Upon clicking Confirm, an instant digital QR code and wallet authorization prompt will verify payment against {formatCurrency(grandTotal, currentCurrency)}.
+                    Upon clicking Confirm, a server-signed HMAC-SHA256 request will redirect you to eSewa ePay v2 to authorize {formatCurrency(grandTotal, currentCurrency)}.
+                  </p>
+                </div>
+              )}
+
+              {paymentMethod === 'khalti' && (
+                <div className="p-5 bg-purple-50/50 dark:bg-purple-950/20 rounded-xl border border-purple-200 dark:border-purple-800 text-xs space-y-3">
+                  <div className="flex items-center gap-2 text-purple-800 dark:text-purple-300 font-semibold">
+                    <Smartphone className="w-4 h-4" />
+                    <span>Khalti ePayment v2 Gateway</span>
+                  </div>
+                  <p className="text-stone-600 dark:text-stone-300 text-[11px] leading-relaxed">
+                    You will be redirected to Khalti&apos;s official checkout page via server-side lookup verification for {formatCurrency(grandTotal, currentCurrency)}.
                   </p>
                 </div>
               )}
@@ -1230,8 +1454,15 @@ export const BookingCheckoutModal: React.FC = () => {
                     <span>Guaranteed Reservation with Pay-at-Hotel</span>
                   </div>
                   <p className="text-stone-600 dark:text-stone-300 text-[11px] leading-relaxed">
-                    Your room is securely locked in. Settle the balance in Nepali Rupees (NPR), Indian Rupees (INR), US Dollars (USD), or credit card when checking into Kamal Hotel reception in Kamalpokhari.
+                    Your room is transactionally locked in the hotel PMS. Settle the balance in Nepali Rupees (NPR), Indian Rupees (INR), US Dollars (USD), or card terminal upon check-in at Kamalpokhari reception.
                   </p>
+                </div>
+              )}
+
+              {paymentError && (
+                <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{paymentError}</span>
                 </div>
               )}
 
@@ -1255,12 +1486,16 @@ export const BookingCheckoutModal: React.FC = () => {
                   {isProcessing ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Authorizing Payment...</span>
+                      <span>Processing Reservation...</span>
                     </>
                   ) : (
                     <>
                       <Lock className="w-4 h-4" />
-                      <span>Authorize & Confirm ({formatCurrency(grandTotal, currentCurrency)})</span>
+                      <span>
+                        {paymentMethod === 'onsite'
+                          ? `Confirm Reservation (${formatCurrency(grandTotal, currentCurrency)})`
+                          : `Proceed to ${paymentMethod.toUpperCase()} (${formatCurrency(grandTotal, currentCurrency)})`}
+                      </span>
                     </>
                   )}
                 </button>

@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 
 import { EmailSmtpSettingsCard } from './EmailSmtpSettingsCard';
+import { DatabaseStorageManagementCard } from './DatabaseStorageManagementCard';
 
 interface CmsManagerPanelProps {
   onNavigateTab: (
@@ -61,6 +62,7 @@ type CmsSectionTab =
   | 'sections_copy'
   | 'rates_contact'
   | 'email_smtp'
+  | 'database_storage'
   | 'collections';
 
 const DEFAULT_HERO_ASSET = './assets/aistudio/hotel_kamal_new_look_6cc0fe47.jpg';
@@ -311,22 +313,15 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
         : [
             {
               id: 'cta-reserve',
-              label: draft.heroCtaPrimaryText || 'Reserve Your Sanctuary',
+              label: draft.heroCtaPrimaryText || 'Book Your Stay',
               action: 'booking_modal',
               variant: 'primary',
               enabled: true,
             },
             {
-              id: 'cta-portal',
-              label: 'In-House Guest Room Portal',
-              action: 'guest_portal',
-              variant: 'amber_outline',
-              enabled: true,
-            },
-            {
-              id: 'cta-dining',
-              label: draft.heroCtaSecondaryText || 'Explore Rooftop Dining',
-              action: 'scroll_dining',
+              id: 'cta-rooms',
+              label: draft.heroCtaSecondaryText || 'Explore Suites',
+              action: 'scroll_rooms',
               variant: 'glass_light',
               enabled: true,
             },
@@ -467,6 +462,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
             { id: 'sections_copy', label: 'Sections, Dining & Map', badge: dirtyVisibility || dirtyHighlights || dirtyDiningRooms || dirtyHeritage || dirtyLocation || dirtyReviewsFaqCopy ? '!' : null },
             { id: 'rates_contact', label: 'Rates, Tax & Contacts', badge: dirtyRates || dirtyContacts ? '!' : null },
             { id: 'email_smtp', label: 'Email & SMTP Verification', badge: null },
+            { id: 'database_storage', label: 'Database & Supabase Storage', badge: null },
             { id: 'collections', label: `Amenities, Reviews & FAQs (${amenities.length + reviews.length + faqs.length})`, badge: null },
           ] as { id: CmsSectionTab; label: string; badge: number | string | null }[]
         ).map((tab) => (
@@ -660,7 +656,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
                   type="button"
                   onClick={() =>
                     handleAddCtaButton({
-                      label: 'Reserve Your Sanctuary',
+                      label: 'Book Your Stay',
                       action: 'booking_modal',
                       variant: 'primary',
                     })
@@ -1557,7 +1553,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
           <div className="space-y-4 p-5 rounded-xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
             <h4 className="text-sm font-serif font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
               <Utensils className="w-4 h-4 text-amber-700" />
-              <span>Rooms Catalog Copy &amp; Rooftop Dining Teaser Manager</span>
+              <span>Rooms Catalog Copy &amp; Ground-Floor Dining Manager</span>
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
@@ -1617,7 +1613,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
               </div>
 
               <div>
-                <label className="block font-semibold mb-1">Rooftop Dining Status</label>
+                <label className="block font-semibold mb-1">Ground-Floor Dining Status</label>
                 <select
                   value={draft.rooftopDiningStatus}
                   onChange={(e) =>
@@ -1631,7 +1627,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="block font-semibold mb-1">Rooftop Opening Date Banner</label>
+                <label className="block font-semibold mb-1">Dining Opening Hours Banner</label>
                 <input
                   type="text"
                   value={draft.rooftopOpeningDateText}
@@ -1640,7 +1636,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
                 />
               </div>
               <div className="sm:col-span-3">
-                <label className="block font-semibold mb-1">Rooftop Teaser Headline</label>
+                <label className="block font-semibold mb-1">Dining Teaser Headline</label>
                 <input
                   type="text"
                   value={draft.rooftopTeaserHeadline}
@@ -1649,7 +1645,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
                 />
               </div>
               <div className="sm:col-span-3">
-                <label className="block font-semibold mb-1">Rooftop Teaser Description</label>
+                <label className="block font-semibold mb-1">Dining Teaser Description</label>
                 <textarea
                   rows={2}
                   value={draft.rooftopTeaserDescription}
@@ -1675,7 +1671,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
                     'rooftopTeaserHeadline',
                     'rooftopTeaserDescription',
                   ],
-                  'Rooms & Rooftop Dining Copy'
+                  'Rooms & Ground-Floor Dining Copy'
                 )
               }
             />
@@ -2016,7 +2012,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
                 <span>Hero &amp; Suite Photo Library</span>
                 <ImageIcon className="w-4 h-4 text-amber-600" />
               </div>
-              <p className="text-[11px] text-stone-500 mt-1">Swap hero, rooftop, or room photos &rarr;</p>
+              <p className="text-[11px] text-stone-500 mt-1">Swap hero, dining, or room photos &rarr;</p>
             </button>
             <button
               type="button"
@@ -2205,6 +2201,13 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
       {showBlock('email_smtp') && (
         <div className="pt-2 border-t border-stone-200 dark:border-stone-800">
           <EmailSmtpSettingsCard />
+        </div>
+      )}
+
+      {/* MODULE 7: SUPABASE DATABASE, KEEP-ALIVE & FREE-TIER STORAGE */}
+      {showBlock('database_storage') && (
+        <div className="pt-2 border-t border-stone-200 dark:border-stone-800">
+          <DatabaseStorageManagementCard />
         </div>
       )}
 

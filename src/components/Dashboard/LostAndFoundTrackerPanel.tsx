@@ -29,7 +29,7 @@ const CATEGORIES = [
 
 const DEFAULT_LOCATIONS = [
   'Lobby Lounge',
-  'Rooftop Dining Terrace',
+  'Ground-Floor Dining Terrace',
   'Reception Desk',
   'Fitness & Spa Wing',
   'Courtyard Garden',

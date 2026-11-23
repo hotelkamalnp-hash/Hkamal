@@ -394,9 +394,9 @@ export const NeighborhoodGuide: React.FC = () => {
   ];
 
   return (
-    <div className="bg-stone-50 dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-lg overflow-hidden">
+    <div className="bg-[#FAF7F2] dark:bg-[#171411] rounded-2xl border border-[#E6DFD3] dark:border-[#2A241E] shadow-sm overflow-hidden">
       {/* Guide Controls Bar */}
-      <div className="p-4 sm:p-5 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="p-4 sm:p-5 bg-white dark:bg-[#1B1713] border-b border-[#E6DFD3] dark:border-[#2A241E] flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
           {categories.map((cat) => (
             <button
@@ -405,8 +405,8 @@ export const NeighborhoodGuide: React.FC = () => {
               onClick={() => setActiveCategory(cat.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 activeCategory === cat.id
-                  ? 'bg-amber-700 text-white shadow-xs'
-                  : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
+                  ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E] shadow-xs'
+                  : 'bg-[#F3EDE2] dark:bg-[#231E19] text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EAE1D2] dark:hover:bg-[#2D2620]'
               }`}
             >
               {cat.icon}
@@ -415,7 +415,7 @@ export const NeighborhoodGuide: React.FC = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-stone-500">
+        <div className="flex items-center gap-3 text-xs text-[#6B6258] dark:text-[#AFA699]">
           <span className="font-mono text-[11px]">
             Radius: {(radiusMeters / 1000).toFixed(1)} km around Kamalpokhari
           </span>
@@ -423,7 +423,7 @@ export const NeighborhoodGuide: React.FC = () => {
             type="button"
             onClick={fetchNearbyPlaces}
             disabled={isLoadingPlaces}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-200 font-semibold text-xs cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-60"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#E6DFD3] dark:border-[#342C24] hover:bg-[#F3EDE2] dark:hover:bg-[#231E19] text-[#1A1714] dark:text-[#F4EFE6] font-semibold text-xs cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-60"
             title="Refresh live Places data"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoadingPlaces ? 'animate-spin' : ''}`} />
@@ -435,7 +435,7 @@ export const NeighborhoodGuide: React.FC = () => {
       {/* Interactive Split Map + Places List */}
       <div className="grid grid-cols-1 lg:grid-cols-12">
         {/* Map Viewport (explicit height prevents CF2 collapse) */}
-        <div className="lg:col-span-7 relative h-[360px] sm:h-[420px] bg-stone-200 dark:bg-stone-950">
+        <div className="lg:col-span-7 relative h-[360px] sm:h-[420px] bg-[#EFE9DF] dark:bg-[#14110E]">
           {mapsApiKey ? (
             <APIProvider apiKey={mapsApiKey} language="en" region="NP">
               <GoogleMap
@@ -478,18 +478,18 @@ export const NeighborhoodGuide: React.FC = () => {
             </APIProvider>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-3">
-              <MapPin className="w-8 h-8 text-amber-700 dark:text-amber-400" />
-              <div className="font-serif font-bold text-base text-stone-900 dark:text-stone-100">
-                {configLoaded ? 'Interactive Map Key Not Active' : 'Loading Google Maps...'}
+              <MapPin className="w-8 h-8 text-[#96682E] dark:text-[#D4A76A]" />
+              <div className="font-serif font-bold text-base text-[#1A1714] dark:text-[#F4EFE6]">
+                {configLoaded ? 'Interactive Map View Ready on Key Activation' : 'Loading Google Maps...'}
               </div>
-              <p className="text-xs text-stone-600 dark:text-stone-400 max-w-sm">
-                Configure Google Maps Platform API key in environment settings to display the interactive Kamalpokhari map view.
+              <p className="text-xs text-[#5C544B] dark:text-[#AFA699] max-w-sm">
+                Explore Kamalpokhari landmarks and direct route instructions via Google Maps Directions.
               </p>
               <a
                 href={themeConfig.googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#96682E] hover:bg-[#7D5522] dark:bg-[#C69553] dark:text-[#14110E] text-white text-xs font-semibold"
               >
                 <Navigation className="w-3.5 h-3.5" />
                 <span>Open Directions on Google Maps</span>
@@ -499,9 +499,9 @@ export const NeighborhoodGuide: React.FC = () => {
           )}
 
           {/* Legend Strip */}
-          <div className="absolute bottom-3 left-3 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-1.5 shadow-md flex flex-wrap items-center gap-3 text-[11px] font-medium">
+          <div className="absolute bottom-3 left-3 bg-white/95 dark:bg-[#171411]/95 backdrop-blur-sm border border-[#E6DFD3] dark:border-[#342C24] rounded-lg px-3 py-1.5 shadow-md flex flex-wrap items-center gap-3 text-[11px] font-medium text-[#1A1714] dark:text-[#F4EFE6]">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-700" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#96682E]" />
               <span>{themeConfig.hotelName}</span>
             </span>
             <span className="flex items-center gap-1.5">
@@ -520,12 +520,12 @@ export const NeighborhoodGuide: React.FC = () => {
         </div>
 
         {/* Clickable Live Nearby Places Directory */}
-        <div className="lg:col-span-5 h-[360px] sm:h-[420px] flex flex-col bg-stone-50 dark:bg-stone-950/60 border-t lg:border-t-0 lg:border-l border-stone-200 dark:border-stone-800">
-          <div className="px-4 py-3 border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 flex items-center justify-between text-xs shrink-0">
-            <span className="font-semibold text-stone-900 dark:text-stone-100">
+        <div className="lg:col-span-5 h-[360px] sm:h-[420px] flex flex-col bg-[#FAF7F2] dark:bg-[#14110E] border-t lg:border-t-0 lg:border-l border-[#E6DFD3] dark:border-[#2A241E]">
+          <div className="px-4 py-3 border-b border-[#E6DFD3] dark:border-[#2A241E] bg-white dark:bg-[#1B1713] flex items-center justify-between text-xs shrink-0">
+            <span className="font-semibold text-[#1A1714] dark:text-[#F4EFE6]">
               Nearby Around Kamalpokhari
             </span>
-            <span className="font-mono text-[11px] text-stone-500">
+            <span className="font-mono text-[11px] text-[#6B6258] dark:text-[#AFA699]">
               {isLoadingPlaces ? 'Searching...' : `${places.length} verified places`}
             </span>
           </div>
@@ -536,19 +536,19 @@ export const NeighborhoodGuide: React.FC = () => {
                 {[1, 2, 3, 4].map((idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 animate-pulse space-y-2"
+                    className="p-3 rounded-xl bg-white dark:bg-[#171411] border border-[#E6DFD3] dark:border-[#2A241E] space-y-2"
                   >
-                    <div className="h-3.5 w-2/3 bg-stone-200 dark:bg-stone-800 rounded" />
-                    <div className="h-3 w-full bg-stone-100 dark:bg-stone-800/60 rounded" />
+                    <div className="h-3.5 w-2/3 bg-[#EFE9DF] dark:bg-[#231E19] rounded" />
+                    <div className="h-3 w-full bg-[#F5F0E7] dark:bg-[#1E1914] rounded" />
                   </div>
                 ))}
               </div>
             )}
 
             {!isLoadingPlaces && placesError && (
-              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+              <div className="p-4 rounded-xl bg-[#FAF3E6] dark:bg-[#261E14] border border-[#DFBE88] dark:border-[#6A4C25] text-xs text-[#6B4A1E] dark:text-[#EAD8B8] space-y-2">
                 <div className="flex items-start gap-2 font-semibold">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#96682E] dark:text-[#D4A76A]" />
                   <span>{placesError}</span>
                 </div>
                 <a
@@ -564,12 +564,12 @@ export const NeighborhoodGuide: React.FC = () => {
             )}
 
             {!isLoadingPlaces && !placesError && places.length === 0 && (
-              <div className="p-6 text-center text-xs text-stone-500 space-y-2">
+              <div className="p-6 text-center text-xs text-[#6B6258] dark:text-[#AFA699] space-y-2">
                 <p>No places returned for this filter within {(radiusMeters / 1000).toFixed(1)} km.</p>
                 <button
                   type="button"
                   onClick={() => setActiveCategory('all')}
-                  className="px-3 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 font-semibold text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg border border-[#E6DFD3] dark:border-[#342C24] font-semibold text-[#1A1714] dark:text-[#F4EFE6] hover:bg-[#EFE9DF] dark:hover:bg-[#231E19] cursor-pointer"
                 >
                   Show All Nearby Categories
                 </button>
@@ -588,12 +588,12 @@ export const NeighborhoodGuide: React.FC = () => {
                     onClick={() => handleSelectPlace(place)}
                     className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
                       isSelected
-                        ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-500 shadow-sm'
-                        : 'bg-white dark:bg-stone-900 border-stone-200 dark:border-stone-800 hover:border-amber-400'
+                        ? 'bg-[#FAF3E6] dark:bg-[#261E14] border-[#96682E] dark:border-[#C69553] shadow-sm'
+                        : 'bg-white dark:bg-[#171411] border-[#E6DFD3] dark:border-[#2A241E] hover:border-[#C69553]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="font-semibold text-xs text-stone-900 dark:text-stone-100 leading-snug">
+                      <div className="font-semibold text-xs text-[#1A1714] dark:text-[#F4EFE6] leading-snug">
                         {place.name}
                       </div>
                       <span
@@ -605,7 +605,7 @@ export const NeighborhoodGuide: React.FC = () => {
                     </div>
 
                     {(place.shortFormattedAddress || place.formattedAddress) && (
-                      <div className="text-[11px] text-stone-500 dark:text-stone-400 line-clamp-1">
+                      <div className="text-[11px] text-[#6B6258] dark:text-[#AFA699] line-clamp-1">
                         {place.shortFormattedAddress || place.formattedAddress}
                       </div>
                     )}
@@ -613,11 +613,11 @@ export const NeighborhoodGuide: React.FC = () => {
                     <div className="flex items-center justify-between gap-2 pt-0.5 text-[11px]">
                       <div className="flex items-center gap-2">
                         {typeof place.rating === 'number' && (
-                          <span className="inline-flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-400">
+                          <span className="inline-flex items-center gap-1 font-semibold text-[#96682E] dark:text-[#D4A76A]">
                             <Star className="w-3 h-3 fill-current" />
                             <span>{place.rating.toFixed(1)}</span>
                             {typeof place.userRatingCount === 'number' && (
-                              <span className="text-stone-400 font-normal">
+                              <span className="text-[#8E8477] font-normal">
                                 ({place.userRatingCount})
                               </span>
                             )}
@@ -643,7 +643,7 @@ export const NeighborhoodGuide: React.FC = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 font-semibold hover:underline"
+                          className="inline-flex items-center gap-1 text-[#96682E] dark:text-[#D4A76A] font-semibold hover:underline"
                         >
                           <span>Directions</span>
                           <ExternalLink className="w-3 h-3" />

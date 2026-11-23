@@ -33,7 +33,7 @@ const FLOOR_WING_HOTSPOTS: FloorWingHotspot[] = [
     wingLabel: 'West Terrace Wing',
     shortTitle: 'Executive Suites',
     roomType: 'executive-suite',
-    floorLevel: '3rd & Rooftop Level',
+    floorLevel: '3rd & 4th Suite Level',
     unitNumbers: ['302', '401'],
     xPercent: 20,
     yPercent: 48,
@@ -59,7 +59,7 @@ const FLOOR_WING_HOTSPOTS: FloorWingHotspot[] = [
     unitNumbers: ['201', '301'],
     xPercent: 79,
     yPercent: 29,
-    highlights: ['Carved Newari Woodwork', 'Work Desk & Wardrobe', 'Soundproof Glazing'],
+    highlights: ['Carved Nepali Woodwork', 'Work Desk & Wardrobe', 'Soundproof Glazing'],
   },
   {
     id: 'wing-standard',
@@ -305,7 +305,7 @@ export const InteractiveFloorPlanSelector: React.FC<InteractiveFloorPlanSelector
               <div className="pt-3 border-t border-stone-200 dark:border-stone-800 space-y-3">
                 <div className="flex items-baseline justify-between">
                   <div>
-                    <span className="text-2xl font-serif font-bold text-stone-900 dark:text-stone-50 tabular-nums">
+                    <span className="text-2xl font-sans font-semibold tracking-tight text-stone-900 dark:text-stone-50 tabular-nums">
                       {formatCurrency(effectivePrice, currentCurrency)}
                     </span>
                     <span className="text-xs text-stone-500"> / night</span>

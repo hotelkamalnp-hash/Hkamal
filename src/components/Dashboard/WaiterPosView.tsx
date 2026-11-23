@@ -57,11 +57,11 @@ export const WaiterPosView: React.FC = () => {
 
   const categories: ('All' | MenuItemCategory)[] = [
     'All',
-    'Nepali Heritage & Newari',
+    'Nepali Heritage & Cuisine',
     'Main Course',
     'Himalayan Specials',
     'Starters',
-    'Rooftop Bar & Beverages',
+    'Ground-Floor Bar & Beverages',
     'Desserts'
   ];
 
@@ -201,7 +201,7 @@ export const WaiterPosView: React.FC = () => {
                   : 'text-stone-600 dark:text-stone-400'
               }`}
             >
-              Rooftop & Courtyard Tables
+              Ground-Floor & Courtyard Tables
             </button>
             <button
               type="button"

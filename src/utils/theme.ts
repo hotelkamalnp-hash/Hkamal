@@ -4,88 +4,94 @@ export const getThemeClasses = (palette: ThemePalette) => {
   switch (palette) {
     case 'bright-himalayan-gold':
       return {
-        primary: 'bg-gradient-to-r from-amber-600 to-amber-700 text-white hover:from-amber-700 hover:to-amber-800 shadow-md shadow-amber-600/25',
-        primaryText: 'text-amber-800 dark:text-amber-300 font-bold',
-        accentBg: 'bg-amber-500 text-stone-950 font-semibold',
-        borderAccent: 'border-amber-400 dark:border-amber-600',
-        ringFocus: 'focus:ring-amber-500',
-        badge: 'text-amber-800 bg-amber-100 dark:bg-amber-950/70 dark:text-amber-300',
-        heroOverlay: 'from-stone-950/70 via-stone-950/30 to-amber-950/10',
-        heroKicker: 'text-amber-300 font-bold drop-shadow',
-        statCard: 'bg-amber-50/80 dark:bg-stone-900/90 border-amber-200/80 dark:border-amber-800/40 text-stone-900 dark:text-stone-100',
+        primary:
+          'bg-[#96682E] hover:bg-[#7D5522] dark:bg-[#C69553] dark:hover:bg-[#D4A76A] text-white dark:text-[#14110E] shadow-xs',
+        primaryText: 'text-[#8A5D25] dark:text-[#D4A76A] font-semibold',
+        accentBg: 'bg-[#C69553] text-[#14110E] font-semibold',
+        borderAccent: 'border-[#D6C3A8] dark:border-[#4A3B28]',
+        ringFocus: 'focus:ring-[#96682E] dark:focus:ring-[#C69553]',
+        badge: 'text-[#7D5522] bg-[#F3EAD9] dark:bg-[#2A2116] dark:text-[#DFBE88]',
+        heroOverlay: 'from-[#14110E]/85 via-[#14110E]/45 to-transparent',
+        heroKicker: 'text-[#DFBE88] font-semibold',
+        statCard:
+          'bg-[#FAF7F2] dark:bg-[#171411] border-[#E6DFD3] dark:border-[#2B241D] text-[#1A1714] dark:text-[#F4EFE6]',
       };
     case 'luminous-emerald':
       return {
-        primary: 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white hover:from-emerald-700 hover:to-teal-800 shadow-md shadow-emerald-600/25',
-        primaryText: 'text-emerald-700 dark:text-emerald-300 font-bold',
-        accentBg: 'bg-emerald-500 text-stone-950 font-semibold',
-        borderAccent: 'border-emerald-400 dark:border-emerald-600',
-        ringFocus: 'focus:ring-emerald-500',
-        badge: 'text-emerald-800 bg-emerald-100 dark:bg-emerald-950/70 dark:text-emerald-300',
-        heroOverlay: 'from-stone-950/70 via-stone-950/25 to-emerald-950/15',
-        heroKicker: 'text-emerald-300 font-bold drop-shadow',
-        statCard: 'bg-emerald-50/80 dark:bg-stone-900/90 border-emerald-200/80 dark:border-emerald-800/40 text-stone-900 dark:text-stone-100',
+        primary:
+          'bg-[#1D5B4C] hover:bg-[#16463A] dark:bg-[#3A8E77] dark:hover:bg-[#4AA38B] text-white dark:text-[#0F1412] shadow-xs',
+        primaryText: 'text-[#1D5B4C] dark:text-[#63B8A0] font-semibold',
+        accentBg: 'bg-[#3A8E77] text-white font-semibold',
+        borderAccent: 'border-[#BBD5CD] dark:border-[#24473D]',
+        ringFocus: 'focus:ring-[#1D5B4C]',
+        badge: 'text-[#1D5B4C] bg-[#E8F2EE] dark:bg-[#172B25] dark:text-[#7ACBB4]',
+        heroOverlay: 'from-[#0E1714]/85 via-[#0E1714]/45 to-transparent',
+        heroKicker: 'text-[#8AD2BD] font-semibold',
+        statCard:
+          'bg-[#F4F8F6] dark:bg-[#121917] border-[#DCE8E3] dark:border-[#23322D] text-[#141D1A] dark:text-[#ECF3F0]',
       };
     case 'radiant-terracotta':
       return {
-        primary: 'bg-gradient-to-r from-orange-600 to-amber-700 text-white hover:from-orange-700 hover:to-amber-800 shadow-md shadow-orange-600/25',
-        primaryText: 'text-orange-800 dark:text-orange-300 font-bold',
-        accentBg: 'bg-orange-500 text-white font-semibold',
-        borderAccent: 'border-orange-400 dark:border-orange-600',
-        ringFocus: 'focus:ring-orange-500',
-        badge: 'text-orange-800 bg-orange-100 dark:bg-orange-950/70 dark:text-orange-300',
-        heroOverlay: 'from-stone-950/70 via-stone-950/25 to-orange-950/15',
-        heroKicker: 'text-orange-300 font-bold drop-shadow',
-        statCard: 'bg-orange-50/80 dark:bg-stone-900/90 border-orange-200/80 dark:border-orange-800/40 text-stone-900 dark:text-stone-100',
+        primary:
+          'bg-[#9A4E32] hover:bg-[#7E3F27] dark:bg-[#CE7A58] dark:hover:bg-[#DC8D6D] text-white dark:text-[#18110E] shadow-xs',
+        primaryText: 'text-[#9A4E32] dark:text-[#DF8F70] font-semibold',
+        accentBg: 'bg-[#CE7A58] text-white font-semibold',
+        borderAccent: 'border-[#DFC2B6] dark:border-[#4F2D21]',
+        ringFocus: 'focus:ring-[#9A4E32]',
+        badge: 'text-[#843F26] bg-[#F7ECE7] dark:bg-[#2F1B14] dark:text-[#E7A38A]',
+        heroOverlay: 'from-[#18110E]/85 via-[#18110E]/45 to-transparent',
+        heroKicker: 'text-[#E7A38A] font-semibold',
+        statCard:
+          'bg-[#FAF6F4] dark:bg-[#1A1311] border-[#EAE0DB] dark:border-[#32241F] text-[#1D1512] dark:text-[#F5ECE8]',
       };
     case 'mountain-emerald':
       return {
-        primary: 'bg-emerald-800 text-white hover:bg-emerald-700 shadow-sm',
-        primaryText: 'text-emerald-900 dark:text-emerald-300',
-        accentBg: 'bg-emerald-700 text-white',
-        borderAccent: 'border-emerald-700',
-        ringFocus: 'focus:ring-emerald-700',
-        badge: 'text-emerald-800 dark:text-emerald-300',
-        heroOverlay: 'from-emerald-950/80 via-emerald-950/40 to-transparent',
-        heroKicker: 'text-emerald-300 font-semibold',
-        statCard: 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800',
+        primary: 'bg-[#1D5242] hover:bg-[#164134] text-white shadow-xs',
+        primaryText: 'text-[#1D5242] dark:text-[#6EC2A6]',
+        accentBg: 'bg-[#2A6F5A] text-white',
+        borderAccent: 'border-[#2A6F5A]',
+        ringFocus: 'focus:ring-[#1D5242]',
+        badge: 'text-[#1D5242] dark:text-[#6EC2A6]',
+        heroOverlay: 'from-[#0F1815]/85 via-[#0F1815]/45 to-transparent',
+        heroKicker: 'text-[#83D0B6] font-semibold',
+        statCard: 'bg-[#FAF7F2] dark:bg-[#161412] border-[#E6DFD3] dark:border-[#2A241E]',
       };
     case 'heritage-bronze':
       return {
-        primary: 'bg-amber-800 text-white hover:bg-amber-700 shadow-sm',
-        primaryText: 'text-amber-900 dark:text-amber-400',
-        accentBg: 'bg-amber-700 text-white',
-        borderAccent: 'border-amber-700',
-        ringFocus: 'focus:ring-amber-700',
-        badge: 'text-amber-800 dark:text-amber-400',
-        heroOverlay: 'from-stone-950/80 via-stone-950/40 to-transparent',
-        heroKicker: 'text-amber-300 font-semibold',
-        statCard: 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800',
+        primary: 'bg-[#855A2B] hover:bg-[#6E4922] text-white shadow-xs',
+        primaryText: 'text-[#855A2B] dark:text-[#D1A166]',
+        accentBg: 'bg-[#9E6E36] text-white',
+        borderAccent: 'border-[#855A2B]',
+        ringFocus: 'focus:ring-[#855A2B]',
+        badge: 'text-[#855A2B] dark:text-[#D1A166]',
+        heroOverlay: 'from-[#14110E]/85 via-[#14110E]/45 to-transparent',
+        heroKicker: 'text-[#DEC08F] font-semibold',
+        statCard: 'bg-[#FAF7F2] dark:bg-[#161412] border-[#E6DFD3] dark:border-[#2A241E]',
       };
     case 'midnight-navy':
       return {
-        primary: 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm',
-        primaryText: 'text-slate-900 dark:text-sky-400',
-        accentBg: 'bg-sky-800 text-white',
-        borderAccent: 'border-sky-800',
-        ringFocus: 'focus:ring-sky-700',
-        badge: 'text-sky-800 dark:text-sky-400',
-        heroOverlay: 'from-slate-950/85 via-slate-950/45 to-transparent',
-        heroKicker: 'text-sky-300 font-semibold',
-        statCard: 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800',
+        primary: 'bg-[#1D2D44] hover:bg-[#142032] text-white shadow-xs',
+        primaryText: 'text-[#1D2D44] dark:text-[#8FB3D9]',
+        accentBg: 'bg-[#2E476B] text-white',
+        borderAccent: 'border-[#2E476B]',
+        ringFocus: 'focus:ring-[#2E476B]',
+        badge: 'text-[#1D2D44] dark:text-[#8FB3D9]',
+        heroOverlay: 'from-[#0D131D]/88 via-[#0D131D]/50 to-transparent',
+        heroKicker: 'text-[#A8C6E6] font-semibold',
+        statCard: 'bg-[#F6F8FB] dark:bg-[#12161E] border-[#DCE2EC] dark:border-[#242C3A]',
       };
     case 'royal-maroon':
     default:
       return {
-        primary: 'bg-rose-900 text-white hover:bg-rose-800 shadow-sm',
-        primaryText: 'text-rose-900 dark:text-rose-300',
-        accentBg: 'bg-amber-600 text-white',
-        borderAccent: 'border-rose-900',
-        ringFocus: 'focus:ring-rose-800',
-        badge: 'text-rose-900 dark:text-rose-300',
-        heroOverlay: 'from-stone-950/80 via-stone-950/40 to-transparent',
-        heroKicker: 'text-amber-300 font-semibold',
-        statCard: 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800',
+        primary: 'bg-[#6F2330] hover:bg-[#591B26] text-white shadow-xs',
+        primaryText: 'text-[#6F2330] dark:text-[#DC8E9A]',
+        accentBg: 'bg-[#96682E] text-white',
+        borderAccent: 'border-[#6F2330]',
+        ringFocus: 'focus:ring-[#6F2330]',
+        badge: 'text-[#6F2330] dark:text-[#DC8E9A]',
+        heroOverlay: 'from-[#161011]/85 via-[#161011]/45 to-transparent',
+        heroKicker: 'text-[#DFBE88] font-semibold',
+        statCard: 'bg-[#FAF7F2] dark:bg-[#161412] border-[#E6DFD3] dark:border-[#2A241E]',
       };
   }
 };

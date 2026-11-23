@@ -146,7 +146,7 @@ export const ServiceRequestsQueuePanel: React.FC = () => {
             <span>Open Service Requests</span>
             <BellRing className="w-4 h-4 text-rose-500" />
           </div>
-          <div className="mt-1.5 text-2xl font-serif font-bold text-stone-900 dark:text-stone-50 tabular-nums">
+          <div className="mt-1.5 text-2xl font-sans font-semibold tracking-tight text-stone-900 dark:text-stone-50 tabular-nums">
             {activeFoodOrders.length + activeAmenityRequests.length}
           </div>
           <div className="text-[11px] text-stone-400 mt-0.5">
@@ -159,7 +159,7 @@ export const ServiceRequestsQueuePanel: React.FC = () => {
             <span>Active Dining / Food Orders</span>
             <Utensils className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
-          <div className="mt-1.5 text-2xl font-serif font-bold text-stone-900 dark:text-stone-50 tabular-nums">
+          <div className="mt-1.5 text-2xl font-sans font-semibold tracking-tight text-stone-900 dark:text-stone-50 tabular-nums">
             {activeFoodOrders.length}
           </div>
           <div className="text-[11px] text-stone-400 mt-0.5">
@@ -172,7 +172,7 @@ export const ServiceRequestsQueuePanel: React.FC = () => {
             <span>Pending Room Amenities</span>
             <ConciergeBell className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
-          <div className="mt-1.5 text-2xl font-serif font-bold text-stone-900 dark:text-stone-50 tabular-nums">
+          <div className="mt-1.5 text-2xl font-sans font-semibold tracking-tight text-stone-900 dark:text-stone-50 tabular-nums">
             {activeAmenityRequests.length}
           </div>
           <div className="text-[11px] text-stone-400 mt-0.5">
@@ -185,7 +185,7 @@ export const ServiceRequestsQueuePanel: React.FC = () => {
             <span>Fulfilled Requests</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="mt-1.5 text-2xl font-serif font-bold text-stone-900 dark:text-stone-50 tabular-nums">
+          <div className="mt-1.5 text-2xl font-sans font-semibold tracking-tight text-stone-900 dark:text-stone-50 tabular-nums">
             {completedTodayCount}
           </div>
           <div className="text-[11px] text-stone-400 mt-0.5">
@@ -272,12 +272,12 @@ export const ServiceRequestsQueuePanel: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Food & Rooftop Dining Orders */}
+            {/* Food & Ground-Floor Dining Orders */}
             {filteredFoodOrders.length > 0 && (
               <div className="space-y-3">
                 <div className="text-xs font-mono font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1.5">
                   <Utensils className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Food &amp; Rooftop Dining Orders ({filteredFoodOrders.length})</span>
+                  <span>Food &amp; Ground-Floor Dining Orders ({filteredFoodOrders.length})</span>
                 </div>
 
                 <div className="divide-y divide-stone-200 dark:divide-stone-800 border border-stone-200 dark:border-stone-800 rounded-xl px-4">
@@ -312,7 +312,7 @@ export const ServiceRequestsQueuePanel: React.FC = () => {
                             <span className="text-stone-600 dark:text-stone-300">{ord.guestName}</span>
                             <span className="text-stone-300 dark:text-stone-700">·</span>
                             <span className="text-stone-500 dark:text-stone-400 capitalize">
-                              {ord.destination === 'room' ? 'In-Room Digital Menu' : 'Rooftop Dining'}
+                              {ord.destination === 'room' ? 'In-Room Digital Menu' : 'Ground-Floor Dining'}
                             </span>
                             <span className="text-stone-300 dark:text-stone-700">·</span>
                             <span className={`font-semibold uppercase tracking-wide text-[11px] ${statusInfo.cls}`}>

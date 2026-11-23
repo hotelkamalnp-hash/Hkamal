@@ -54,8 +54,8 @@ const DEFAULT_KATHMANDU_WEATHER: KathmanduWeatherData = {
   windSpeedKmH: 8,
   visibilityKm: 10,
   mountainVisibility: 'excellent',
-  mountainNote: 'Clear Mountain Horizon · Langtang & Ganesh Himal Peaks Visible from Rooftop',
-  packingTip: 'Crisp sunny afternoons with cool Himalayan breeze. Perfect for rooftop dining; light shawl or jacket recommended after 6:00 PM.',
+  mountainNote: 'Clear Mountain Horizon · Langtang & Ganesh Himal Peaks in View across Kathmandu',
+  packingTip: 'Crisp sunny afternoons with cool Himalayan breeze. Ideal for ground-floor courtyard dining; light shawl or jacket recommended after 6:00 PM.',
   forecast: [
     { day: 'Today', condition: 'Sunny', highC: 24, lowC: 13, highF: 75, lowF: 55, icon: 'sun' },
     { day: 'Tomorrow', condition: 'Clear', highC: 23, lowC: 12, highF: 73, lowF: 54, icon: 'sun' },
@@ -146,12 +146,12 @@ export const KathmanduWeatherWidget: React.FC<{
         const code = current.weather_code || 0;
         let condText = 'Sunny & Clear';
         let mountainVis: 'excellent' | 'good' | 'hazy' = 'excellent';
-        let mountainNote = 'Langtang & Ganesh Himal Peaks Visible from Rooftop';
+        let mountainNote = 'Langtang & Ganesh Himal Peaks Clear Across the Valley';
 
         if (code === 0) {
           condText = 'Crisp Sunlit Himalayan Sky';
           mountainVis = 'excellent';
-          mountainNote = 'Magnificent 360° Mountain Clarity from Kamal Hotel Rooftop';
+          mountainNote = 'Clear 360° Himalayan Valley Clarity around Kamalpokhari';
         } else if (code <= 3) {
           condText = 'Partly Sunlit & Mild Breeze';
           mountainVis = 'good';
@@ -204,7 +204,7 @@ export const KathmanduWeatherWidget: React.FC<{
           mountainVisibility: mountainVis,
           mountainNote,
           packingTip: tempC > 20 
-            ? 'Warm sunlit day. Comfortable cottons for Kathmandu city walks; light sweater for rooftop dining.' 
+            ? 'Warm sunlit day. Comfortable cottons for Kathmandu city walks; light sweater for evening courtyard dining.' 
             : 'Pleasant cool climate. Bring a cozy layer or fleece for evening mountain breezes.',
           forecast: forecastList.length ? forecastList : DEFAULT_KATHMANDU_WEATHER.forecast,
           updatedAt: 'Live Open-Meteo',
@@ -257,41 +257,34 @@ export const KathmanduWeatherWidget: React.FC<{
     <>
       {isMinimal ? (
         <div
-          className={`w-full rounded-xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 px-4 py-2.5 text-xs text-stone-600 dark:text-stone-300 flex flex-wrap items-center justify-between gap-3 ${className}`}
+          className={`w-full text-xs text-[#6B6258] dark:text-[#A69C8F] flex flex-wrap items-center gap-x-2.5 gap-y-1.5 ${className}`}
         >
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="inline-flex items-center gap-1.5 font-medium text-stone-900 dark:text-stone-100">
-              <Sun className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              <span>Kathmandu</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => setUnit(unit === 'C' ? 'F' : 'C')}
-              className="font-semibold text-stone-900 dark:text-stone-100 hover:text-amber-700 dark:hover:text-amber-400 transition-colors cursor-pointer tabular-nums"
-              title="Toggle °C / °F"
-            >
-              {currentTemp}
-            </button>
-            <span className="text-stone-300 dark:text-stone-700" aria-hidden="true">·</span>
-            <span>{weather.condition}</span>
-            <span className="hidden lg:inline text-stone-300 dark:text-stone-700" aria-hidden="true">·</span>
-            <span className="hidden lg:inline text-stone-500 dark:text-stone-400 truncate max-w-md">
-              {weather.mountainNote}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 ml-auto text-xs">
-            <span className="text-stone-500 dark:text-stone-400 tabular-nums">
-              {kathmanduTime || '5:45 PM'} NPT
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsDetailModalOpen(true)}
-              className="font-medium text-amber-800 dark:text-amber-400 hover:underline cursor-pointer whitespace-nowrap"
-            >
-              Forecast
-            </button>
-          </div>
+          <span className="inline-flex items-center gap-1.5 font-medium text-[#1A1714] dark:text-[#F4EFE6] whitespace-nowrap">
+            <Sun className="w-3.5 h-3.5 text-[#96682E] dark:text-[#D4A76A] shrink-0" />
+            <span>Kathmandu</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setUnit(unit === 'C' ? 'F' : 'C')}
+            className="font-semibold text-[#1A1714] dark:text-[#F4EFE6] hover:text-[#96682E] dark:hover:text-[#D4A76A] transition-colors cursor-pointer tabular-nums whitespace-nowrap"
+            title="Toggle °C / °F"
+          >
+            {currentTemp}
+          </button>
+          <span className="text-[#D4C9B8] dark:text-[#3A3229]" aria-hidden="true">·</span>
+          <span className="whitespace-nowrap">{weather.condition}</span>
+          <span className="text-[#D4C9B8] dark:text-[#3A3229]" aria-hidden="true">·</span>
+          <span className="text-[#6B6258] dark:text-[#A69C8F] tabular-nums whitespace-nowrap">
+            {kathmanduTime || '5:45 PM'} NPT
+          </span>
+          <span className="text-[#D4C9B8] dark:text-[#3A3229]" aria-hidden="true">·</span>
+          <button
+            type="button"
+            onClick={() => setIsDetailModalOpen(true)}
+            className="font-semibold text-[#8A5D25] dark:text-[#D4A76A] hover:underline underline-offset-4 cursor-pointer whitespace-nowrap shrink-0"
+          >
+            Forecast
+          </button>
         </div>
       ) : (
       <div

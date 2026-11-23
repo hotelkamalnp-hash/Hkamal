@@ -156,7 +156,7 @@ export const CouponManager: React.FC = () => {
               Coupons, Vouchers & Guest Promotional Codes
             </h2>
             <p className="text-xs text-stone-500 mt-0.5">
-              Create and manage promotional discount vouchers for room bookings, rooftop dining, and boutique guest services.
+              Create and manage promotional discount vouchers for room bookings, ground-floor dining, and boutique guest services.
             </p>
           </div>
 
@@ -173,14 +173,14 @@ export const CouponManager: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-stone-100 dark:border-stone-800">
           <div className="p-3.5 bg-stone-50 dark:bg-stone-800/50 rounded-lg border border-stone-200 dark:border-stone-700">
             <div className="text-[11px] font-medium text-stone-500 uppercase font-mono">Active Campaigns</div>
-            <div className="text-xl font-bold font-serif text-stone-900 dark:text-stone-100 mt-1">
+            <div className="text-xl font-semibold tracking-tight font-sans tabular-nums text-stone-900 dark:text-stone-100 mt-1">
               {activeCount} <span className="text-xs font-sans font-normal text-stone-400">/ {coupons.length}</span>
             </div>
           </div>
 
           <div className="p-3.5 bg-stone-50 dark:bg-stone-800/50 rounded-lg border border-stone-200 dark:border-stone-700">
             <div className="text-[11px] font-medium text-stone-500 uppercase font-mono">Total Redemptions</div>
-            <div className="text-xl font-bold font-serif text-emerald-700 dark:text-emerald-400 mt-1">
+            <div className="text-xl font-semibold tracking-tight font-sans tabular-nums text-emerald-700 dark:text-emerald-400 mt-1">
               {totalRedemptions} <span className="text-xs font-sans font-normal text-stone-400">times</span>
             </div>
           </div>
@@ -208,7 +208,7 @@ export const CouponManager: React.FC = () => {
           {[
             { id: 'all', label: 'All Services' },
             { id: 'rooms', label: 'Rooms Only' },
-            { id: 'dining', label: 'Rooftop Dining' },
+            { id: 'dining', label: 'Ground-Floor Dining' },
             { id: 'services', label: 'Spa & Services' },
           ].map((f) => (
             <button
@@ -279,7 +279,7 @@ export const CouponManager: React.FC = () => {
 
                 {/* Discount Value */}
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-serif font-bold text-stone-900 dark:text-stone-50">
+                  <span className="text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-50">
                     {coupon.discountType === 'percentage'
                       ? `${coupon.discountValue}% OFF`
                       : `${formatCurrency(convertPrice(coupon.discountValue, currentCurrency, themeConfig.exchangeRates), currentCurrency)} OFF`}
@@ -394,7 +394,7 @@ export const CouponManager: React.FC = () => {
                   >
                     <option value="all">All Services (Rooms & Dining)</option>
                     <option value="rooms">Rooms & Suites Only</option>
-                    <option value="dining">Rooftop Dining Only</option>
+                    <option value="dining">Ground-Floor Dining Only</option>
                     <option value="services">Spa & Wellness Services</option>
                   </select>
                 </div>

@@ -8,3 +8,10 @@ coverage/
 *.log
 .env*
 !.env.example
+.kamal-smtp-secrets.enc.json
+.kamal-staff-auth.json
+.kamal-pms.db*
+playwright-report/
+test-results/
+blobs/
+backups/

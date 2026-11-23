@@ -114,6 +114,93 @@ export const MediaGalleryManager: React.FC = () => {
     setHeroPositionDraft(themeConfig.heroImagePosition || 'center');
   }, [themeConfig.heroImage, themeConfig.heroLayoutMode, themeConfig.heroBackgroundFit, themeConfig.heroImagePosition]);
 
+  const [storageUploading, setStorageUploading] = useState<boolean>(false);
+
+  const uploadMediaFile = async (
+    file: File,
+    category: 'hero' | 'rooftop' | 'room' | 'general'
+  ): Promise<string | null> => {
+    setStorageUploading(true);
+    try {
+      // 1. Direct upload via base64 to server (Supabase Storage bucket hotel-media / local disk)
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+
+      const uploadRes = await fetch('/api/media/upload-direct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type || 'image/jpeg',
+          base64Data,
+          category,
+        }),
+      });
+
+      const uploadData = await uploadRes.json().catch(() => ({}));
+      if (uploadRes.ok && uploadData?.ok && uploadData?.publicUrl) {
+        const providerName =
+          uploadData.provider === 'supabase'
+            ? 'Supabase Storage'
+            : uploadData.provider === 'r2'
+            ? 'Cloudflare R2'
+            : 'Local Storage';
+        showToast(`Uploaded to ${providerName}`, 'Image stored safely in cloud storage. Click Save to apply.', 'success');
+        return uploadData.publicUrl;
+      }
+
+      // 2. Fallback to presigned URL if direct upload returned error
+      const presignRes = await fetch('/api/media/presign-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type || 'image/jpeg',
+          sizeBytes: file.size,
+          category,
+        }),
+      });
+      const presignData = await presignRes.json().catch(() => ({}));
+      if (presignRes.ok && presignData?.ok && presignData?.uploadUrl && presignData.uploadUrl !== '/api/media/upload-direct') {
+        const putRes = await fetch(presignData.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'application/octet-stream' },
+          body: file,
+        });
+        if (putRes.ok) {
+          showToast('Uploaded to Cloud Storage', 'Object uploaded successfully.', 'success');
+          return presignData.publicUrl || presignData.objectKey;
+        }
+      }
+
+      showToast(
+        'Upload Notice',
+        uploadData?.error || 'Could not upload to cloud storage. Using compressed data URL.',
+        'warning'
+      );
+      return null;
+    } catch (err: any) {
+      showToast('Upload Error', err?.message || 'Unable to upload file to media storage.', 'error');
+      return null;
+    } finally {
+      setStorageUploading(false);
+    }
+  };
+
+  const handleUploadHeroStorage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const url = await uploadMediaFile(file, 'hero');
+    if (url) setHeroInput(url);
+  };
+
   const handleUploadHeroFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -327,9 +414,21 @@ export const MediaGalleryManager: React.FC = () => {
                 <span>{hasUnsavedHeroMedia ? 'Save & Update Hero Live' : 'Saved Live'}</span>
               </button>
 
+              <label className="px-3.5 py-2.5 rounded-lg text-xs font-semibold border border-sky-600/40 text-sky-800 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition flex items-center gap-1.5 cursor-pointer">
+                <Upload className="w-3.5 h-3.5" />
+                <span>{storageUploading ? 'Uploading to Storage...' : 'Upload to Cloud / Supabase'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={storageUploading}
+                  onChange={handleUploadHeroStorage}
+                  className="sr-only"
+                />
+              </label>
+
               <label className="px-3.5 py-2.5 rounded-lg text-xs font-semibold border border-amber-600/40 text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition flex items-center gap-1.5 cursor-pointer">
                 <Upload className="w-3.5 h-3.5" />
-                <span>Upload Photo</span>
+                <span>Local Compress</span>
                 <input
                   type="file"
                   accept="image/*"
