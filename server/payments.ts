@@ -950,13 +950,22 @@ export function buildPaymentReconciliationReport() {
     })
     .filter((row) => Math.abs(row.varianceUSD) > 0.05 || row.balanceDueUSD > 0.01);
 
+  const pendingTotalUSD = pendingInitiated.reduce((acc, t) => acc + Number(t.amountUSD || 0), 0);
+  const netSettled = Math.round((completedTotalUSD - refundedTotalUSD) * 100) / 100;
+  const roundedRefunded = Math.round(refundedTotalUSD * 100) / 100;
+
   return {
     generatedAt: new Date().toISOString(),
     totalTransactions: transactions.length,
     completedTotalUSD: Math.round(completedTotalUSD * 100) / 100,
-    refundedTotalUSD: Math.round(refundedTotalUSD * 100) / 100,
-    netSettledUSD: Math.round((completedTotalUSD - refundedTotalUSD) * 100) / 100,
+    refundedTotalUSD: roundedRefunded,
+    netSettledUSD: netSettled,
     pendingGatewayCount: pendingInitiated.length,
+    // Compatibility aliases for AccountingFinancialReports
+    totalSettledUSD: netSettled,
+    totalPendingUSD: Math.round(pendingTotalUSD * 100) / 100,
+    totalRefundedUSD: roundedRefunded,
+    unmatchedInvoicesCount: invoiceDiscrepancies.length,
     byGateway: transactions.reduce<Record<string, { count: number; totalUSD: number }>>((acc, t) => {
       if (!acc[t.gateway]) acc[t.gateway] = { count: 0, totalUSD: 0 };
       acc[t.gateway].count += 1;

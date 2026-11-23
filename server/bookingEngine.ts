@@ -125,6 +125,25 @@ export function convertUsdToCurrency(
   return roundMoney(usdAmount * rate, currency);
 }
 
+export function syncRoomCatalogCountsOnServer(): void {
+  const units = listCollection<RoomOperationalUnit>('roomUnits');
+  const rooms = listCollection<Room>('rooms');
+  if (rooms.length === 0) return;
+
+  for (const room of rooms) {
+    const matchingUnits = units.filter((u) => u.roomType === room.type);
+    if (matchingUnits.length > 0) {
+      const totalUnits = matchingUnits.length;
+      const availableUnits = matchingUnits.filter(
+        (u) => u.occupancyStatus === 'vacant' && u.cleanStatus !== 'out_of_order'
+      ).length;
+      if (room.totalUnits !== totalUnits || room.availableUnits !== availableUnits) {
+        upsertCollectionItem('rooms', room.id, { ...room, totalUnits, availableUnits });
+      }
+    }
+  }
+}
+
 export function getAvailableUnitsForDateRange(
   roomType: RoomType,
   checkInDate: string,
@@ -502,6 +521,7 @@ export function createBookingTransactional(
       checkOutDate: chosenUnit.checkOutDate || booking.checkOutDate,
     };
     upsertCollectionItem('roomUnits', chosenUnit.id, updatedUnit);
+    syncRoomCatalogCountsOnServer();
 
     // Increment coupon usage atomically if applied
     if (quote.appliedCouponCode) {
@@ -716,6 +736,8 @@ export function transitionBookingStatus(
       }
     }
 
+    syncRoomCatalogCountsOnServer();
+
     upsertCollectionItem('auditLogs', `log-${crypto.randomUUID().slice(0, 8)}`, {
       id: `log-${crypto.randomUUID().slice(0, 8)}`,
       timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
@@ -796,6 +818,7 @@ export function assignBookingRoomNumber(
       assignedFloor: targetUnit.floor,
     };
     upsertCollectionItem('bookings', existing.id, updatedBooking);
+    syncRoomCatalogCountsOnServer();
 
     upsertCollectionItem('auditLogs', `log-${crypto.randomUUID().slice(0, 8)}`, {
       id: `log-${crypto.randomUUID().slice(0, 8)}`,

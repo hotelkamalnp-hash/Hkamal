@@ -157,23 +157,70 @@ export function buildRealFinancialReport(params: {
     }
   }
 
+  const paidInvoicesCount = invoices.filter((i) => i.paymentStatus === 'paid').length;
+  const pendingInvoicesCount = invoices.filter((i) => i.paymentStatus !== 'paid').length;
+
+  const onsiteCashTxnsUSD = verifiedTxns
+    .filter((t) => t.gateway === 'onsite')
+    .reduce((acc, t) => acc + Number(t.amountUSD || 0), 0);
+  const expectedCashDrawerUSD = Math.round(
+    (onsiteCashTxnsUSD > 0
+      ? onsiteCashTxnsUSD
+      : invoices
+          .filter((i) => i.paymentMethod === 'onsite')
+          .reduce((acc, i) => acc + Number(i.amountPaidUSD || 0), 0)) * 100
+  ) / 100;
+
+  const roundedRoomUSD = Math.round(roomRevenueUSD * 100) / 100;
+  const roundedAncillaryUSD = Math.round(ancillaryServicesUSD * 100) / 100;
+  const roundedDiscountsUSD = Math.round(discountsTotalUSD * 100) / 100;
+  const roundedSCUSD = Math.round(serviceChargeTotalUSD * 100) / 100;
+  const roundedVatUSD = Math.round(vatTaxTotalUSD * 100) / 100;
+  const roundedCollectedUSD = Math.round((cashCollectedOnFoliosUSD + standalonePosRevenueUSD) * 100) / 100;
+  const roundedReceivableUSD = Math.round(outstandingReceivablesUSD * 100) / 100;
+  const irdSubmittedCount = irdLogs.filter((l) => l.status === 'submitted').length;
+  const dateLabel =
+    range === 'all'
+      ? 'All-Time Cumulative Ledger'
+      : `${range.toUpperCase()} (${windowBounds.start} -> ${windowBounds.end === '2099-12-31' ? new Date().toISOString().slice(0, 10) : windowBounds.end})`;
+
   return {
     generatedAt: new Date().toISOString(),
     range,
     window: windowBounds,
+    dateLabel,
+    startDate: windowBounds.start,
+    endDate: windowBounds.end === '2099-12-31' ? new Date().toISOString().slice(0, 10) : windowBounds.end,
     invoiceCount: invoices.length,
     expenseCount: expenses.length,
     orderCount: orders.length,
+    // Compatibility flat fields for NightAuditManager & AccountingFinancialReports
+    roomStayRevenueUSD: roundedRoomUSD,
+    restaurantRevenueUSD: fAndBRevenueUSD,
+    servicesRevenueUSD: roundedAncillaryUSD,
+    totalGrossRevenueUSD,
+    discountsGivenUSD: roundedDiscountsUSD,
+    serviceChargeCollectedUSD: roundedSCUSD,
+    taxCollectedUSD: roundedVatUSD,
+    expensesUSD: opexExpensesUSD,
+    netOperatingIncomeUSD: netProfitUSD,
+    totalInvoicesCount: invoices.length,
+    paidInvoicesCount,
+    pendingInvoicesCount,
+    amountCollectedUSD: roundedCollectedUSD,
+    balanceReceivableUSD: roundedReceivableUSD,
+    expectedCashDrawerUSD,
+    irdSubmittedCount,
     metrics: {
-      roomRevenueUSD: Math.round(roomRevenueUSD * 100) / 100,
+      roomRevenueUSD: roundedRoomUSD,
       fAndBRevenueUSD,
-      ancillaryServicesUSD: Math.round(ancillaryServicesUSD * 100) / 100,
-      discountsTotalUSD: Math.round(discountsTotalUSD * 100) / 100,
-      serviceChargeTotalUSD: Math.round(serviceChargeTotalUSD * 100) / 100,
-      vatTaxTotalUSD: Math.round(vatTaxTotalUSD * 100) / 100,
+      ancillaryServicesUSD: roundedAncillaryUSD,
+      discountsTotalUSD: roundedDiscountsUSD,
+      serviceChargeTotalUSD: roundedSCUSD,
+      vatTaxTotalUSD: roundedVatUSD,
       grossRevenueUSD: totalGrossRevenueUSD,
-      collectedRevenueUSD: Math.round((cashCollectedOnFoliosUSD + standalonePosRevenueUSD) * 100) / 100,
-      outstandingReceivablesUSD: Math.round(outstandingReceivablesUSD * 100) / 100,
+      collectedRevenueUSD: roundedCollectedUSD,
+      outstandingReceivablesUSD: roundedReceivableUSD,
       opexExpensesUSD,
       netProfitUSD,
       profitMarginPercent:
@@ -260,11 +307,15 @@ export function executeNightAudit(params: {
     const totalRoomsSold = Math.max(occupiedUnits.length, activeCheckInBookings.length);
     const occupancyPercentage = Math.round((totalRoomsSold / totalRoomsAvailable) * 100);
 
+    const theme = getKvSetting<any>('themeConfig', {});
+    const nprRate = Number(theme?.exchangeRates?.NPR || 135);
+    const inrRate = Number(theme?.exchangeRates?.INR || 84.5);
+
     // Real DB room revenue from night stay rates of active checked-in/occupied rooms + invoices issued today
     const roomRevenueUSD = Math.round(
       activeCheckInBookings.reduce((acc, b) => {
         const nightly = b.nights > 0 ? b.subtotal / b.nights : b.subtotal;
-        return acc + (b.currency === 'NPR' ? nightly / 135 : b.currency === 'INR' ? nightly / 84.5 : nightly);
+        return acc + (b.currency === 'NPR' ? nightly / nprRate : b.currency === 'INR' ? nightly / inrRate : nightly);
       }, 0) * 100
     ) / 100;
 
@@ -402,12 +453,17 @@ export async function submitInvoiceToNepalIrdCbms(params: {
   };
 
   const nowIso = new Date().toISOString();
-  const log: IrdCbmsLogRecord = {
+  const log: IrdCbmsLogRecord & {
+    totalWithVatNPR?: number;
+    irdReceiptRef?: string;
+    errorMessage?: string;
+  } = {
     id: `ird-${crypto.randomUUID().slice(0, 8)}`,
     invoiceId: invoice.id,
     invoiceNumber: invoice.invoiceNumber,
     fiscalYear,
     payload,
+    totalWithVatNPR: totalSalesNpr,
     status: 'queued',
     attempts: 1,
     createdAt: nowIso,
@@ -415,8 +471,9 @@ export async function submitInvoiceToNepalIrdCbms(params: {
 
   if (!endpoint || !username || !password || !sellerPan) {
     log.status = 'pending_credentials';
-    log.responseBody =
+    log.errorMessage =
       'IRD CBMS credentials (IRD_CBMS_ENDPOINT, IRD_CBMS_USERNAME, IRD_CBMS_PASSWORD) not configured; payload staged.';
+    log.responseBody = log.errorMessage;
     upsertCollectionItem('irdCbmsLogs', log.id, log);
     return {
       ok: false,
@@ -440,6 +497,7 @@ export async function submitInvoiceToNepalIrdCbms(params: {
     if (resp.ok) {
       log.status = 'submitted';
       log.submittedAt = nowIso;
+      log.irdReceiptRef = log.id;
       upsertCollectionItem('invoices', invoice.id, {
         ...invoice,
         irdSynced: true,
@@ -447,6 +505,7 @@ export async function submitInvoiceToNepalIrdCbms(params: {
       } as any);
     } else {
       log.status = 'failed';
+      log.errorMessage = `IRD HTTP ${resp.status}: ${text.slice(0, 200)}`;
     }
     upsertCollectionItem('irdCbmsLogs', log.id, log);
     return resp.ok

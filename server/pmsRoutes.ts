@@ -827,8 +827,14 @@ export function registerPmsRoutes(app: Express): void {
       };
     });
     subtotalUSD = Math.round(subtotalUSD * 100) / 100;
-    const serviceChargeUSD = Math.round(subtotalUSD * 0.1 * 100) / 100;
-    const taxUSD = Math.round((subtotalUSD + serviceChargeUSD) * 0.13 * 100) / 100;
+    const billSettings = getKvSetting<BillSettings>('billSettings', {
+      serviceChargePercent: 10,
+      taxPercent: 13,
+    } as BillSettings);
+    const scPct = Number(billSettings.serviceChargePercent ?? 10);
+    const taxPct = Number(billSettings.taxPercent ?? 13);
+    const serviceChargeUSD = Math.round(((subtotalUSD * scPct) / 100) * 100) / 100;
+    const taxUSD = Math.round((((subtotalUSD + serviceChargeUSD) * taxPct) / 100) * 100) / 100;
     const totalAmountUSD = Math.round((subtotalUSD + serviceChargeUSD + taxUSD) * 100) / 100;
 
     const order: RestaurantOrder = {
@@ -849,8 +855,54 @@ export function registerPmsRoutes(app: Express): void {
       createdAt: new Date().toISOString(),
     };
     upsertCollectionItem('restaurantOrders', order.id, order);
+
+    // Sync guest room order onto active MasterInvoice so Front Desk & Guest Folio match
+    const normalizeRm = (v?: string) => String(v || '').toLowerCase().replace(/^room\s+/i, '').trim();
+    const targetRm = normalizeRm(session.roomNumber);
+    const allInvoices = listCollection<MasterInvoice>('invoices');
+    const matchedInv =
+      allInvoices.find((i) => i.bookingCode === session.bookingCode) ||
+      allInvoices.find((i) => normalizeRm(i.roomNumber) === targetRm && i.paymentStatus !== 'refunded');
+
+    let updatedInvoice: MasterInvoice | undefined;
+    if (matchedInv) {
+      const diningLine = {
+        id: `li-ord-${order.id}`,
+        description: `Room Service KOT #${order.orderNumber} (${pricedItems.map((i: any) => `${i.quantity}x ${i.name}`).join(', ')})`,
+        category: 'restaurant_dining' as const,
+        date: new Date().toISOString().slice(0, 10),
+        quantity: 1,
+        rateUSD: subtotalUSD,
+        amountUSD: subtotalUSD,
+      };
+      const nextItems = [...(matchedInv.items || []), diningLine];
+      const nextSubtotal = Math.round(nextItems.reduce((acc, it) => acc + Number(it.amountUSD || 0), 0) * 100) / 100;
+      const discAmount = Math.round(((nextSubtotal * (matchedInv.discountPercent || 0)) / 100) * 100) / 100;
+      const discountedSub = Math.max(0, nextSubtotal - discAmount);
+      const nextScPct = matchedInv.serviceChargePercent ?? scPct;
+      const nextTaxPct = matchedInv.taxPercent ?? taxPct;
+      const scAmount = Math.round(((discountedSub * nextScPct) / 100) * 100) / 100;
+      const vatBase = discountedSub + scAmount;
+      const taxAmount = Math.round(((vatBase * nextTaxPct) / 100) * 100) / 100;
+      const grandTotal = Math.round((vatBase + taxAmount) * 100) / 100;
+      const balanceDue = Math.max(0, Math.round((grandTotal - (matchedInv.amountPaidUSD || 0)) * 100) / 100);
+      updatedInvoice = {
+        ...matchedInv,
+        items: nextItems,
+        subtotalUSD: nextSubtotal,
+        discountAmountUSD: discAmount,
+        serviceChargeAmountUSD: scAmount,
+        taxAmountUSD: taxAmount,
+        grandTotalUSD: grandTotal,
+        balanceDueUSD: balanceDue,
+        paymentStatus: balanceDue <= 0.01 ? 'paid' : 'pending',
+      };
+      upsertCollectionItem('invoices', updatedInvoice.id, updatedInvoice);
+      broadcastRealtimeEvent('invoice:updated', { invoice: updatedInvoice }, 'staff');
+    }
+
     broadcastRealtimeEvent('order:created', order, 'staff');
-    return res.status(201).json({ ok: true, order });
+    return res.status(201).json({ ok: true, order, invoice: updatedInvoice });
   });
 
   app.post('/api/guest/csr-chat', guestAuthRateLimiter, (req, res) => {

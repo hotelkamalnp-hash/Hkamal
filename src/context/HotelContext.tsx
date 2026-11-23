@@ -933,7 +933,7 @@ interface HotelContextType {
   setActiveRole: (role: StaffRole | 'guest') => void;
   openBookingModal: (room?: Room) => void;
   closeBookingModal: () => void;
-  createBooking: (bookingData: Omit<Booking, 'id' | 'bookingCode' | 'createdAt' | 'smsSent' | 'emailSent' | 'whatsappSent'>) => Booking;
+  createBooking: (bookingData: Omit<Booking, 'id' | 'bookingCode' | 'createdAt' | 'smsSent' | 'emailSent' | 'whatsappSent'> & { advanceDepositUSD?: number }) => Booking;
   applyServerCreatedBooking: (payload: {
     booking: Booking;
     invoice?: MasterInvoice | null;
@@ -2609,12 +2609,36 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const unreadChatMessagesCount = guestChatMessages.filter((m) => m.sender === 'guest').length;
 
+  const syncRoomCatalogFromUnits = (nextUnits: RoomOperationalUnit[]) => {
+    setRooms((prevRooms) =>
+      prevRooms.map((r) => {
+        const unitsForType = nextUnits.filter((u) => u.roomType === r.type);
+        if (unitsForType.length === 0) return r;
+        const nextTotal = unitsForType.length;
+        const nextAvail = unitsForType.filter(
+          (u) => u.occupancyStatus === 'vacant' && u.cleanStatus !== 'out_of_order'
+        ).length;
+        if (r.totalUnits === nextTotal && r.availableUnits === nextAvail) return r;
+        const updated = { ...r, totalUnits: nextTotal, availableUnits: nextAvail };
+        persistCollectionItem('rooms', updated.id, updated);
+        return updated;
+      })
+    );
+  };
+
   // ----------------- PHYSICAL ROOM ASSIGNMENT -----------------
   const getAvailableRoomsForType = (roomType: RoomType, excludeBookingId?: string): RoomOperationalUnit[] => {
+    const excludedBooking = excludeBookingId
+      ? bookings.find((b) => b.id === excludeBookingId || b.bookingCode === excludeBookingId)
+      : undefined;
     return roomUnits.filter((u) => {
-      const isMatching = u.roomType === roomType;
-      const isVacantOrCurrent = u.occupancyStatus === 'vacant' || (excludeBookingId && u.currentBookingCode === excludeBookingId);
-      return isMatching && isVacantOrCurrent;
+      if (u.roomType !== roomType || u.cleanStatus === 'out_of_order') return false;
+      const isVacant = u.occupancyStatus === 'vacant';
+      const isCurrentForBooking =
+        Boolean(excludeBookingId) &&
+        (u.currentBookingCode === excludeBookingId ||
+          (excludedBooking && u.currentBookingCode === excludedBooking.bookingCode));
+      return isVacant || isCurrentForBooking;
     });
   };
 
@@ -2622,19 +2646,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const targetBooking = bookings.find((b) => b.id === bookingId);
     const targetUnit = roomUnits.find((u) => u.roomNumber === roomNumber);
     if (!targetBooking) return;
-
-    // Free previously assigned room if any
-    if (targetBooking.assignedRoomNumber && targetBooking.assignedRoomNumber !== roomNumber) {
-      setRoomUnits((prev) =>
-        prev.map((u) => {
-          if (u.roomNumber === targetBooking.assignedRoomNumber) {
-            const freed = { ...u, occupancyStatus: 'vacant' as const, currentGuestName: undefined, currentBookingCode: undefined };
-            persistCollectionItem('roomUnits', freed.id, freed);
-            return freed;
-          }
-          return u;
-        })
-      );
+    if (targetUnit && targetUnit.cleanStatus === 'out_of_order') {
+      showToast('Room Out of Order', `Room ${roomNumber} is currently Out of Order and cannot be assigned.`, 'error');
+      return;
     }
 
     const assignedFloor = targetUnit?.floor || 'Main Building';
@@ -2646,25 +2660,51 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
     persistBookingDirect(updatedBooking);
 
-    // Update room unit
-    setRoomUnits((prev) =>
-      prev.map((u) => {
+    // Atomically free previous room and assign new room unit, then sync catalog counts
+    setRoomUnits((prev) => {
+      const nextUnits = prev.map((u) => {
+        if (
+          targetBooking.assignedRoomNumber &&
+          targetBooking.assignedRoomNumber !== roomNumber &&
+          u.roomNumber === targetBooking.assignedRoomNumber
+        ) {
+          const freed: RoomOperationalUnit = {
+            ...u,
+            occupancyStatus: 'vacant',
+            currentGuestName: undefined,
+            currentBookingCode: undefined,
+            checkInDate: undefined,
+            checkOutDate: undefined,
+          };
+          persistCollectionItem('roomUnits', freed.id, freed);
+          return freed;
+        }
         if (u.roomNumber === roomNumber) {
           const nextUnit: RoomOperationalUnit = {
             ...u,
             occupancyStatus: targetBooking.bookingStatus === 'checked-in' ? 'occupied' : 'reserved',
             currentGuestName: targetBooking.guestName,
             currentBookingCode: targetBooking.bookingCode,
+            checkInDate: targetBooking.checkInDate,
+            checkOutDate: targetBooking.checkOutDate,
           };
           persistCollectionItem('roomUnits', nextUnit.id, nextUnit);
           return nextUnit;
         }
         return u;
-      })
-    );
+      });
+      syncRoomCatalogFromUnits(nextUnits);
+      return nextUnits;
+    });
 
     // Auto generate/sync guest session passcode and linked invoice room
-    const issuedPin = generateNewRoomPasscode(roomNumber, targetBooking.bookingCode, targetBooking.guestName);
+    const issuedPin = generateNewRoomPasscode(
+      `Room ${roomNumber}`,
+      targetBooking.bookingCode,
+      targetBooking.guestName,
+      targetBooking.checkInDate,
+      targetBooking.checkOutDate
+    );
 
     setInvoices((prev) =>
       prev.map((inv) => {
@@ -2677,7 +2717,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       })
     );
 
-    persistCollectionItem('guestSessions', roomNumber, issuedPin);
+    persistCollectionItem('guestSessions', issuedPin.roomNumber, issuedPin);
 
     if (backendAvailableRef.current) {
       fetch(`/api/bookings/${encodeURIComponent(bookingId)}/assign-room`, {
@@ -2739,15 +2779,29 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsBookingModalOpen(false);
   };
 
-  const createBooking = (bookingData: Omit<Booking, 'id' | 'bookingCode' | 'createdAt' | 'smsSent' | 'emailSent' | 'whatsappSent'>): Booking => {
+  const createBooking: HotelContextType['createBooking'] = (rawBookingData) => {
+    const { advanceDepositUSD = 0, ...bookingData } = rawBookingData;
     const bookingSeq = Math.floor(1000 + Math.random() * 9000);
     const bookingCode = `KH-2026-${bookingSeq}`;
 
-    // Auto-suggest first vacant physical room unit for this room type if not already designated
-    const vacantRoom = roomUnits.find(
-      (u) => u.roomType === bookingData.roomType && u.occupancyStatus === 'vacant'
-    );
-    const assignedRoomNumber = bookingData.assignedRoomNumber || (vacantRoom ? vacantRoom.roomNumber : undefined);
+    // Honor explicitly passed room number first (e.g. Reception Walk-In), otherwise auto-suggest vacant clean room
+    const explicitUnit = bookingData.assignedRoomNumber
+      ? roomUnits.find(
+          (u) =>
+            u.roomNumber === bookingData.assignedRoomNumber &&
+            u.cleanStatus !== 'out_of_order'
+        )
+      : undefined;
+    const vacantRoom =
+      explicitUnit ||
+      roomUnits.find(
+        (u) =>
+          u.roomType === bookingData.roomType &&
+          u.occupancyStatus === 'vacant' &&
+          u.cleanStatus !== 'out_of_order'
+      );
+    const assignedRoomNumber =
+      bookingData.assignedRoomNumber || (vacantRoom ? vacantRoom.roomNumber : undefined);
     const assignedFloor = bookingData.assignedFloor || (vacantRoom ? vacantRoom.floor : undefined);
 
     const newBooking: Booking = {
@@ -2765,48 +2819,45 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setBookings((prev) => [newBooking, ...prev]);
     persistBookingDirect(newBooking);
 
-    // If a room unit was assigned, reserve it and create in-house guest session
+    // If a room unit was assigned, reserve/occupy it, sync Room.availableUnits, and issue Guest Portal PIN
     if (assignedRoomNumber) {
-      setRoomUnits((prev) =>
-        prev.map((u) => {
+      const targetOccupancy: RoomOperationalUnit['occupancyStatus'] =
+        newBooking.bookingStatus === 'checked-in' ? 'occupied' : 'reserved';
+      setRoomUnits((prev) => {
+        const nextUnits = prev.map((u) => {
           if (u.roomNumber === assignedRoomNumber) {
             const nextUnit: RoomOperationalUnit = {
               ...u,
-              occupancyStatus: 'reserved',
+              occupancyStatus: targetOccupancy,
               currentGuestName: newBooking.guestName,
               currentBookingCode: bookingCode,
+              checkInDate: newBooking.checkInDate,
+              checkOutDate: newBooking.checkOutDate,
             };
             persistCollectionItem('roomUnits', nextUnit.id, nextUnit);
             return nextUnit;
           }
           return u;
-        })
+        });
+        syncRoomCatalogFromUnits(nextUnits);
+        return nextUnits;
+      });
+      const issuedPin = generateNewRoomPasscode(
+        `Room ${assignedRoomNumber}`,
+        bookingCode,
+        newBooking.guestName,
+        newBooking.checkInDate,
+        newBooking.checkOutDate
       );
-      const issuedPin = generateNewRoomPasscode(assignedRoomNumber, bookingCode, newBooking.guestName);
-      persistCollectionItem('guestSessions', assignedRoomNumber, issuedPin);
+      persistCollectionItem('guestSessions', issuedPin.roomNumber, issuedPin);
     }
-
-    // Decrease room available units
-    setRooms((prev) =>
-      prev.map((r) => {
-        if (r.id === newBooking.roomTypeId) {
-          const nextRoom = {
-            ...r,
-            availableUnits: Math.max(0, r.availableUnits - 1),
-          };
-          persistCollectionItem('rooms', nextRoom.id, nextRoom);
-          return nextRoom;
-        }
-        return r;
-      })
-    );
 
     // Update availability & auto-create MasterInvoice in USD for front-desk folio ledger
     const currencyDivisor =
       newBooking.currency === 'NPR'
         ? themeConfig.exchangeRates.NPR || 135
         : newBooking.currency === 'INR'
-        ? themeConfig.exchangeRates.INR || 84
+        ? themeConfig.exchangeRates.INR || 84.5
         : 1;
 
     const toUSD = (val: number) => Math.round((val / currencyDivisor) * 100) / 100;
@@ -2830,7 +2881,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (newBooking.addons && newBooking.addons.length > 0) {
       newBooking.addons.forEach((addon) => {
-        const addonQty = addon.id === 'addon-breakfast' ? Math.max(1, newBooking.nights * newBooking.adults) : 1;
+        const isBreakfast =
+          addon.id === 'addon-breakfast' || addon.id === 'breakfast' || addon.id === 'ad_breakfast';
+        const addonQty = isBreakfast ? Math.max(1, newBooking.nights * newBooking.adults) : 1;
         autoInvoiceItems.push({
           id: 'li-' + Math.random().toString(36).substring(2, 7),
           description: addon.name,
@@ -2838,7 +2891,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             ? 'airport_transfer'
             : addon.name.toLowerCase().includes('massage') || addon.name.toLowerCase().includes('spa')
             ? 'spa_wellness'
-            : addon.id === 'addon-breakfast'
+            : isBreakfast
             ? 'restaurant_dining'
             : 'other',
           date: newBooking.checkInDate,
@@ -2857,6 +2910,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const invServiceChargeUSD = Math.round(((invDiscountedSubUSD * billSettings.serviceChargePercent) / 100) * 100) / 100;
     const invTaxUSD = Math.round((((invDiscountedSubUSD + invServiceChargeUSD) * billSettings.taxPercent) / 100) * 100) / 100;
     const invGrandTotalUSD = Math.round((invDiscountedSubUSD + invServiceChargeUSD + invTaxUSD) * 100) / 100;
+    const initialPaidUSD =
+      newBooking.paymentStatus === 'paid'
+        ? invGrandTotalUSD
+        : Math.min(invGrandTotalUSD, Math.max(0, Math.round(Number(advanceDepositUSD || 0) * 100) / 100));
+    const initialBalanceUSD = Math.max(0, Math.round((invGrandTotalUSD - initialPaidUSD) * 100) / 100);
 
     const autoInvoice: MasterInvoice = {
       id: 'inv-' + Date.now() + '-' + Math.random().toString(36).substring(2, 5),
@@ -2878,9 +2936,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       taxPercent: billSettings.taxPercent,
       taxAmountUSD: invTaxUSD,
       grandTotalUSD: invGrandTotalUSD,
-      amountPaidUSD: newBooking.paymentStatus === 'paid' ? invGrandTotalUSD : 0,
-      balanceDueUSD: newBooking.paymentStatus === 'paid' ? 0 : invGrandTotalUSD,
-      paymentStatus: newBooking.paymentStatus,
+      amountPaidUSD: initialPaidUSD,
+      balanceDueUSD: initialBalanceUSD,
+      paymentStatus: initialBalanceUSD <= 0.01 ? 'paid' : 'pending',
       paymentMethod: newBooking.paymentMethod,
     };
 
@@ -3098,6 +3156,29 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             bookingCode: target.bookingCode,
             roomNumber: target.assignedRoomNumber,
           });
+        } else if (status === 'cancelled' || status === 'no_show') {
+          if (target.assignedRoomNumber) {
+            setRoomUnits((prev) => {
+              const nextUnits = prev.map((u) => {
+                if (u.roomNumber === target.assignedRoomNumber) {
+                  const freed: RoomOperationalUnit = {
+                    ...u,
+                    occupancyStatus: 'vacant',
+                    currentGuestName: undefined,
+                    currentBookingCode: undefined,
+                    checkInDate: undefined,
+                    checkOutDate: undefined,
+                  };
+                  persistCollectionItem('roomUnits', freed.id, freed);
+                  return freed;
+                }
+                return u;
+              });
+              syncRoomCatalogFromUnits(nextUnits);
+              return nextUnits;
+            });
+            checkoutAndResetRoomPasscode(target.assignedRoomNumber);
+          }
         }
 
         addAuditLog(
@@ -3800,15 +3881,28 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Auto-charge to guest room folio if room destination or charge_to_room payment
     if (newOrder.paymentMode === 'charge_to_room' || newOrder.destination === 'room') {
       const cleanRoom = newOrder.roomNumber || newOrder.tableOrRoomNo;
+      const newLineId = 'li-ord-' + newOrder.id;
+      let linkedBookingCodeToFlag: string | null = null;
+
       setInvoices((prev) => {
-        const existingIdx = prev.findIndex(
+        const activeRoomIdx = prev.findIndex(
           (inv) =>
-            matchesRoomLabel(inv.roomNumber, cleanRoom) ||
-            inv.guestName.toLowerCase() === newOrder.guestName.toLowerCase()
+            inv.paymentStatus !== 'refunded' &&
+            (inv.bookingCode === newOrder.tableOrRoomNo || matchesRoomLabel(inv.roomNumber, cleanRoom))
         );
+        const existingIdx =
+          activeRoomIdx !== -1
+            ? activeRoomIdx
+            : !cleanRoom && newOrder.guestName
+            ? prev.findIndex(
+                (inv) =>
+                  inv.paymentStatus !== 'refunded' &&
+                  inv.guestName.toLowerCase() === newOrder.guestName.toLowerCase()
+              )
+            : -1;
 
         const newLineItem: BillItemLine = {
-          id: 'li-ord-' + newOrder.id,
+          id: newLineId,
           description: `Ground-Floor Dining KOT #${orderNum} (${newOrder.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')})`,
           category: 'restaurant_dining',
           date: new Date().toISOString().split('T')[0],
@@ -3819,15 +3913,20 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         if (existingIdx !== -1) {
           const inv = prev[existingIdx];
+          if (inv.items.some((it) => it.id === newLineId)) return prev;
           const updatedItems = [...inv.items, newLineItem];
-          const newSubtotal = updatedItems.reduce((acc, i) => acc + i.amountUSD, 0);
-          const discAmount = (newSubtotal * inv.discountPercent) / 100;
-          const discountedSub = newSubtotal - discAmount;
-          const scAmount = (discountedSub * inv.serviceChargePercent) / 100;
+          const newSubtotal = Math.round(updatedItems.reduce((acc, i) => acc + i.amountUSD, 0) * 100) / 100;
+          const discAmount = Math.round(((newSubtotal * inv.discountPercent) / 100) * 100) / 100;
+          const discountedSub = Math.max(0, newSubtotal - discAmount);
+          const scAmount = Math.round(((discountedSub * inv.serviceChargePercent) / 100) * 100) / 100;
           const vatBase = discountedSub + scAmount;
-          const taxAmount = (vatBase * inv.taxPercent) / 100;
+          const taxAmount = Math.round(((vatBase * inv.taxPercent) / 100) * 100) / 100;
           const grandTotal = Math.round((vatBase + taxAmount) * 100) / 100;
-          const balance = Math.max(0, grandTotal - inv.amountPaidUSD);
+          const balance = Math.max(0, Math.round((grandTotal - inv.amountPaidUSD) * 100) / 100);
+          const nextPaymentStatus: PaymentStatus = balance <= 0.01 ? 'paid' : 'pending';
+          if (nextPaymentStatus === 'pending' && inv.bookingCode) {
+            linkedBookingCodeToFlag = inv.bookingCode;
+          }
 
           const updatedInv: MasterInvoice = {
             ...inv,
@@ -3838,6 +3937,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             taxAmountUSD: taxAmount,
             grandTotalUSD: grandTotal,
             balanceDueUSD: balance,
+            paymentStatus: nextPaymentStatus,
           };
 
           persistCollectionItem('invoices', updatedInv.id, updatedInv);
@@ -3845,17 +3945,19 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           clone[existingIdx] = updatedInv;
           return clone;
         } else {
-          // Create new invoice for room
-          const sub = newOrder.subtotalUSD;
-          const sc = sub * 0.10;
-          const vat = (sub + sc) * 0.13;
+          // Create new invoice for room using live billSettings SC & VAT rates
+          const sub = Math.round(newOrder.subtotalUSD * 100) / 100;
+          const scPct = Number(billSettings.serviceChargePercent ?? 10);
+          const taxPct = Number(billSettings.taxPercent ?? 13);
+          const sc = Math.round(((sub * scPct) / 100) * 100) / 100;
+          const vat = Math.round((((sub + sc) * taxPct) / 100) * 100) / 100;
           const grand = Math.round((sub + sc + vat) * 100) / 100;
 
           const createdInv: MasterInvoice = {
             id: 'inv-' + Date.now(),
             invoiceNumber: 'KH-INV-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000),
-            bookingCode: 'STAY-ROOM-' + cleanRoom.replace(/[^0-9]/g, ''),
-            roomNumber: cleanRoom.startsWith('Room') ? cleanRoom : `Room ${cleanRoom}`,
+            bookingCode: 'STAY-ROOM-' + cleanRoom.replace(/[^0-9A-Za-z]/g, ''),
+            roomNumber: cleanRoom.toLowerCase().startsWith('room') ? cleanRoom : `Room ${cleanRoom}`,
             guestName: newOrder.guestName || 'In-House Guest',
             guestEmail: 'guest@kamalhotel.np',
             guestPhone: '+977 98',
@@ -3866,9 +3968,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             subtotalUSD: sub,
             discountPercent: 0,
             discountAmountUSD: 0,
-            serviceChargePercent: 10,
+            serviceChargePercent: scPct,
             serviceChargeAmountUSD: sc,
-            taxPercent: 13,
+            taxPercent: taxPct,
             taxAmountUSD: vat,
             grandTotalUSD: grand,
             amountPaidUSD: 0,
@@ -3880,6 +3982,19 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return [createdInv, ...prev];
         }
       });
+
+      if (linkedBookingCodeToFlag) {
+        setBookings((prev) =>
+          prev.map((b) => {
+            if (b.bookingCode === linkedBookingCodeToFlag && b.paymentStatus === 'paid') {
+              const nextB: Booking = { ...b, paymentStatus: 'pending' };
+              persistBookingDirect(nextB);
+              return nextB;
+            }
+            return b;
+          })
+        );
+      }
     }
 
     // Dispatch automated in-app notifications to waiter, chef, and receptionist
@@ -3939,6 +4054,12 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateOrderStatus = (orderId: string, status: RestaurantOrder['status'], waiterName?: string) => {
+    const target = restaurantOrders.find((o) => o.id === orderId);
+    const shouldDepleteStock =
+      Boolean(target) &&
+      status === 'preparing' &&
+      (target!.status === 'placed' || target!.status === 'confirmed_by_waiter');
+
     setRestaurantOrders((prev) =>
       prev.map((ord) => {
         if (ord.id === orderId) {
@@ -3952,19 +4073,47 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       })
     );
 
-    // If order begins preparation, deplete kitchen ingredients automatically
-    if (status === 'preparing') {
-      setStockItems((prev) =>
-        prev.map((s) => {
-          if (s.category === 'Kitchen Ingredients' && s.currentStock > 2) {
-            return { ...s, currentStock: s.currentStock - 1 };
+    // Deplete ingredients proportionally and persist stock changes when preparation starts once
+    if (shouldDepleteStock && target) {
+      const totalServings = Math.max(
+        1,
+        target.items.reduce((sum, it) => sum + Math.max(1, it.quantity || 1), 0)
+      );
+      const stepDelta = Math.max(1, Math.min(3, Math.ceil(totalServings / 2)));
+      const hasBeverages = target.items.some((it) =>
+        /tea|chai|coffee|juice|lassi|beer|wine|cocktail|water|soda|drink/i.test(it.name)
+      );
+
+      setStockItems((prev) => {
+        let lowStockAlertItems: string[] = [];
+        const nextItems = prev.map((s) => {
+          const isKitchenTarget =
+            s.category === 'Kitchen Ingredients' ||
+            (hasBeverages && s.category === 'Beverages & Bar');
+          if (isKitchenTarget && s.currentStock > 0) {
+            const nextStock = Math.max(0, s.currentStock - stepDelta);
+            const updated: StockItem = { ...s, currentStock: nextStock };
+            persistCollectionItem('stockItems', updated.id, updated);
+            if (nextStock <= updated.minThreshold) {
+              lowStockAlertItems.push(`${updated.name} (${nextStock} ${updated.unit})`);
+            }
+            return updated;
           }
           return s;
-        })
-      );
+        });
+
+        if (lowStockAlertItems.length > 0) {
+          dispatchOperationalAlert({
+            title: 'Low Kitchen Inventory Alert',
+            message: `Stock threshold reached after KOT #${target.orderNumber}: ${lowStockAlertItems.slice(0, 3).join(', ')}.`,
+            type: 'kot',
+            targetRoles: ['super_admin', 'admin', 'hotel_manager', 'restaurant_owner', 'chef'],
+          });
+        }
+        return nextItems;
+      });
     }
 
-    const target = restaurantOrders.find((o) => o.id === orderId);
     if (target) {
       persistCollectionItem('restaurantOrders', orderId, { ...target, status, waiterAssigned: waiterName || target.waiterAssigned });
     }
@@ -4044,8 +4193,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     inspector?: string,
     notes?: string
   ) => {
-    setRoomUnits((prev) =>
-      prev.map((u) => {
+    setRoomUnits((prev) => {
+      const nextUnits = prev.map((u) => {
         if (u.id === unitId) {
           const updated = {
             ...u,
@@ -4059,8 +4208,10 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return updated;
         }
         return u;
-      })
-    );
+      });
+      syncRoomCatalogFromUnits(nextUnits);
+      return nextUnits;
+    });
     const unit = roomUnits.find((u) => u.id === unitId);
     addAuditLog('Housekeeping Status Updated', 'booking', `Room ${unit?.roomNumber} marked ${cleanStatus.toUpperCase()}`);
     showToast(`Room ${unit?.roomNumber}`, `Housekeeping status: ${cleanStatus.replace('_', ' ').toUpperCase()}`, 'info');
@@ -4166,8 +4317,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const checkInRoomUnit = (roomNumber: string, guestName: string, bookingCode: string) => {
-    setRoomUnits((prev) =>
-      prev.map((u) => {
+    setRoomUnits((prev) => {
+      const nextUnits = prev.map((u) => {
         if (u.roomNumber === roomNumber) {
           const nextUnit: RoomOperationalUnit = {
             ...u,
@@ -4181,8 +4332,10 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return nextUnit;
         }
         return u;
-      })
-    );
+      });
+      syncRoomCatalogFromUnits(nextUnits);
+      return nextUnits;
+    });
     addAuditLog('Front Desk Check-In', 'booking', `Guest ${guestName} checked into Room ${roomNumber} (${bookingCode})`);
     showToast('Check-In Complete', `Room ${roomNumber} assigned to ${guestName}.`, 'success');
     triggerVipCheckInAlertIfFlagged({
@@ -4388,8 +4541,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         (b.assignedRoomNumber === roomNumber && b.bookingStatus === 'checked-in')
     );
 
-    setRoomUnits((prev) =>
-      prev.map((u) => {
+    setRoomUnits((prev) => {
+      const nextUnits = prev.map((u) => {
         if (u.roomNumber === roomNumber) {
           const nextUnit: RoomOperationalUnit = {
             ...u,
@@ -4397,13 +4550,17 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             cleanStatus: 'dirty',
             currentGuestName: undefined,
             currentBookingCode: undefined,
+            checkInDate: undefined,
+            checkOutDate: undefined,
           };
           persistCollectionItem('roomUnits', nextUnit.id, nextUnit);
           return nextUnit;
         }
         return u;
-      })
-    );
+      });
+      syncRoomCatalogFromUnits(nextUnits);
+      return nextUnits;
+    });
 
     if (matchingBooking && matchingBooking.bookingStatus !== 'checked-out') {
       const checkedOutBooking: Booking = { ...matchingBooking, bookingStatus: 'checked-out' };
@@ -4411,6 +4568,14 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         prev.map((b) => (b.id === matchingBooking.id ? checkedOutBooking : b))
       );
       persistBookingDirect(checkedOutBooking);
+      if (backendAvailableRef.current) {
+        fetch(`/api/bookings/${encodeURIComponent(matchingBooking.id)}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status: 'checked-out' }),
+        }).catch(() => {});
+      }
     }
 
     addAuditLog('Front Desk Check-Out', 'booking', `Room ${roomNumber} checked out and flagged DIRTY for housekeeping turnaround.`);
@@ -4491,7 +4656,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       occupancyStatus: unitData.occupancyStatus || 'vacant',
       cleanStatus: unitData.cleanStatus || 'clean',
     };
-    setRoomUnits((prev) => [...prev, newUnit]);
+    setRoomUnits((prev) => {
+      const nextUnits = [...prev, newUnit];
+      syncRoomCatalogFromUnits(nextUnits);
+      return nextUnits;
+    });
     persistCollectionItem('roomUnits', newUnit.id, newUnit);
     addAuditLog('Added Room Unit', 'cms', `Registered new physical room unit ${cleanRoomNum} on ${unitData.floor}`);
     showToast('Room Unit Added', `Room ${cleanRoomNum} on ${unitData.floor} registered.`, 'success');
@@ -4501,7 +4670,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateRoomUnit = (unitId: string, updates: Partial<RoomOperationalUnit>) => {
     const existing = roomUnits.find((u) => u.id === unitId);
     if (existing) persistCollectionItem('roomUnits', unitId, { ...existing, ...updates });
-    setRoomUnits((prev) => prev.map((u) => (u.id === unitId ? { ...u, ...updates } : u)));
+    setRoomUnits((prev) => {
+      const nextUnits = prev.map((u) => (u.id === unitId ? { ...u, ...updates } : u));
+      syncRoomCatalogFromUnits(nextUnits);
+      return nextUnits;
+    });
     addAuditLog('Updated Room Unit', 'cms', `Updated room unit ID ${unitId}`);
     showToast('Room Updated', 'Room configuration updated.', 'info');
   };
@@ -4516,7 +4689,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       showToast('Action Blocked', msg, 'error');
       return { success: false, message: msg };
     }
-    setRoomUnits((prev) => prev.filter((u) => u.id !== unitId));
+    setRoomUnits((prev) => {
+      const nextUnits = prev.filter((u) => u.id !== unitId);
+      syncRoomCatalogFromUnits(nextUnits);
+      return nextUnits;
+    });
     removeCollectionItem('roomUnits', unitId);
     addAuditLog('Deleted Room Unit', 'cms', `Deleted room unit ${unit.roomNumber} from ${unit.floor}`);
     showToast('Room Deleted', `Room ${unit.roomNumber} deleted from inventory.`, 'warning');
@@ -4595,28 +4772,63 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const runNightAudit = (auditorName: string, cashDrawerCountedUSD?: number): NightAuditRecord => {
+    const todayIso = new Date().toISOString().split('T')[0];
     const totalRoomsSold = roomUnits.filter((u) => u.occupancyStatus === 'occupied').length;
     const totalRoomsAvailable = roomUnits.length;
     const occupancyPercentage = Math.round((totalRoomsSold / (totalRoomsAvailable || 1)) * 100);
+    const nprRate = themeConfig.exchangeRates?.NPR || 135;
+    const inrRate = themeConfig.exchangeRates?.INR || 84.5;
+    const toUsdBooking = (amount: number, curr: CurrencyCode) =>
+      curr === 'NPR' ? amount / nprRate : curr === 'INR' ? amount / inrRate : amount;
+
     const roomRevenueUSD = bookings
-      .filter((b) => b.bookingStatus === 'checked-in')
-      .reduce((acc, b) => acc + (b.subtotal / (b.nights || 1)), 0);
-    const fAndBRevenueUSD = restaurantOrders.reduce((acc, o) => acc + o.subtotalUSD, 0);
+      .filter(
+        (b) =>
+          b.bookingStatus === 'checked-in' ||
+          (b.bookingStatus === 'confirmed' && b.checkInDate <= todayIso && b.checkOutDate > todayIso)
+      )
+      .reduce((acc, b) => acc + toUsdBooking(Number(b.subtotal || 0), b.currency) / Math.max(1, b.nights || 1), 0);
+
+    const fAndBRevenueUSD = restaurantOrders
+      .filter((o) => o.status !== 'cancelled' && (!o.createdAt || o.createdAt.slice(0, 10) === todayIso))
+      .reduce((acc, o) => acc + Number(o.subtotalUSD || 0), 0);
+
     const servicesRevenueUSD = Math.round(
       invoices
-        .flatMap((inv) => inv.items)
-        .filter((it) => it.category !== 'room_stay' && it.category !== 'restaurant_dining')
+        .flatMap((inv) => inv.items || [])
+        .filter(
+          (it) =>
+            it.category !== 'room_stay' &&
+            it.category !== 'restaurant_dining' &&
+            (!it.date || it.date === todayIso)
+        )
         .reduce((acc, it) => acc + (Number(it.amountUSD) || 0), 0) * 100
     ) / 100;
+
+    const scPct = Number(billSettings.serviceChargePercent ?? 10) / 100;
+    const vatPct = Number(billSettings.taxPercent ?? 13) / 100;
     const totalRevenueUSD = roomRevenueUSD + fAndBRevenueUSD + servicesRevenueUSD;
-    const serviceChargeCollectedUSD = Math.round(totalRevenueUSD * 0.10 * 100) / 100;
-    const vatCollectedUSD = Math.round((totalRevenueUSD + serviceChargeCollectedUSD) * 0.13 * 100) / 100;
+    const serviceChargeCollectedUSD = Math.round(totalRevenueUSD * scPct * 100) / 100;
+    const vatCollectedUSD = Math.round((totalRevenueUSD + serviceChargeCollectedUSD) * vatPct * 100) / 100;
     const adrUSD = totalRoomsSold > 0 ? Math.round((roomRevenueUSD / totalRoomsSold) * 100) / 100 : 0;
     const revParUSD = totalRoomsAvailable > 0 ? Math.round((roomRevenueUSD / totalRoomsAvailable) * 100) / 100 : 0;
 
+    const expectedOnsiteCashUSD = invoices
+      .filter(
+        (inv) =>
+          inv.paymentMethod === 'onsite' &&
+          Number(inv.amountPaidUSD || 0) > 0 &&
+          (!inv.issuedAt || inv.issuedAt.includes(todayIso) || inv.checkInDate === todayIso)
+      )
+      .reduce((acc, inv) => acc + Number(inv.amountPaidUSD || 0), 0);
+    const discrepancyUSD =
+      cashDrawerCountedUSD !== undefined
+        ? Math.round((cashDrawerCountedUSD - expectedOnsiteCashUSD) * 100) / 100
+        : 0;
+
     const newRecord: NightAuditRecord = {
       id: 'na-' + Date.now(),
-      auditDate: new Date().toISOString().split('T')[0],
+      auditDate: todayIso,
       auditorName,
       totalRoomsSold,
       totalRoomsAvailable,
@@ -4629,7 +4841,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       vatCollectedUSD,
       adrUSD,
       revParUSD,
-      cashDrawerDiscrepancyUSD: 0,
+      cashDrawerDiscrepancyUSD: discrepancyUSD,
       status: 'closed',
       notes: `Batch run completed by ${auditorName}. Posted daily room tariffs and verified payment reconciliation.`,
     };
@@ -5135,34 +5347,41 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.removeItem('kamal_hotel_vip_guests_v1');
 
     // Reset room units to vacant & clean
-    setRoomUnits((prev) =>
-      prev.map((u) => ({
-        ...u,
-        occupancyStatus: 'vacant',
-        cleanStatus: 'clean',
-        maintenanceNote: '',
-        currentGuestName: undefined,
-        currentBookingCode: undefined,
-        checkInDate: undefined,
-        checkOutDate: undefined,
-        minibarConsumedUSD: 0,
-        dndActive: false,
-      }))
-    );
+    const resetUnitsList: RoomOperationalUnit[] = options.resetRooms
+      ? []
+      : roomUnits.map((u) => ({
+          ...u,
+          occupancyStatus: 'vacant',
+          cleanStatus: 'clean',
+          maintenanceNote: '',
+          currentGuestName: undefined,
+          currentBookingCode: undefined,
+          checkInDate: undefined,
+          checkOutDate: undefined,
+          minibarConsumedUSD: 0,
+          dndActive: false,
+        }));
+    setRoomUnits(resetUnitsList);
+    if (!options.resetRooms) {
+      syncRoomCatalogFromUnits(resetUnitsList);
+    }
 
     // Reset restaurant tables to vacant
-    setRestaurantTables((prev) =>
-      prev.map((t) => ({
-        ...t,
-        status: 'vacant',
-        guestName: undefined,
-        currentOrderId: undefined,
-        waiterName: undefined,
-        seatedAt: undefined,
-      }))
-    );
+    const resetTablesList: RestaurantTable[] = options.resetTables
+      ? []
+      : restaurantTables.map((t) => ({
+          ...t,
+          status: 'vacant',
+          guestName: undefined,
+          currentOrderId: undefined,
+          waiterName: undefined,
+          seatedAt: undefined,
+        }));
+    setRestaurantTables(resetTablesList);
 
     // 2. White-label Landing Page & Hotel Branding
+    let nextThemeSnapshot = themeConfig;
+    let nextBillSnapshot = billSettings;
     if (options.newHotelName || options.resetLandingPage) {
       const hotelName = options.newHotelName || 'Boutique Heritage Hotel';
       const city = options.newCity || 'Kathmandu, Nepal';
@@ -5172,8 +5391,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const phone = options.newPhone || '+977-1-4422990';
       const heroHeadline = options.newHeroHeadline || `Welcome to ${hotelName}`;
 
-      setThemeConfig((prev) => ({
-        ...prev,
+      nextThemeSnapshot = {
+        ...themeConfig,
         hotelName,
         city,
         hotelLegalName: legalName,
@@ -5184,15 +5403,19 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         receptionPhone: phone,
         heroHeadline,
         heroSubheadline: `Experience exceptional hospitality, exquisite rooms, and authentic dining in ${city}.`,
-      }));
-
-      setBillSettings((prev) => ({
-        ...prev,
+      };
+      nextBillSnapshot = {
+        ...billSettings,
         hotelLegalName: legalName,
         panVatNumber: panVat,
         contactEmail: email,
         contactSupportPhone: phone,
-      }));
+      };
+
+      setThemeConfig(nextThemeSnapshot);
+      setBillSettings(nextBillSnapshot);
+      persistSetting('theme', nextThemeSnapshot);
+      persistSetting('bill', nextBillSnapshot);
     }
 
     if (options.resetRooms) {
@@ -5212,6 +5435,63 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (options.resetStaff) {
       setStaff((prev) => prev.filter((s) => s.role === 'super_admin'));
+    }
+
+    // 3. Synchronize clean slate purge to Express backend or Supabase PostgreSQL
+    if (backendAvailableRef.current) {
+      fetch('/api/admin/database/reset-fresh-production', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(options),
+      }).catch(() => {});
+    } else {
+      const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+      if (client) {
+        const collectionsToWipe = [
+          'invoices',
+          'restaurantOrders',
+          'guestSessions',
+          'guestChatMessages',
+          'operationalAlerts',
+          'notifications',
+          'lostAndFound',
+          'shiftHandovers',
+          'nightAudits',
+          'staffShifts',
+          'staffAvailability',
+          'surveys',
+          'digitalKeycards',
+          'doorUnlockLogs',
+          'maintenanceTickets',
+          'rewardsMembers',
+          'wakeUpCalls',
+          'deepCleaningSchedules',
+          'floorSupplies',
+          'expressTurnovers',
+          'roomServiceRequests',
+          'vipProfiles',
+          ...(options.resetRooms ? ['rooms', 'roomUnits'] : []),
+          ...(options.resetMenu ? ['menuItems'] : []),
+          ...(options.resetTables ? ['tables'] : []),
+        ];
+        Promise.allSettled([
+          client.from('bookings_store').delete().neq('id', '__none__'),
+          client.from('pms_records').delete().in('collection', collectionsToWipe),
+          ...resetUnitsList.map((u) =>
+            client.from('pms_records').upsert(
+              { collection: 'roomUnits', id: u.id, data_json: u, updated_at: new Date().toISOString() },
+              { onConflict: 'collection,id' }
+            )
+          ),
+          ...resetTablesList.map((t) =>
+            client.from('pms_records').upsert(
+              { collection: 'tables', id: t.id, data_json: t, updated_at: new Date().toISOString() },
+              { onConflict: 'collection,id' }
+            )
+          ),
+        ]).catch(() => {});
+      }
     }
 
     addAuditLog(
@@ -5280,7 +5560,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
     if (generated.length > 0) {
-      setRoomUnits((prev) => [...prev, ...generated]);
+      setRoomUnits((prev) => {
+        const nextUnits = [...prev, ...generated];
+        syncRoomCatalogFromUnits(nextUnits);
+        return nextUnits;
+      });
       generated.forEach((unit) => persistCollectionItem('roomUnits', unit.id, unit));
       showToast('Rooms Generated', `Generated ${countAdded} physical rooms on ${floor}.`, 'success');
     }
@@ -5358,39 +5642,66 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const invoiceNum = 'KH-INV-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
     
-    // Find room charge
-    const room = rooms.find((r) => r.id === booking?.roomTypeId);
-    const roomRateUSD = room ? room.pricePerNightUSD : 50;
+    // Find room charge preserving seasonal surge & booking currency conversion
+    const room = rooms.find((r) => r.id === booking?.roomTypeId || r.type === booking?.roomType);
+    const currencyDivisor =
+      booking?.currency === 'NPR'
+        ? themeConfig.exchangeRates.NPR || 135
+        : booking?.currency === 'INR'
+        ? themeConfig.exchangeRates.INR || 84.5
+        : 1;
+    const toUSD = (val: number) => Math.round((val / currencyDivisor) * 100) / 100;
+    const surge = Number(themeConfig.seasonalSurgeMultiplier) > 0 ? Number(themeConfig.seasonalSurgeMultiplier) : 1;
     const nights = booking?.nights || 1;
+    const adultsCount = booking?.adults || 1;
+    const roomRateUSD = room
+      ? Math.round(room.pricePerNightUSD * surge * 100) / 100
+      : booking
+      ? Math.max(10, Math.round((toUSD(booking.subtotal) / Math.max(1, nights)) * 100) / 100)
+      : 50;
 
-    // Check if guest has any room service restaurant orders
-    const guestOrders = restaurantOrders.filter(
-      (o) => o.tableOrRoomNo === booking?.bookingCode || o.guestName.toLowerCase() === booking?.guestName.toLowerCase()
-    );
+    // Match room-service dining orders strictly by bookingCode or assigned room number within stay dates
+    const guestOrders = booking
+      ? restaurantOrders.filter(
+          (o) =>
+            o.status !== 'cancelled' &&
+            (o.tableOrRoomNo === booking.bookingCode ||
+              (booking.assignedRoomNumber &&
+                matchesRoomLabel(o.roomNumber || o.tableOrRoomNo, booking.assignedRoomNumber) &&
+                (!o.createdAt || o.createdAt.slice(0, 10) >= booking.checkInDate)))
+        )
+      : [];
 
     const items: BillItemLine[] = [
       {
         id: 'li-' + Math.random().toString(36).substring(2, 7),
-        description: `${booking?.roomName || 'Room Stay'} (${nights} Nights @ $${roomRateUSD}/night)`,
+        description: `${booking?.roomName || 'Room Stay'} (${nights} Nights @ $${roomRateUSD.toFixed(2)}/night)`,
         category: 'room_stay',
         date: booking?.checkInDate || new Date().toISOString().split('T')[0],
         quantity: nights,
         rateUSD: roomRateUSD,
-        amountUSD: roomRateUSD * nights,
+        amountUSD: Math.round(roomRateUSD * nights * 100) / 100,
       },
     ];
 
-    // Add addons
+    // Add addons with accurate per-night per-adult breakfast math
     if (booking?.addons && booking.addons.length > 0) {
       booking.addons.forEach((addon) => {
+        const isBreakfast =
+          addon.id === 'addon-breakfast' || addon.id === 'breakfast' || addon.id === 'ad_breakfast';
+        const qty = isBreakfast ? Math.max(1, nights * adultsCount) : 1;
         items.push({
           id: 'li-' + Math.random().toString(36).substring(2, 7),
           description: addon.name,
-          category: addon.name.toLowerCase().includes('airport') ? 'airport_transfer' : 'other',
+          category: addon.name.toLowerCase().includes('airport')
+            ? 'airport_transfer'
+            : isBreakfast
+            ? 'restaurant_dining'
+            : 'other',
           date: booking.checkInDate,
-          quantity: 1,
+          quantity: qty,
           rateUSD: addon.priceUSD,
-          amountUSD: addon.priceUSD,
+          amountUSD: Math.round(addon.priceUSD * qty * 100) / 100,
         });
       });
     }
@@ -5408,12 +5719,13 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     });
 
-    const subtotal = items.reduce((acc, i) => acc + i.amountUSD, 0);
-    const discountAmount = (subtotal * (billSettings.defaultDiscountPercent || 0)) / 100;
-    const discountedSubtotal = subtotal - discountAmount;
-    const serviceCharge = (discountedSubtotal * billSettings.serviceChargePercent) / 100;
+    const subtotal = Math.round(items.reduce((acc, i) => acc + i.amountUSD, 0) * 100) / 100;
+    const defaultDiscPct = billSettings.defaultDiscountPercent || 0;
+    const discountAmount = Math.round(((subtotal * defaultDiscPct) / 100) * 100) / 100;
+    const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+    const serviceCharge = Math.round(((discountedSubtotal * billSettings.serviceChargePercent) / 100) * 100) / 100;
     const taxableBase = discountedSubtotal + serviceCharge;
-    const tax = (taxableBase * billSettings.taxPercent) / 100;
+    const tax = Math.round(((taxableBase * billSettings.taxPercent) / 100) * 100) / 100;
     const grandTotal = Math.round((taxableBase + tax) * 100) / 100;
 
     const newInv: MasterInvoice = {
@@ -5433,7 +5745,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       issuedAt: new Date().toLocaleString(),
       items,
       subtotalUSD: subtotal,
-      discountPercent: billSettings.defaultDiscountPercent,
+      discountPercent: defaultDiscPct,
       discountAmountUSD: discountAmount,
       serviceChargePercent: billSettings.serviceChargePercent,
       serviceChargeAmountUSD: serviceCharge,
@@ -5505,16 +5817,21 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addPaymentToInvoice = (invoiceId: string, amount: number, method: PaymentMethod) => {
+    const targetInv = invoices.find((inv) => inv.id === invoiceId);
+    const targetBookingCode = targetInv?.bookingCode;
+    let markedPaid = false;
+
     setInvoices((prev) =>
       prev.map((inv) => {
         if (inv.id === invoiceId) {
-          const newPaid = inv.amountPaidUSD + amount;
-          const newBalance = Math.max(0, inv.grandTotalUSD - newPaid);
-          const newStatus: PaymentStatus = newBalance === 0 ? 'paid' : 'pending';
+          const newPaid = Math.round((inv.amountPaidUSD + amount) * 100) / 100;
+          const newBalance = Math.max(0, Math.round((inv.grandTotalUSD - newPaid) * 100) / 100);
+          const newStatus: PaymentStatus = newBalance <= 0.01 ? 'paid' : 'pending';
+          if (newStatus === 'paid') markedPaid = true;
           const updatedInv: MasterInvoice = {
             ...inv,
             amountPaidUSD: newPaid,
-            balanceDueUSD: newBalance,
+            balanceDueUSD: newStatus === 'paid' ? 0 : newBalance,
             paymentStatus: newStatus,
             paymentMethod: method,
           };
@@ -5524,6 +5841,20 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return inv;
       })
     );
+
+    if (markedPaid && targetBookingCode) {
+      setBookings((prev) =>
+        prev.map((b) => {
+          if (b.bookingCode === targetBookingCode && b.paymentStatus !== 'paid') {
+            const nextB: Booking = { ...b, paymentStatus: 'paid', paymentMethod: method };
+            persistBookingDirect(nextB);
+            return nextB;
+          }
+          return b;
+        })
+      );
+    }
+
     if (backendAvailableRef.current) {
       fetch('/api/payments/onsite', {
         method: 'POST',
@@ -5645,32 +5976,56 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Guest Portal Signed Out', 'Thank you for visiting.', 'info');
   };
 
-  const generateNewRoomPasscode = (roomNumber: string, bookingCode: string, guestName: string): GuestRoomSession => {
+  const generateNewRoomPasscode = (
+    roomNumber: string,
+    bookingCode: string,
+    guestName: string,
+    checkInDate?: string,
+    checkOutDate?: string
+  ): GuestRoomSession => {
+    const normalizedRoom = roomNumber.trim().toLowerCase().startsWith('room')
+      ? roomNumber.trim()
+      : `Room ${roomNumber.trim()}`;
     const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
+    const resolvedCheckIn = checkInDate || new Date().toISOString().split('T')[0];
+    const resolvedCheckOut =
+      checkOutDate || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0];
+
     const newSession: GuestRoomSession = {
-      roomNumber,
+      roomNumber: normalizedRoom,
       bookingCode,
       guestName,
       passcode: randomPin,
-      checkInDate: new Date().toISOString().split('T')[0],
-      checkOutDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+      checkInDate: resolvedCheckIn,
+      checkOutDate: resolvedCheckOut,
       isActive: true,
       createdAt: new Date().toLocaleString(),
-      expiresAt: new Date(Date.now() + 86400000 * 3).toLocaleString(),
+      expiresAt: `${resolvedCheckOut} 12:00`,
     };
 
-    setGuestSessions((prev) => [newSession, ...prev.filter((s) => s.roomNumber !== roomNumber)]);
-    addAuditLog('Guest Passcode Issued', 'security', `Generated PIN ${randomPin} for ${roomNumber} (${guestName})`);
-    showToast('Guest Passcode Generated', `${roomNumber} passcode is: ${randomPin}. Guest can now log in.`, 'success');
+    setGuestSessions((prev) => [
+      newSession,
+      ...prev.filter((s) => !matchesRoomLabel(s.roomNumber, normalizedRoom)),
+    ]);
+    persistCollectionItem('guestSessions', normalizedRoom, newSession);
+    addAuditLog('Guest Passcode Issued', 'security', `Generated PIN ${randomPin} for ${normalizedRoom} (${guestName})`);
+    showToast('Guest Passcode Generated', `${normalizedRoom} passcode is: ${randomPin}. Guest can now log in.`, 'success');
     return newSession;
   };
 
   const checkoutAndResetRoomPasscode = (roomNumber: string) => {
     const cleanRoom = roomNumber.toLowerCase();
 
-    // 1. Expire and deactivate session
+    // 1. Expire and deactivate session (normalized against '101' or 'Room 101')
     setGuestSessions((prev) =>
-      prev.map((s) => (s.roomNumber.toLowerCase() === cleanRoom ? { ...s, isActive: false, passcode: 'EXPIRED' } : s))
+      prev.map((s) => {
+        if (matchesRoomLabel(s.roomNumber, roomNumber)) {
+          const expired: GuestRoomSession = { ...s, isActive: false, passcode: 'EXPIRED' };
+          persistCollectionItem('guestSessions', expired.roomNumber, expired);
+          return expired;
+        }
+        return s;
+      })
     );
 
     // 2. Clear active session if logged in
