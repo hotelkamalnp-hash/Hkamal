@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useHotel } from '../../context/HotelContext';
-import { formatCurrency } from '../../utils/theme';
+import { convertPrice, formatCurrency } from '../../utils/theme';
 import {
   Moon,
   CheckCircle,
@@ -34,9 +34,13 @@ export const NightAuditManager: React.FC = () => {
     restaurantOrders,
     invoices,
     themeConfig,
+    currentCurrency,
     activeUser,
     showToast,
   } = useHotel();
+
+  const fmt = (usd: number) =>
+    formatCurrency(convertPrice(usd, currentCurrency, themeConfig.exchangeRates), currentCurrency);
 
   const nprRate = themeConfig.exchangeRates?.NPR || 135;
   const [liveSummary, setLiveSummary] = useState<DailySummaryResponse | null>(null);
@@ -164,7 +168,7 @@ export const NightAuditManager: React.FC = () => {
         <div className="bg-white dark:bg-stone-900 p-4 rounded-xl border border-stone-200 dark:border-stone-800 shadow-xs">
           <div className="text-[11px] text-stone-500 font-medium">Average Daily Rate (ADR)</div>
           <div className="text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-100 mt-1">
-            ${adr.toFixed(2)}
+            {fmt(adr)}
           </div>
           <div className="text-[10px] text-stone-400 mt-1">
             Per occupied room night
@@ -174,7 +178,7 @@ export const NightAuditManager: React.FC = () => {
         <div className="bg-white dark:bg-stone-900 p-4 rounded-xl border border-stone-200 dark:border-stone-800 shadow-xs">
           <div className="text-[11px] text-stone-500 font-medium">RevPAR (Rev/Avail Room)</div>
           <div className="text-2xl font-sans font-semibold tracking-tight tabular-nums text-stone-900 dark:text-stone-100 mt-1">
-            ${revPar.toFixed(2)}
+            {fmt(revPar)}
           </div>
           <div className="text-[10px] text-stone-400 mt-1">
             Across total hotel capacity
@@ -184,7 +188,7 @@ export const NightAuditManager: React.FC = () => {
         <div className="bg-white dark:bg-stone-900 p-4 rounded-xl border border-stone-200 dark:border-stone-800 shadow-xs">
           <div className="text-[11px] text-stone-500 font-medium">Grand Operating Total</div>
           <div className="text-2xl font-sans font-semibold tracking-tight tabular-nums text-amber-700 dark:text-amber-400 mt-1">
-            ${grandTotalRevenue.toFixed(2)}
+            {fmt(grandTotalRevenue)}
           </div>
           <div className="text-[10px] text-stone-400 mt-1">
             Includes 10% SC & 13% VAT
@@ -229,6 +233,11 @@ export const NightAuditManager: React.FC = () => {
               <span className="font-semibold text-stone-700 dark:text-stone-300">Variance / Discrepancy:</span>
               <span className={`font-bold ${cashDiscrepancy === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 {cashDiscrepancy >= 0 ? `+NPR ${cashDiscrepancy.toLocaleString()}` : `-NPR ${Math.abs(cashDiscrepancy).toLocaleString()}`}
+                {currentCurrency !== 'NPR' && (
+                  <span className="ml-1.5 text-[11px] font-normal opacity-80">
+                    ({cashDiscrepancy >= 0 ? '+' : '-'}{fmt(Math.abs(cashDiscrepancy) / nprRate)})
+                  </span>
+                )}
               </span>
             </div>
           </div>
@@ -244,23 +253,23 @@ export const NightAuditManager: React.FC = () => {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between py-1.5 border-b border-stone-100 dark:border-stone-800 font-mono">
               <span className="text-stone-600 dark:text-stone-400">Room Stay Tariffs:</span>
-              <span className="font-bold text-stone-900 dark:text-stone-100">${roomRevenue.toFixed(2)}</span>
+              <span className="font-bold text-stone-900 dark:text-stone-100">{fmt(roomRevenue)}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-stone-100 dark:border-stone-800 font-mono">
               <span className="text-stone-600 dark:text-stone-400">Ground-Floor Restaurant & Bar F&B:</span>
-              <span className="font-bold text-stone-900 dark:text-stone-100">${fAndBRevenue.toFixed(2)}</span>
+              <span className="font-bold text-stone-900 dark:text-stone-100">{fmt(fAndBRevenue)}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-stone-100 dark:border-stone-800 font-mono">
               <span className="text-stone-600 dark:text-stone-400">Services & Incidentals (Laundry, Transfers):</span>
-              <span className="font-bold text-stone-900 dark:text-stone-100">${servicesRevenue.toFixed(2)}</span>
+              <span className="font-bold text-stone-900 dark:text-stone-100">{fmt(servicesRevenue)}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-stone-100 dark:border-stone-800 font-mono">
               <span className="text-stone-600 dark:text-stone-400">10% Hotel Service Charge Collected:</span>
-              <span className="font-bold text-amber-700 dark:text-amber-400">${serviceCharge10.toFixed(2)}</span>
+              <span className="font-bold text-amber-700 dark:text-amber-400">{fmt(serviceCharge10)}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-stone-100 dark:border-stone-800 font-mono">
               <span className="text-stone-600 dark:text-stone-400">13% Nepal VAT Tax Payable (IRD):</span>
-              <span className="font-bold text-amber-700 dark:text-amber-400">${vat13.toFixed(2)}</span>
+              <span className="font-bold text-amber-700 dark:text-amber-400">{fmt(vat13)}</span>
             </div>
           </div>
         </div>
@@ -279,10 +288,10 @@ export const NightAuditManager: React.FC = () => {
                 <th className="py-2.5 px-3">Audit Date</th>
                 <th className="py-2.5 px-3">Auditor</th>
                 <th className="py-2.5 px-3 text-right">Occupancy %</th>
-                <th className="py-2.5 px-3 text-right">ADR ($)</th>
-                <th className="py-2.5 px-3 text-right">RevPAR ($)</th>
+                <th className="py-2.5 px-3 text-right">ADR ({currentCurrency})</th>
+                <th className="py-2.5 px-3 text-right">RevPAR ({currentCurrency})</th>
                 <th className="py-2.5 px-3 text-right">Room Rev</th>
-                <th className="py-2.5 px-3 text-right">F&B Rev</th>
+                <th className="py-2.5 px-3 text-right">F&amp;B Rev</th>
                 <th className="py-2.5 px-3 text-right">Total Net</th>
                 <th className="py-2.5 px-3 text-center">Status</th>
               </tr>
@@ -300,19 +309,19 @@ export const NightAuditManager: React.FC = () => {
                     {aud.occupancyPercentage}%
                   </td>
                   <td className="py-3 px-3 text-right font-mono tabular-nums">
-                    ${aud.adrUSD.toFixed(2)}
+                    {fmt(aud.adrUSD)}
                   </td>
                   <td className="py-3 px-3 text-right font-mono tabular-nums">
-                    ${aud.revParUSD.toFixed(2)}
+                    {fmt(aud.revParUSD)}
                   </td>
                   <td className="py-3 px-3 text-right font-mono tabular-nums">
-                    ${aud.roomRevenueUSD.toFixed(2)}
+                    {fmt(aud.roomRevenueUSD)}
                   </td>
                   <td className="py-3 px-3 text-right font-mono tabular-nums">
-                    ${aud.fAndBRevenueUSD.toFixed(2)}
+                    {fmt(aud.fAndBRevenueUSD)}
                   </td>
                   <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-amber-700 dark:text-amber-400">
-                    ${aud.totalRevenueUSD.toFixed(2)}
+                    {fmt(aud.totalRevenueUSD)}
                   </td>
                   <td className="py-3 px-3 text-center">
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">

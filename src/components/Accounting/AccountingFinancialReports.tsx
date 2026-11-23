@@ -398,20 +398,20 @@ export const AccountingFinancialReports: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
                 <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900">
                   <div className="text-[10px] text-emerald-700 dark:text-emerald-300">Settled</div>
-                  <div className="font-bold text-emerald-800 dark:text-emerald-200">
-                    ${reconciliation.totalSettledUSD.toFixed(2)}
+                  <div className="font-bold text-emerald-800 dark:text-emerald-200 tabular-nums">
+                    {formatCurrency(convertPrice(reconciliation.totalSettledUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                   </div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900">
                   <div className="text-[10px] text-amber-700 dark:text-amber-300">Pending Auth</div>
-                  <div className="font-bold text-amber-800 dark:text-amber-200">
-                    ${reconciliation.totalPendingUSD.toFixed(2)}
+                  <div className="font-bold text-amber-800 dark:text-amber-200 tabular-nums">
+                    {formatCurrency(convertPrice(reconciliation.totalPendingUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                   </div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900">
                   <div className="text-[10px] text-rose-700 dark:text-rose-300">Refunds</div>
-                  <div className="font-bold text-rose-800 dark:text-rose-200">
-                    ${reconciliation.totalRefundedUSD.toFixed(2)}
+                  <div className="font-bold text-rose-800 dark:text-rose-200 tabular-nums">
+                    {formatCurrency(convertPrice(reconciliation.totalRefundedUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                   </div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
@@ -534,8 +534,8 @@ export const AccountingFinancialReports: React.FC = () => {
             <h4 className="font-serif font-bold text-sm text-stone-900 dark:text-stone-50">
               Recorded Operating Expenses ({data.expenses.length})
             </h4>
-            <span className="text-xs font-mono text-rose-600 font-bold">
-              Total: -${data.expensesUSD.toFixed(2)}
+            <span className="text-xs font-mono text-rose-600 font-bold tabular-nums">
+              Total: -{formatCurrency(convertPrice(data.expensesUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
             </span>
           </div>
           {data.expenses.length === 0 ? (
@@ -553,7 +553,9 @@ export const AccountingFinancialReports: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-mono font-bold text-rose-600">-${Number(exp.amountUSD).toFixed(2)}</span>
+                    <span className="font-mono font-bold text-rose-600 tabular-nums">
+                      -{formatCurrency(convertPrice(Number(exp.amountUSD), currentCurrency, themeConfig.exchangeRates), currentCurrency)}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleDeleteExpense(exp.id)}
@@ -595,7 +597,7 @@ export const AccountingFinancialReports: React.FC = () => {
               <tr>
                 <th className="py-2 px-3">Invoice #</th>
                 <th className="py-2 px-3">Guest / Room</th>
-                <th className="py-2 px-3 text-right">Total (USD)</th>
+                <th className="py-2 px-3 text-right">Total ({currentCurrency})</th>
                 <th className="py-2 px-3 text-center">IRD Status</th>
                 <th className="py-2 px-3 text-right">Action</th>
               </tr>
@@ -611,7 +613,9 @@ export const AccountingFinancialReports: React.FC = () => {
                     <td className="py-2.5 px-3 text-stone-600 dark:text-stone-300">
                       {inv.guestName} · {inv.roomNumber}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono">${inv.grandTotalUSD.toFixed(2)}</td>
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums">
+                      {formatCurrency(convertPrice(inv.grandTotalUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
+                    </td>
                     <td className="py-2.5 px-3 text-center">
                       {latestLog?.status === 'submitted' ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">

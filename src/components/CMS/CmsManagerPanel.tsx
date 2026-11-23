@@ -17,6 +17,7 @@ import {
   BedDouble,
   Check,
   Coins,
+  Download,
   Edit3,
   Eye,
   EyeOff,
@@ -71,7 +72,7 @@ const CTA_ACTION_OPTIONS: { value: HeroCtaAction; label: string }[] = [
   { value: 'booking_modal', label: 'Open Reservation / Booking Modal' },
   { value: 'guest_portal', label: 'Open In-House Guest Room Portal' },
   { value: 'scroll_rooms', label: 'Scroll to Rooms & 2D Floor Plan' },
-  { value: 'scroll_dining', label: 'Scroll to Rooftop Dining' },
+  { value: 'scroll_dining', label: 'Scroll to Ground-Floor Dining' },
   { value: 'scroll_amenities', label: 'Scroll to Amenities & Facilities' },
   { value: 'scroll_heritage', label: 'Scroll to Heritage Story' },
   { value: 'scroll_location', label: 'Scroll to Neighborhood Map Guide' },
@@ -1004,7 +1005,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
                 >
                   <option value="rooms">Scroll to Rooms &amp; Suites</option>
                   <option value="booking_modal">Open Reservation Modal</option>
-                  <option value="dining">Scroll to Rooftop Dining</option>
+                  <option value="dining">Scroll to Ground-Floor Dining</option>
                 </select>
               </div>
               <div>
@@ -1089,6 +1090,34 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
               <Sparkles className="w-3.5 h-3.5" />
               <span>Preset: Bright Himalayan Gold</span>
             </button>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 p-1.5 flex items-center justify-center shrink-0">
+                <img
+                  src="./kamal-hotel-logo.png"
+                  alt="Hotel Kamal PNG Logo"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div>
+                <div className="font-bold text-stone-900 dark:text-stone-100">
+                  Official Hotel Kamal Brand Emblem (PNG)
+                </div>
+                <p className="text-[11px] text-stone-500">
+                  High-resolution 1024×1024 transparent-ready PNG emblem for print invoices, signage, and partner listings.
+                </p>
+              </div>
+            </div>
+            <a
+              href="./kamal-hotel-logo.png"
+              download="kamal-hotel-logo.png"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 dark:bg-amber-600 dark:hover:bg-amber-700 text-white text-xs font-semibold whitespace-nowrap shrink-0"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download Logo (PNG)</span>
+            </a>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1451,7 +1480,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
                 { key: 'enableWeatherWidget' as const, label: 'Live Kathmandu Weather' },
                 { key: 'showHighlightsSection' as const, label: '4 Highlights Strip' },
                 { key: 'showRoomsSection' as const, label: 'Rooms & 2D Floor Plan' },
-                { key: 'showAmenitiesSection' as const, label: 'Amenities & Rooftop Dining' },
+                { key: 'showAmenitiesSection' as const, label: 'Amenities & Ground-Floor Dining' },
                 { key: 'showHeritageSection' as const, label: 'Heritage Story' },
                 { key: 'showReviewsSection' as const, label: 'Guest Reviews' },
                 { key: 'enableNeighborhoodGuide' as const, label: 'Neighborhood Map Guide' },
@@ -1549,7 +1578,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
             />
           </div>
 
-          {/* Rooms Copy & Rooftop Dining Teaser */}
+          {/* Rooms Copy & Ground-Floor Dining Teaser */}
           <div className="space-y-4 p-5 rounded-xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
             <h4 className="text-sm font-serif font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
               <Utensils className="w-4 h-4 text-amber-700" />

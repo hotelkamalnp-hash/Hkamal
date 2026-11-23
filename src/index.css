@@ -101,10 +101,54 @@
   background: rgba(160, 140, 120, 0.5);
 }
 
+/* Visible horizontal slider scrollbar for overflowing menus & tab strips */
+.kamal-slider-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 104, 46, 0.55) rgba(214, 205, 192, 0.35);
+}
+.kamal-slider-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.kamal-slider-scroll::-webkit-scrollbar-track {
+  background: rgba(214, 205, 192, 0.35);
+  border-radius: 9999px;
+}
+.dark .kamal-slider-scroll::-webkit-scrollbar-track {
+  background: rgba(68, 64, 60, 0.45);
+}
+.kamal-slider-scroll::-webkit-scrollbar-thumb {
+  background: rgba(150, 104, 46, 0.6);
+  border-radius: 9999px;
+}
+.kamal-slider-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 104, 46, 0.85);
+}
+
 /* ==========================================================================
    ISOLATED HIGH-FIDELITY PRINT ENGINE (HOTEL INVOICES & FOLIOS)
    ========================================================================== */
+#kamal-print-root {
+  display: none;
+}
+
 @media print {
+  /* When printElement() triggers isolated print, hide EVERYTHING except #kamal-print-root */
+  body.kamal-print-mode > *:not(#kamal-print-root) {
+    display: none !important;
+  }
+
+  body.kamal-print-mode #kamal-print-root {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    overflow: visible !important;
+  }
+
   /* Reset document for clean full-page printing */
   html, body {
     background: #ffffff !important;
@@ -159,7 +203,8 @@
   #printable-voucher-area,
   #printable-keycard-area,
   #printable-digital-keycard,
-  #printable-lost-found-slip {
+  #printable-lost-found-slip,
+  #kamal-print-root > * {
     position: static !important;
     display: block !important;
     width: 100% !important;
@@ -178,7 +223,8 @@
   #printable-voucher-area *,
   #printable-keycard-area *,
   #printable-digital-keycard *,
-  #printable-lost-found-slip * {
+  #printable-lost-found-slip *,
+  #kamal-print-root * {
     visibility: visible !important;
   }
 

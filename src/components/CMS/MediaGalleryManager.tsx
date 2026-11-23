@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Eye
 } from 'lucide-react';
+import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
 
 interface ImagePreset {
   id: string;
@@ -38,7 +39,7 @@ const PRESET_LIBRARY: ImagePreset[] = [
     name: 'Kamal Boutique Himalayan Heritage Facade',
     category: 'hero',
     url: './assets/images/hero_himalayan_boutique_1793983309553.jpg',
-    description: 'Heritage Newari carved woodwork, warm lanterns, and snowy Himalayan mountain ridge at twilight',
+    description: 'Heritage Nepali carved woodwork, warm lanterns, and snowy Himalayan mountain ridge at twilight',
   },
   {
     id: 'hero-kathmandu-terrace',
@@ -49,17 +50,17 @@ const PRESET_LIBRARY: ImagePreset[] = [
   },
   {
     id: 'rooftop-candlelight-dining',
-    name: 'Kamal Candlelit Rooftop Terrace & Bar',
+    name: 'Kamal Candlelit Ground-Floor Terrace & Bar',
     category: 'rooftop',
     url: './assets/images/rooftop_candlelight_dining_1793983310740.jpg',
-    description: 'Atmospheric candlelit dining overlooking Kathmandu valley lights and mountain silhouettes',
+    description: 'Atmospheric candlelit dining overlooking Kathmandu garden lights and Himalayan ambiance',
   },
   {
     id: 'rooftop-terrace-garden',
-    name: 'Terrace Garden Pergola',
+    name: 'Ground-Floor Terrace Garden Pergola',
     category: 'rooftop',
     url: './assets/images/rooftop_dining_terrace_1793848750868.jpg',
-    description: 'Panoramic open-air dining with ambient bistro lights and lush highland planters',
+    description: 'Open-air ground-floor dining with ambient bistro lights and lush highland planters',
   },
   {
     id: 'suite-himalayan-deluxe',
@@ -73,7 +74,7 @@ const PRESET_LIBRARY: ImagePreset[] = [
     name: 'Presidential Penthouse & Stone Tub Suite',
     category: 'room',
     url: './assets/images/suite_presidential_living_1793983311442.jpg',
-    description: 'Newari carved lattice salon with freestanding stone soaking tub and panoramic Boudha/valley views',
+    description: 'Nepali carved lattice salon with freestanding stone soaking tub and panoramic Boudha/valley views',
   },
 ];
 
@@ -247,7 +248,7 @@ export const MediaGalleryManager: React.FC = () => {
 
   const handleApplyRooftop = () => {
     updateThemeConfig({ rooftopDiningImage: rooftopInput.trim() });
-    showToast('Rooftop Picture Updated', 'Rooftop garden dining picture updated live!', 'success');
+    showToast('Dining Picture Updated', 'Ground-floor garden dining picture updated live!', 'success');
   };
 
   const handleApplyRoomPhoto = () => {
@@ -269,7 +270,7 @@ export const MediaGalleryManager: React.FC = () => {
     } else if (preset.category === 'rooftop') {
       setRooftopInput(preset.url);
       updateThemeConfig({ rooftopDiningImage: preset.url });
-      showToast('Rooftop Image Applied', `Set to "${preset.name}"`, 'success');
+      showToast('Dining Image Applied', `Set to "${preset.name}"`, 'success');
     } else if (preset.category === 'room' && selectedRoomId) {
       setRoomImageInput(preset.url);
       updateRoom(selectedRoomId, { images: [preset.url] });
@@ -294,7 +295,7 @@ export const MediaGalleryManager: React.FC = () => {
               Website Pictures, Hero Banners & Media CMS
             </h2>
             <p className="text-xs text-stone-500 mt-0.5">
-              Super Admin can change, upload, or link high-resolution photos for the website hero, rooftop restaurant, and room suites with live preview and Save publishing.
+              Super Admin can change, upload, or link high-resolution photos for the website hero, ground-floor restaurant, and room suites with live preview and Save publishing.
             </p>
           </div>
 
@@ -305,27 +306,31 @@ export const MediaGalleryManager: React.FC = () => {
           </div>
         </div>
 
-        {/* Section Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto mt-6 pt-6 border-t border-stone-100 dark:border-stone-800">
-          {[
-            { id: 'hero', label: '1. Hero Banner Photo', icon: <Building2 className="w-4 h-4" /> },
-            { id: 'rooftop', label: '2. Rooftop Dining Photo', icon: <Utensils className="w-4 h-4" /> },
-            { id: 'rooms', label: '3. Room Suite Photos', icon: <BedDouble className="w-4 h-4" /> },
-            { id: 'presets', label: 'Curated Himalayan Presets', icon: <Sparkles className="w-4 h-4" /> },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-amber-800 text-white shadow-xs'
-                  : 'bg-stone-50 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100'
-              }`}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
+        {/* Section Tabs Slider */}
+        <div className="mt-6 pt-6 border-t border-stone-100 dark:border-stone-800">
+          <HorizontalTabSlider scrollStep={240} ariaLabel="Media CMS Sections">
+            <div className="flex items-center gap-2 w-max py-0.5">
+              {[
+                { id: 'hero', label: '1. Hero Banner Photo', icon: <Building2 className="w-4 h-4" /> },
+                { id: 'rooftop', label: '2. Ground-Floor Dining Photo', icon: <Utensils className="w-4 h-4" /> },
+                { id: 'rooms', label: '3. Room Suite Photos', icon: <BedDouble className="w-4 h-4" /> },
+                { id: 'presets', label: 'Curated Himalayan Presets', icon: <Sparkles className="w-4 h-4" /> },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'bg-amber-800 text-white shadow-xs'
+                      : 'bg-stone-50 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100'
+                  }`}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </HorizontalTabSlider>
         </div>
       </div>
 
@@ -525,16 +530,16 @@ export const MediaGalleryManager: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: ROOFTOP DINING */}
+      {/* TAB 2: GROUND-FLOOR DINING */}
       {activeTab === 'rooftop' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 p-6 shadow-sm">
           <div className="lg:col-span-6 space-y-4">
             <div className="space-y-1">
               <h3 className="font-serif font-bold text-lg text-stone-900 dark:text-stone-100">
-                Rooftop Garden Dining Feature Photo
+                Ground-Floor Garden Dining Feature Photo
               </h3>
               <p className="text-xs text-stone-500">
-                Featured across the rooftop dining teaser section and in-room dining portal.
+                Featured across the ground-floor dining teaser section and in-room dining portal.
               </p>
             </div>
 
@@ -557,7 +562,7 @@ export const MediaGalleryManager: React.FC = () => {
                 className={`px-5 py-2.5 rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-2 ${themeClasses.primary}`}
               >
                 <Check className="w-4 h-4" />
-                <span>Save & Update Rooftop Photo</span>
+                <span>Save &amp; Update Dining Photo</span>
               </button>
 
               <button
@@ -575,7 +580,7 @@ export const MediaGalleryManager: React.FC = () => {
             <div className="flex items-center justify-between text-xs font-semibold text-stone-600 dark:text-stone-300">
               <span className="flex items-center gap-1.5">
                 <Eye className="w-3.5 h-3.5 text-amber-600" />
-                <span>Live Rooftop Preview</span>
+                <span>Live Ground-Floor Dining Preview</span>
               </span>
               <span className="font-mono text-[10px] text-stone-400">4:3 Aspect Ratio</span>
             </div>
@@ -583,14 +588,14 @@ export const MediaGalleryManager: React.FC = () => {
             <div className="relative aspect-4/3 rounded-xl overflow-hidden border border-stone-200 dark:border-stone-800 shadow-md group">
               <img
                 src={rooftopInput}
-                alt="Rooftop Dining Preview"
+                alt="Ground-Floor Dining Preview"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = './assets/images/rooftop_dining_terrace_1793848750868.jpg';
                 }}
               />
               <div className="absolute inset-0 bg-linear-to-t from-stone-950/80 via-transparent to-transparent flex flex-col justify-end p-4 text-white">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400">Rooftop Garden Bar</span>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400">Ground-Floor Garden Bar</span>
                 <h4 className="font-serif font-bold text-base">{themeConfig.rooftopTeaserHeadline}</h4>
               </div>
             </div>

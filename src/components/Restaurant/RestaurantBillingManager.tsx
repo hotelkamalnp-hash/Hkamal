@@ -24,6 +24,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { ModalDismissButton, useModalDismiss } from '../Common/ModalDismissHandler';
+import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
 
 export const RestaurantBillingManager: React.FC = () => {
   const { 
@@ -256,13 +257,13 @@ export const RestaurantBillingManager: React.FC = () => {
                       {ord.items.map((it, idx) => (
                         <div key={idx} className="flex justify-between">
                           <span>{it.quantity}x {it.name}</span>
-                          <span>{formatCurrency(convertPrice(it.unitPriceUSD * it.quantity, currentCurrency), currentCurrency)}</span>
+                          <span>{formatCurrency(convertPrice(it.unitPriceUSD * it.quantity, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
                         </div>
                       ))}
                     </div>
 
                     <div className="flex justify-between text-[11px] text-stone-500 font-mono">
-                      <span>Total: {formatCurrency(convertPrice(ord.totalAmountUSD, currentCurrency), currentCurrency)}</span>
+                      <span>Total: {formatCurrency(convertPrice(ord.totalAmountUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
                       <span>Mode: {ord.paymentMode.replace(/_/g, ' ')}</span>
                     </div>
                   </div>
@@ -315,21 +316,23 @@ export const RestaurantBillingManager: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Menu Selection (Left 2 columns) */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                    selectedCategory === cat
-                      ? 'bg-amber-800 text-white'
-                      : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            <HorizontalTabSlider scrollStep={240} ariaLabel="Restaurant Menu Categories">
+              <div className="flex gap-2 w-max py-0.5">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                      selectedCategory === cat
+                        ? 'bg-amber-800 text-white'
+                        : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </HorizontalTabSlider>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {filteredMenu.map((dish) => (
@@ -343,7 +346,7 @@ export const RestaurantBillingManager: React.FC = () => {
                         {dish.name}
                       </span>
                       <span className="font-mono font-bold text-amber-700 dark:text-amber-400 text-xs">
-                        {formatCurrency(convertPrice(dish.priceUSD, currentCurrency), currentCurrency)}
+                        {formatCurrency(convertPrice(dish.priceUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                       </span>
                     </div>
 
@@ -434,7 +437,7 @@ export const RestaurantBillingManager: React.FC = () => {
                     <div>
                       <div className="font-semibold text-stone-900 dark:text-stone-100">{c.item.name}</div>
                       <div className="text-[10px] text-stone-400 font-mono">
-                        {formatCurrency(convertPrice(c.item.priceUSD, currentCurrency), currentCurrency)} each
+                        {formatCurrency(convertPrice(c.item.priceUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)} each
                       </div>
                     </div>
 
@@ -458,19 +461,19 @@ export const RestaurantBillingManager: React.FC = () => {
               <div className="space-y-1.5 pt-3 border-t font-mono text-xs">
                 <div className="flex justify-between text-stone-500">
                   <span>Subtotal:</span>
-                  <span>{formatCurrency(convertPrice(cartSubtotalUSD, currentCurrency), currentCurrency)}</span>
+                  <span>{formatCurrency(convertPrice(cartSubtotalUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
                 </div>
                 <div className="flex justify-between text-stone-500">
                   <span>Service Charge (10%):</span>
-                  <span>+{formatCurrency(convertPrice(cartServiceChargeUSD, currentCurrency), currentCurrency)}</span>
+                  <span>+{formatCurrency(convertPrice(cartServiceChargeUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
                 </div>
                 <div className="flex justify-between text-stone-500">
                   <span>VAT (13%):</span>
-                  <span>+{formatCurrency(convertPrice(cartTaxUSD, currentCurrency), currentCurrency)}</span>
+                  <span>+{formatCurrency(convertPrice(cartTaxUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold font-sans text-stone-900 dark:text-stone-100 pt-1 border-t">
                   <span>Total Order:</span>
-                  <span>{formatCurrency(convertPrice(cartTotalUSD, currentCurrency), currentCurrency)}</span>
+                  <span>{formatCurrency(convertPrice(cartTotalUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
                 </div>
 
                 <button
@@ -513,7 +516,7 @@ export const RestaurantBillingManager: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-2.5 px-3 font-mono font-bold text-stone-900 dark:text-stone-100">
-                      {formatCurrency(convertPrice(dish.priceUSD, currentCurrency), currentCurrency)}
+                      {formatCurrency(convertPrice(dish.priceUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                       {currentCurrency !== 'USD' && (
                         <span className="text-[10px] text-stone-400 font-normal ml-1.5 font-mono">
                           (Base: ${dish.priceUSD})

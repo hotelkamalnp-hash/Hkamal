@@ -21,6 +21,11 @@ import {
   UserCheck
 } from 'lucide-react';
 import { useModalDismiss, ModalDismissButton } from '../Common/ModalDismissHandler';
+import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
+import { convertPrice, formatCurrency } from '../../utils/theme';
+
+const normalizeRoomToken = (val?: string | null): string =>
+  (val || '').replace(/^room\s+/i, '').trim().toLowerCase();
 
 export const HousekeepingManager: React.FC = () => {
   const { 
@@ -37,6 +42,8 @@ export const HousekeepingManager: React.FC = () => {
     addAuditLog,
     reportMaintenanceIssue,
     roomServiceRequests,
+    themeConfig,
+    currentCurrency,
     updateRoomServiceRequestStatus
   } = useHotel();
 
@@ -110,8 +117,9 @@ export const HousekeepingManager: React.FC = () => {
 
     const totalUSD = consumed.reduce((acc, i) => acc + i.priceUSD, 0);
 
-    // Find invoice matching room
-    const matchingInv = invoices.find((inv) => inv.roomNumber.includes(minibarRoom));
+    // Find invoice matching room strictly (prevents '10' matching '101')
+    const targetRoom = normalizeRoomToken(minibarRoom);
+    const matchingInv = invoices.find((inv) => normalizeRoomToken(inv.roomNumber) === targetRoom);
     if (matchingInv) {
       const newLine = {
         id: 'li-minibar-' + Date.now(),
@@ -143,8 +151,12 @@ export const HousekeepingManager: React.FC = () => {
         paymentStatus: balanceDueUSD > 0 ? 'pending' : 'paid',
       });
 
-      showToast('Minibar Billed', `$${totalUSD.toFixed(2)} charged to Room ${minibarRoom} folio.`, 'success');
-      addAuditLog('Minibar Billed', 'payment', `Minibar $${totalUSD.toFixed(2)} charged to Room ${minibarRoom}`);
+      const displayTotal = formatCurrency(
+        convertPrice(totalUSD, currentCurrency, themeConfig.exchangeRates),
+        currentCurrency
+      );
+      showToast('Minibar Billed', `${displayTotal} charged to Room ${minibarRoom} folio.`, 'success');
+      addAuditLog('Minibar Billed', 'payment', `Minibar ${displayTotal} charged to Room ${minibarRoom}`);
       // Reset consumed
       setMinibarItems((prev) => prev.map((i) => ({ ...i, consumed: false })));
     } else {
@@ -224,53 +236,57 @@ export const HousekeepingManager: React.FC = () => {
         </div>
       )}
 
-      {/* Sub Tabs */}
-      <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-900 p-1 rounded-lg border border-stone-200 dark:border-stone-800 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveTab('rooms_grid')}
-          className={`px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
-            activeTab === 'rooms_grid'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400'
-          }`}
-        >
-          Room Turnaround Grid
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('room_service_queue')}
-          className={`px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center gap-1.5 tabular-nums ${
-            activeTab === 'room_service_queue'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400'
-          }`}
-        >
-          <ConciergeBell className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-          <span>Room Service Requests ({activeRoomServiceRequests.length})</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('minibar_audit')}
-          className={`px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
-            activeTab === 'minibar_audit'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400'
-          }`}
-        >
-          Minibar Audit & Auto-Billing
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('lost_found')}
-          className={`px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
-            activeTab === 'lost_found'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400'
-          }`}
-        >
-          Lost & Found Vault ({lostAndFound.length})
-        </button>
+      {/* Sub Tabs Slider */}
+      <div className="bg-stone-100 dark:bg-stone-900 p-1 rounded-lg border border-stone-200 dark:border-stone-800">
+        <HorizontalTabSlider scrollStep={240} ariaLabel="Housekeeping Sections">
+          <div className="flex items-center gap-1 w-max">
+            <button
+              type="button"
+              onClick={() => setActiveTab('rooms_grid')}
+              className={`px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                activeTab === 'rooms_grid'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400'
+              }`}
+            >
+              Room Turnaround Grid
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('room_service_queue')}
+              className={`px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 inline-flex items-center gap-1.5 tabular-nums ${
+                activeTab === 'room_service_queue'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400'
+              }`}
+            >
+              <ConciergeBell className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>Room Service Requests ({activeRoomServiceRequests.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('minibar_audit')}
+              className={`px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                activeTab === 'minibar_audit'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400'
+              }`}
+            >
+              Minibar Audit & Auto-Billing
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('lost_found')}
+              className={`px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                activeTab === 'lost_found'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400'
+              }`}
+            >
+              Lost & Found Vault ({lostAndFound.length})
+            </button>
+          </div>
+        </HorizontalTabSlider>
       </div>
 
       {/* Tab 1: Room Turnaround Grid */}
@@ -722,8 +738,8 @@ export const HousekeepingManager: React.FC = () => {
                   />
                   <span className="font-medium text-stone-800 dark:text-stone-200">{item.name}</span>
                 </div>
-                <span className="font-mono font-bold text-stone-900 dark:text-stone-100">
-                  ${item.priceUSD.toFixed(2)}
+                <span className="font-mono font-bold tabular-nums text-stone-900 dark:text-stone-100">
+                  {formatCurrency(convertPrice(item.priceUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                 </span>
               </label>
             ))}

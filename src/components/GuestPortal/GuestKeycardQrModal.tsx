@@ -198,7 +198,7 @@ export const GuestKeycardQrModal: React.FC<GuestKeycardQrModalProps> = ({ sessio
                 <div className="text-[11px] text-stone-600 space-y-1">
                   <p className="flex items-center gap-1.5 font-medium">
                     <Utensils className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Order Room Dining & Rooftop Grill</span>
+                    <span>Order Room Dining &amp; Ground-Floor Grill</span>
                   </p>
                   <p className="flex items-center gap-1.5 font-medium">
                     <Phone className="w-3.5 h-3.5 text-amber-700" />

@@ -17,6 +17,7 @@ import {
   Boxes
 } from 'lucide-react';
 import { ModalDismissButton, useModalDismiss } from '../Common/ModalDismissHandler';
+import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
 
 export const InventoryStockManager: React.FC = () => {
   const { 
@@ -161,7 +162,7 @@ export const InventoryStockManager: React.FC = () => {
             <Package className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-bold font-serif text-emerald-700 dark:text-emerald-400 mt-1">
-            {formatCurrency(convertPrice(totalAssetValuationUSD, currentCurrency), currentCurrency)}
+            {formatCurrency(convertPrice(totalAssetValuationUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
           </div>
           <div className="text-[11px] text-stone-400 mt-1">Estimated asset value</div>
         </div>
@@ -205,22 +206,24 @@ export const InventoryStockManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Category Pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1 text-xs">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition-colors ${
-              selectedCategory === cat
-                ? 'bg-amber-800 text-white'
-                : 'bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-300'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
+      {/* Category Pills Slider */}
+      <HorizontalTabSlider scrollStep={240} ariaLabel="Inventory Categories">
+        <div className="flex gap-2 w-max py-0.5 text-xs">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition-colors cursor-pointer ${
+                selectedCategory === cat
+                  ? 'bg-amber-800 text-white'
+                  : 'bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-300'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </HorizontalTabSlider>
 
       {/* Stock Table */}
       <div className="bg-white dark:bg-stone-900 rounded-xl border border-stone-200 dark:border-stone-800 overflow-hidden shadow-sm">
@@ -273,8 +276,8 @@ export const InventoryStockManager: React.FC = () => {
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-3 font-mono text-stone-800 dark:text-stone-200">
-                      ${item.costPerUnitUSD} / {item.unit}
+                    <td className="py-3 px-3 font-mono tabular-nums text-stone-800 dark:text-stone-200">
+                      {formatCurrency(convertPrice(item.costPerUnitUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)} / {item.unit}
                     </td>
                     <td className="py-3 px-3 text-stone-500 text-[11px]">
                       {item.location}

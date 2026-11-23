@@ -36,8 +36,18 @@ import {
 import { InvoicePrintModal } from '../Billing/InvoicePrintModal';
 import { GuestKeycardQrModal } from '../GuestPortal/GuestKeycardQrModal';
 import { useModalDismiss, ModalDismissButton } from '../Common/ModalDismissHandler';
+import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
 import { RoomHeatmapWidget } from './RoomHeatmapWidget';
 import { WakeUpCallFrontDeskPanel } from './WakeUpCallFrontDeskPanel';
+
+const normalizeRoomNumberToken = (val?: string): string =>
+  (val || '').trim().toLowerCase().replace(/^room\s+/i, '').trim();
+
+const isSameRoomNumber = (a?: string, b?: string): boolean => {
+  const na = normalizeRoomNumberToken(a);
+  const nb = normalizeRoomNumberToken(b);
+  return Boolean(na && nb && na === nb);
+};
 
 export const ReceptionDesk: React.FC = () => {
   useRenderTracker('ReceptionDesk');
@@ -260,9 +270,7 @@ export const ReceptionDesk: React.FC = () => {
     if (!targetRoomForCharge || chargeAmountUSD <= 0) return;
 
     // Find invoice for this room
-    const matchingInv = invoices.find(
-      (inv) => inv.roomNumber.toLowerCase().includes(targetRoomForCharge.toLowerCase())
-    );
+    const matchingInv = invoices.find((inv) => isSameRoomNumber(inv.roomNumber, targetRoomForCharge));
 
     if (matchingInv) {
       const newLine = {
@@ -295,8 +303,12 @@ export const ReceptionDesk: React.FC = () => {
         paymentStatus: balance > 0 ? 'pending' : 'paid',
       });
 
+      const formattedCharge = formatCurrency(
+        convertPrice(chargeAmountUSD, currentCurrency, themeConfig.exchangeRates),
+        currentCurrency
+      );
       addAuditLog('Incidental Charged', 'payment', `Posted $${chargeAmountUSD} (${chargeDescription}) to Room ${targetRoomForCharge}`);
-      showToast('Charge Posted', `$${chargeAmountUSD} billed to Room ${targetRoomForCharge}.`);
+      showToast('Charge Posted', `${formattedCharge} billed to Room ${targetRoomForCharge}.`);
     } else {
       showToast('Error', `No active invoice found for Room ${targetRoomForCharge}.`, 'error');
     }
@@ -305,7 +317,7 @@ export const ReceptionDesk: React.FC = () => {
   };
 
   const handleCheckoutGuest = (roomNumber: string) => {
-    const inv = invoices.find((i) => i.roomNumber.includes(roomNumber));
+    const inv = invoices.find((i) => isSameRoomNumber(i.roomNumber, roomNumber));
     if (inv && inv.balanceDueUSD > 0) {
       setPendingCheckoutModal({ roomNumber, invoice: inv });
       return;
@@ -376,7 +388,7 @@ export const ReceptionDesk: React.FC = () => {
     }
     updateBookingStatus(b.id, 'checked-in');
     const existingSession = guestSessions.find(
-      (s) => s.bookingCode === b.bookingCode || (targetRoomNum && s.roomNumber.includes(targetRoomNum))
+      (s) => s.bookingCode === b.bookingCode || (targetRoomNum && isSameRoomNumber(s.roomNumber, targetRoomNum))
     );
     if (existingSession) {
       setSelectedSessionForQr(existingSession);
@@ -558,99 +570,103 @@ export const ReceptionDesk: React.FC = () => {
       )}
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-900 p-1 rounded-lg border border-stone-200 dark:border-stone-800 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setActiveSubTab('rooms_grid')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
-            activeSubTab === 'rooms_grid'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
-          }`}
-        >
-          <BedDouble className="w-3.5 h-3.5" />
-          <span>Room Grid ({roomUnits.length})</span>
-        </button>
+      <div className="bg-stone-100 dark:bg-stone-900 p-1.5 rounded-lg border border-stone-200 dark:border-stone-800">
+        <HorizontalTabSlider scrollStep={240} ariaLabel="Front Desk Sections">
+          <div className="flex items-center gap-1 w-max">
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('rooms_grid')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                activeSubTab === 'rooms_grid'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
+              }`}
+            >
+              <BedDouble className="w-3.5 h-3.5" />
+              <span>Room Grid ({roomUnits.length})</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveSubTab('arrivals')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
-            activeSubTab === 'arrivals'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
-          }`}
-        >
-          <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-          <span className="tabular-nums">
-            Reservations &amp; Arrivals ({pendingArrivals.length} pending / {bookings.length})
-          </span>
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('arrivals')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                activeSubTab === 'arrivals'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="tabular-nums">
+                Reservations &amp; Arrivals ({pendingArrivals.length} pending / {bookings.length})
+              </span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveSubTab('heatmap')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
-            activeSubTab === 'heatmap'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-          <span>Occupancy &amp; Maintenance Heatmap</span>
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('heatmap')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                activeSubTab === 'heatmap'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Occupancy &amp; Maintenance Heatmap</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveSubTab('walkin_checkin')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer ${
-            activeSubTab === 'walkin_checkin'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
-          }`}
-        >
-          <UserCheck className="w-3.5 h-3.5" />
-          <span>Walk-In Registration (GRC)</span>
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('walkin_checkin')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                activeSubTab === 'walkin_checkin'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
+              }`}
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Walk-In Registration (GRC)</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveSubTab('in_house_folios')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer ${
-            activeSubTab === 'in_house_folios'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
-          }`}
-        >
-          <Receipt className="w-3.5 h-3.5" />
-          <span>Guest Folios & Tax Invoices ({invoices.length})</span>
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('in_house_folios')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                activeSubTab === 'in_house_folios'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
+              }`}
+            >
+              <Receipt className="w-3.5 h-3.5" />
+              <span>Guest Folios & Tax Invoices ({invoices.length})</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveSubTab('wake_up_calls')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
-            activeSubTab === 'wake_up_calls'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
-          }`}
-        >
-          <AlarmClock className="w-3.5 h-3.5 text-amber-600" />
-          <span className="tabular-nums">Wake-Up Calls ({pendingWakeUpCalls.length})</span>
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('wake_up_calls')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                activeSubTab === 'wake_up_calls'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
+              }`}
+            >
+              <AlarmClock className="w-3.5 h-3.5 text-amber-600" />
+              <span className="tabular-nums">Wake-Up Calls ({pendingWakeUpCalls.length})</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveSubTab('shift_handover')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer ${
-            activeSubTab === 'shift_handover'
-              ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
-              : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
-          }`}
-        >
-          <FileText className="w-3.5 h-3.5" />
-          <span>Shift Logs & Drawer ({shiftHandovers.length})</span>
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('shift_handover')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                activeSubTab === 'shift_handover'
+                  ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-600 dark:text-stone-400 hover:text-stone-900'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Shift Logs & Drawer ({shiftHandovers.length})</span>
+            </button>
+          </div>
+        </HorizontalTabSlider>
       </div>
 
       {/* Subtab: Expected Arrivals & Online Guest Reservations */}
@@ -772,9 +788,29 @@ export const ReceptionDesk: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3 px-3 align-top">
-                          <div className="font-serif font-bold text-stone-900 dark:text-stone-100 tabular-nums">
-                            {formatCurrency(b.totalAmount, b.currency)}
-                          </div>
+                          {(() => {
+                            const amountInUSD =
+                              b.currency === 'NPR'
+                                ? b.totalAmount / (themeConfig.exchangeRates?.NPR || 135)
+                                : b.currency === 'INR'
+                                ? b.totalAmount / (themeConfig.exchangeRates?.INR || 84)
+                                : b.totalAmount;
+                            return (
+                              <>
+                                <div className="font-serif font-bold text-stone-900 dark:text-stone-100 tabular-nums">
+                                  {formatCurrency(
+                                    convertPrice(amountInUSD, currentCurrency, themeConfig.exchangeRates),
+                                    currentCurrency
+                                  )}
+                                </div>
+                                {b.currency !== currentCurrency && (
+                                  <div className="text-[10px] text-stone-400 font-mono">
+                                    Booked: {formatCurrency(b.totalAmount, b.currency)}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                           <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300">
                             {b.paymentStatus} · {b.paymentMethod}
                           </span>
@@ -893,8 +929,8 @@ export const ReceptionDesk: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {roomUnits.map((u) => {
-              const session = guestSessions.find((s) => s.roomNumber.includes(u.roomNumber));
-              const matchingInvoice = invoices.find((inv) => inv.roomNumber.includes(u.roomNumber));
+              const session = guestSessions.find((s) => isSameRoomNumber(s.roomNumber, u.roomNumber));
+              const matchingInvoice = invoices.find((inv) => isSameRoomNumber(inv.roomNumber, u.roomNumber));
 
               const cleanColor =
                 u.cleanStatus === 'clean'
@@ -957,7 +993,7 @@ export const ReceptionDesk: React.FC = () => {
                           <div className="text-[11px] text-stone-500 font-mono flex items-center justify-between">
                             <span>Balance Due:</span>
                             <span className="font-bold text-stone-800 dark:text-stone-200">
-                              ${matchingInvoice.balanceDueUSD.toFixed(2)}
+                              {formatCurrency(convertPrice(matchingInvoice.balanceDueUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                             </span>
                           </div>
                         )}
@@ -1063,7 +1099,7 @@ export const ReceptionDesk: React.FC = () => {
                     <Crown className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div>
                       <div className="font-bold text-amber-950 dark:text-amber-100">
-                        VIP Match Detected: {matchedVip.guestName} ({matchedVip.staysCount} stays · ${matchedVip.lifetimeSpendUSD.toLocaleString()} LTV)
+                        VIP Match Detected: {matchedVip.guestName} ({matchedVip.staysCount} stays · {formatCurrency(convertPrice(matchedVip.lifetimeSpendUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)} LTV)
                       </div>
                       <div className="text-amber-900 dark:text-amber-300 mt-0.5">
                         {matchedVip.alertMessage || matchedVip.preferences}
@@ -1267,7 +1303,7 @@ export const ReceptionDesk: React.FC = () => {
                   <th className="py-2.5 px-3">Invoice #</th>
                   <th className="py-2.5 px-3">Room / Guest</th>
                   <th className="py-2.5 px-3">Item Count</th>
-                  <th className="py-2.5 px-3 text-right">Subtotal</th>
+                  <th className="py-2.5 px-3 text-right">Subtotal ({currentCurrency})</th>
                   <th className="py-2.5 px-3 text-right">10% SC</th>
                   <th className="py-2.5 px-3 text-right">13% VAT</th>
                   <th className="py-2.5 px-3 text-right">Grand Total</th>
@@ -1276,7 +1312,10 @@ export const ReceptionDesk: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
-                {invoices.map((inv) => (
+                {invoices.map((inv) => {
+                  const fmtInv = (usd: number) =>
+                    formatCurrency(convertPrice(usd, currentCurrency, themeConfig.exchangeRates), currentCurrency);
+                  return (
                   <tr key={inv.id} className="hover:bg-stone-50 dark:hover:bg-stone-800/50">
                     <td className="py-3 px-3 font-mono text-[11px] font-semibold text-amber-700 dark:text-amber-400">
                       {inv.invoiceNumber}
@@ -1289,20 +1328,20 @@ export const ReceptionDesk: React.FC = () => {
                       {inv.items.length} items
                     </td>
                     <td className="py-3 px-3 text-right font-mono tabular-nums">
-                      ${inv.subtotalUSD.toFixed(2)}
+                      {fmtInv(inv.subtotalUSD)}
                     </td>
                     <td className="py-3 px-3 text-right font-mono tabular-nums text-stone-500">
-                      ${inv.serviceChargeAmountUSD.toFixed(2)}
+                      {fmtInv(inv.serviceChargeAmountUSD)}
                     </td>
                     <td className="py-3 px-3 text-right font-mono tabular-nums text-stone-500">
-                      ${inv.taxAmountUSD.toFixed(2)}
+                      {fmtInv(inv.taxAmountUSD)}
                     </td>
                     <td className="py-3 px-3 text-right font-mono tabular-nums font-bold text-stone-900 dark:text-stone-100">
-                      ${inv.grandTotalUSD.toFixed(2)}
+                      {fmtInv(inv.grandTotalUSD)}
                     </td>
                     <td className="py-3 px-3 text-right font-mono tabular-nums">
                       <span className={`font-bold ${inv.balanceDueUSD > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-600'}`}>
-                        ${inv.balanceDueUSD.toFixed(2)}
+                        {fmtInv(inv.balanceDueUSD)}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-center">
@@ -1329,7 +1368,8 @@ export const ReceptionDesk: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1379,7 +1419,16 @@ export const ReceptionDesk: React.FC = () => {
                   <div>
                     <span className="text-stone-500">Cash in Drawer: </span>
                     <span className="font-mono font-bold text-stone-900 dark:text-stone-100">
-                      NPR {sh.cashInDrawerNPR.toLocaleString()}
+                      {currentCurrency === 'NPR'
+                        ? `NPR ${sh.cashInDrawerNPR.toLocaleString()}`
+                        : formatCurrency(
+                            convertPrice(
+                              sh.cashInDrawerNPR / (themeConfig.exchangeRates?.NPR || 135),
+                              currentCurrency,
+                              themeConfig.exchangeRates
+                            ),
+                            currentCurrency
+                          )}
                     </span>
                   </div>
                   <div>
@@ -1647,7 +1696,10 @@ export const ReceptionDesk: React.FC = () => {
                 Invoice <span className="font-mono font-bold text-stone-900 dark:text-stone-100">{pendingCheckoutModal.invoice.invoiceNumber}</span> for{' '}
                 <span className="font-semibold text-stone-900 dark:text-stone-100">{pendingCheckoutModal.invoice.guestName}</span> has a pending balance of{' '}
                 <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
-                  ${pendingCheckoutModal.invoice.balanceDueUSD.toFixed(2)} USD
+                  {formatCurrency(
+                    convertPrice(pendingCheckoutModal.invoice.balanceDueUSD, currentCurrency, themeConfig.exchangeRates),
+                    currentCurrency
+                  )}
                 </span>.
               </p>
               <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-800">

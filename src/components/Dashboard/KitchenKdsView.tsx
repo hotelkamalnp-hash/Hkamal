@@ -14,6 +14,7 @@ import {
   RotateCw,
   Sparkles
 } from 'lucide-react';
+import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
 
 export const KitchenKdsView: React.FC = () => {
   const { 
@@ -22,6 +23,7 @@ export const KitchenKdsView: React.FC = () => {
     menuItems, 
     updateMenuItem,
     activeUser,
+    themeConfig,
     currentCurrency,
     showToast
   } = useHotel();
@@ -127,7 +129,7 @@ export const KitchenKdsView: React.FC = () => {
               >
                 <div className="truncate">
                   <div className="font-semibold text-stone-900 dark:text-stone-100 truncate">{dish.name}</div>
-                  <div className="text-[10px] text-stone-500 font-mono">{formatCurrency(convertPrice(dish.priceUSD, currentCurrency), currentCurrency)}</div>
+                  <div className="text-[10px] text-stone-500 font-mono">{formatCurrency(convertPrice(dish.priceUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</div>
                 </div>
                 <button
                   type="button"
@@ -146,56 +148,58 @@ export const KitchenKdsView: React.FC = () => {
         </div>
       )}
 
-      {/* Filter Tabs & Kitchen Counters */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        <button
-          type="button"
-          onClick={() => setActiveFilter('all')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
-            activeFilter === 'all'
-              ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
-              : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400'
-          }`}
-        >
-          <span>All Active ({pendingOrders.length + preparingOrders.length + readyOrders.length})</span>
-        </button>
+      {/* Filter Tabs & Kitchen Counters Slider */}
+      <HorizontalTabSlider scrollStep={220} ariaLabel="Kitchen Queue Filters">
+        <div className="flex items-center gap-2 w-max py-0.5">
+          <button
+            type="button"
+            onClick={() => setActiveFilter('all')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
+              activeFilter === 'all'
+                ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
+                : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400'
+            }`}
+          >
+            <span>All Active ({pendingOrders.length + preparingOrders.length + readyOrders.length})</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveFilter('pending')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
-            activeFilter === 'pending'
-              ? 'bg-blue-600 text-white'
-              : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300'
-          }`}
-        >
-          <span>New Orders ({pendingOrders.length})</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('pending')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
+              activeFilter === 'pending'
+                ? 'bg-blue-600 text-white'
+                : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300'
+            }`}
+          >
+            <span>New Orders ({pendingOrders.length})</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveFilter('preparing')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
-            activeFilter === 'preparing'
-              ? 'bg-amber-600 text-white'
-              : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
-          }`}
-        >
-          <span>In Cooking ({preparingOrders.length})</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('preparing')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
+              activeFilter === 'preparing'
+                ? 'bg-amber-600 text-white'
+                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+            }`}
+          >
+            <span>In Cooking ({preparingOrders.length})</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveFilter('ready')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
-            activeFilter === 'ready'
-              ? 'bg-emerald-600 text-white'
-              : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-          }`}
-        >
-          <span>Ready to Serve ({readyOrders.length})</span>
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('ready')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
+              activeFilter === 'ready'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+            }`}
+          >
+            <span>Ready to Serve ({readyOrders.length})</span>
+          </button>
+        </div>
+      </HorizontalTabSlider>
 
       {/* KDS Ticket Cards Grid */}
       {filteredOrders.length === 0 ? (

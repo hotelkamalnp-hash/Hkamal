@@ -24,6 +24,7 @@ import {
   MapPin,
   BellRing
 } from 'lucide-react';
+import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
 
 export const WaiterPosView: React.FC = () => {
   const { 
@@ -34,6 +35,7 @@ export const WaiterPosView: React.FC = () => {
     clearTable,
     placeRestaurantOrder, 
     updateOrderStatus,
+    themeConfig,
     currentCurrency,
     activeUser,
     roomUnits,
@@ -260,7 +262,7 @@ export const WaiterPosView: React.FC = () => {
                     {tbl.tableNumber}
                   </div>
                   <div className="text-[10px] text-stone-500 uppercase font-mono">
-                    {tbl.zone} · {tbl.capacity} Pax
+                    {tbl.zone === 'rooftop' ? 'Ground-Floor Garden' : tbl.zone} · {tbl.capacity} Pax
                   </div>
                   <div className="text-[10px] font-semibold capitalize font-mono text-stone-700 dark:text-stone-300">
                     {tbl.status.replace('_', ' ')}
@@ -322,21 +324,25 @@ export const WaiterPosView: React.FC = () => {
         {/* Left 2 Columns: Category & Menu Catalog */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-stone-900 p-4 rounded-xl border border-stone-200 dark:border-stone-800 shadow-sm">
-            <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
-                    selectedCategory === cat
-                      ? 'bg-amber-700 text-white shadow-xs'
-                      : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:text-stone-900'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div className="w-full sm:flex-1 min-w-0">
+              <HorizontalTabSlider scrollStep={220} ariaLabel="Waiter Menu Categories">
+                <div className="flex items-center gap-2 w-max py-0.5">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                        selectedCategory === cat
+                          ? 'bg-amber-700 text-white shadow-xs'
+                          : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:text-stone-900'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </HorizontalTabSlider>
             </div>
 
             <div className="relative w-full sm:w-56">
@@ -378,7 +384,7 @@ export const WaiterPosView: React.FC = () => {
 
                 <div className="mt-3 pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between">
                   <span className="font-mono font-bold text-sm text-stone-900 dark:text-stone-100">
-                    {formatCurrency(convertPrice(dish.priceUSD, currentCurrency), currentCurrency)}
+                    {formatCurrency(convertPrice(dish.priceUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                   </span>
                   {dish.available ? (
                     <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400">
@@ -432,7 +438,7 @@ export const WaiterPosView: React.FC = () => {
                   >
                     <div className="flex items-center justify-between font-semibold text-stone-900 dark:text-stone-100">
                       <span>{c.item.name}</span>
-                      <span className="font-mono">{formatCurrency(convertPrice(c.item.priceUSD * c.quantity, currentCurrency), currentCurrency)}</span>
+                      <span className="font-mono">{formatCurrency(convertPrice(c.item.priceUSD * c.quantity, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
                     </div>
 
                     {/* Quantity & Spice Controls */}
@@ -497,20 +503,20 @@ export const WaiterPosView: React.FC = () => {
           <div className="pt-4 border-t border-stone-200 dark:border-stone-800 space-y-2 text-xs">
             <div className="flex justify-between text-stone-600 dark:text-stone-400 font-mono">
               <span>Items Subtotal:</span>
-              <span className="tabular-nums">{formatCurrency(convertPrice(cartSubtotalUSD, currentCurrency), currentCurrency)}</span>
+              <span className="tabular-nums">{formatCurrency(convertPrice(cartSubtotalUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
             </div>
             <div className="flex justify-between text-stone-600 dark:text-stone-400 font-mono">
               <span>10% Service Charge:</span>
-              <span className="tabular-nums">{formatCurrency(convertPrice(cartServiceChargeUSD, currentCurrency), currentCurrency)}</span>
+              <span className="tabular-nums">{formatCurrency(convertPrice(cartServiceChargeUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
             </div>
             <div className="flex justify-between text-stone-600 dark:text-stone-400 font-mono">
               <span>13% Nepal VAT:</span>
-              <span className="tabular-nums">{formatCurrency(convertPrice(cartVatUSD, currentCurrency), currentCurrency)}</span>
+              <span className="tabular-nums">{formatCurrency(convertPrice(cartVatUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
             </div>
             <div className="flex justify-between text-stone-900 dark:text-stone-100 font-serif font-bold text-sm pt-1 border-t border-stone-100 dark:border-stone-800">
               <span>Grand Total:</span>
               <span className="font-mono tabular-nums text-amber-700 dark:text-amber-400">
-                {formatCurrency(convertPrice(cartTotalUSD, currentCurrency), currentCurrency)}
+                {formatCurrency(convertPrice(cartTotalUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
               </span>
             </div>
 
@@ -570,14 +576,14 @@ export const WaiterPosView: React.FC = () => {
                 {ord.items.map((i, idx) => (
                   <div key={idx} className="flex justify-between">
                     <span>{i.quantity}x {i.name}</span>
-                    <span className="font-mono">{formatCurrency(convertPrice(i.unitPriceUSD * i.quantity, currentCurrency), currentCurrency)}</span>
+                    <span className="font-mono">{formatCurrency(convertPrice(i.unitPriceUSD * i.quantity, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
                   </div>
                 ))}
               </div>
 
               <div className="pt-2 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between font-mono">
                 <span className="text-stone-500">Total Bill:</span>
-                <span className="font-bold text-stone-900 dark:text-stone-100">{formatCurrency(convertPrice(ord.totalAmountUSD, currentCurrency), currentCurrency)}</span>
+                <span className="font-bold text-stone-900 dark:text-stone-100">{formatCurrency(convertPrice(ord.totalAmountUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
               </div>
 
               {ord.status === 'ready_for_delivery' && (

@@ -40,7 +40,8 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
   onMarkPaid,
   onUpdateInvoice
 }) => {
-  const { themeConfig } = useHotel();
+  const { themeConfig, setCurrentCurrency } = useHotel();
+  const [activeCurrency, setActiveCurrency] = useState<CurrencyCode>(currency);
   const [invoice, setInvoice] = useState<MasterInvoice>(initialInvoice);
   const [showAdjustments, setShowAdjustments] = useState(false);
   const [discountPercent, setDiscountPercent] = useState<number>(initialInvoice.discountPercent || 0);
@@ -49,16 +50,27 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
   const [printStatusNotice, setPrintStatusNotice] = useState<string | null>(null);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
+  React.useEffect(() => {
+    setActiveCurrency(currency);
+  }, [currency]);
+
+  React.useEffect(() => {
+    setInvoice(initialInvoice);
+  }, [initialInvoice]);
+
+  const fmtMoney = (usdAmount: number) =>
+    formatCurrency(convertPrice(usdAmount, activeCurrency, themeConfig.exchangeRates), activeCurrency);
+
   useModalDismiss({
     isOpen: true,
     onClose,
   });
 
   const handlePrint = () => {
-    setPrintStatusNotice('Opening print dialog...');
+    setPrintStatusNotice('Opening isolated invoice print dialog...');
     const ok = printElement('printable-invoice-area', `Invoice_${invoice.invoiceNumber}`);
     if (ok) {
-      setPrintStatusNotice('Print dialog dispatched. You can also download a genuine PDF copy.');
+      setPrintStatusNotice('Print dialog dispatched for invoice only. You can also save a PDF copy.');
     } else {
       setPrintStatusNotice('Direct print unavailable in this window. Downloading PDF invoice...');
       handleDownloadPdf();
@@ -67,8 +79,8 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
   };
 
   const handleDownloadPdf = () => {
-    downloadInvoicePdf(invoice, billSettings, currency, themeConfig.exchangeRates);
-    setPrintStatusNotice(`Downloaded PDF: Kamal_Hotel_Invoice_${invoice.invoiceNumber}.pdf`);
+    downloadInvoicePdf(invoice, billSettings, activeCurrency, themeConfig.exchangeRates);
+    setPrintStatusNotice(`Downloaded PDF (${activeCurrency}): Kamal_Hotel_Invoice_${invoice.invoiceNumber}.pdf`);
     setTimeout(() => setPrintStatusNotice(null), 5000);
   };
 
@@ -192,6 +204,31 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
           </div>
 
           <div className="flex items-center flex-wrap gap-2">
+            {/* Live Currency Selector for Print & PDF */}
+            <div
+              className="inline-flex items-center rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 p-0.5 text-[11px] font-mono"
+              role="group"
+              aria-label="Invoice Print Currency"
+            >
+              {(['NPR', 'INR', 'USD'] as CurrencyCode[]).map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => {
+                    setActiveCurrency(code);
+                    setCurrentCurrency(code);
+                  }}
+                  className={`px-2 py-1 rounded-md font-semibold transition cursor-pointer ${
+                    activeCurrency === code
+                      ? 'bg-amber-700 text-white shadow-xs'
+                      : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+                  }`}
+                >
+                  {code}
+                </button>
+              ))}
+            </div>
+
             {/* Pre-Print Adjustment Toggle */}
             <button
               onClick={() => setShowAdjustments(!showAdjustments)}
@@ -219,7 +256,7 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
             <button
               onClick={handlePrint}
               className="px-3.5 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition-colors cursor-pointer"
-              title="Send to physical printer or browser print dialog"
+              title="Print invoice document only"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Invoice</span>
@@ -228,7 +265,7 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
             <button
               onClick={handleDownloadPdf}
               className="px-3.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-900 text-white text-xs font-semibold flex items-center gap-1.5 shadow transition-colors cursor-pointer"
-              title="Download standalone file with auto-print & save as PDF capability"
+              title="Save official invoice as PDF"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Save / Download PDF</span>
@@ -355,7 +392,7 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                       {it.quantity}x {it.description}
                     </span>
                     <span className="font-mono font-bold text-amber-800 dark:text-amber-400">
-                      ${it.amountUSD.toFixed(2)}
+                      {fmtMoney(it.amountUSD)}
                     </span>
                     {invoice.items.length > 1 && (
                       <button
@@ -445,8 +482,8 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                     <th className="py-2.5 px-3">Service / Particulars</th>
                     <th className="py-2.5 px-2 text-center">Category</th>
                     <th className="py-2.5 px-2 text-center">Qty</th>
-                    <th className="py-2.5 px-3 text-right">Rate ({currency})</th>
-                    <th className="py-2.5 px-3 text-right">Amount ({currency})</th>
+                    <th className="py-2.5 px-3 text-right">Rate ({activeCurrency})</th>
+                    <th className="py-2.5 px-3 text-right">Amount ({activeCurrency})</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-amber-900/10">
@@ -461,10 +498,10 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                       </td>
                       <td className="py-2.5 px-2 text-center font-mono">{item.quantity}</td>
                       <td className="py-2.5 px-3 text-right font-mono">
-                        {formatCurrency(convertPrice(item.rateUSD, currency), currency)}
+                        {fmtMoney(item.rateUSD)}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono font-bold text-stone-900">
-                        {formatCurrency(convertPrice(item.amountUSD, currency), currency)}
+                        {fmtMoney(item.amountUSD)}
                       </td>
                     </tr>
                   ))}
@@ -481,39 +518,39 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                 <div className="w-full sm:w-72 space-y-1.5 text-xs font-mono bg-amber-50/60 p-4 rounded-lg border border-amber-900/10">
                   <div className="flex justify-between text-stone-600">
                     <span>Subtotal:</span>
-                    <span>{formatCurrency(convertPrice(invoice.subtotalUSD, currency), currency)}</span>
+                    <span>{fmtMoney(invoice.subtotalUSD)}</span>
                   </div>
 
                   {invoice.discountAmountUSD > 0 && (
                     <div className="flex justify-between text-rose-700 font-semibold">
                       <span>Discount ({invoice.discountPercent}%):</span>
-                      <span>-{formatCurrency(convertPrice(invoice.discountAmountUSD, currency), currency)}</span>
+                      <span>-{fmtMoney(invoice.discountAmountUSD)}</span>
                     </div>
                   )}
 
                   <div className="flex justify-between text-stone-600">
                     <span>{billSettings.serviceChargeLabel || 'Service Charge'} ({invoice.serviceChargePercent}%):</span>
-                    <span>+{formatCurrency(convertPrice(invoice.serviceChargeAmountUSD, currency), currency)}</span>
+                    <span>+{fmtMoney(invoice.serviceChargeAmountUSD)}</span>
                   </div>
 
                   <div className="flex justify-between text-stone-600">
                     <span>{billSettings.taxLabel || 'VAT'} ({invoice.taxPercent}%):</span>
-                    <span>+{formatCurrency(convertPrice(invoice.taxAmountUSD, currency), currency)}</span>
+                    <span>+{fmtMoney(invoice.taxAmountUSD)}</span>
                   </div>
 
                   <div className="flex justify-between text-base font-bold font-sans text-amber-950 pt-2 border-t-2 border-amber-900/30">
-                    <span>Grand Total:</span>
-                    <span>{formatCurrency(convertPrice(invoice.grandTotalUSD, currency), currency)}</span>
+                    <span>Grand Total ({activeCurrency}):</span>
+                    <span>{fmtMoney(invoice.grandTotalUSD)}</span>
                   </div>
 
                   <div className="flex justify-between text-stone-600 pt-1 text-[11px]">
                     <span>Amount Paid:</span>
-                    <span>{formatCurrency(convertPrice(invoice.amountPaidUSD, currency), currency)}</span>
+                    <span>{fmtMoney(invoice.amountPaidUSD)}</span>
                   </div>
 
                   <div className="flex justify-between font-bold text-amber-900 pt-1 border-t border-amber-900/10">
                     <span>Balance Due:</span>
-                    <span>{formatCurrency(convertPrice(invoice.balanceDueUSD, currency), currency)}</span>
+                    <span>{fmtMoney(invoice.balanceDueUSD)}</span>
                   </div>
                 </div>
               </div>
@@ -588,8 +625,8 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                   <tr>
                     <th className="py-2 px-3">Item Description</th>
                     <th className="py-2 px-2 text-center">Qty</th>
-                    <th className="py-2 px-3 text-right">Price</th>
-                    <th className="py-2 px-3 text-right">Total</th>
+                    <th className="py-2 px-3 text-right">Price ({activeCurrency})</th>
+                    <th className="py-2 px-3 text-right">Total ({activeCurrency})</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
@@ -598,10 +635,10 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                       <td className="py-3 px-3 font-medium text-stone-900">{i.description}</td>
                       <td className="py-3 px-2 text-center font-mono">{i.quantity}</td>
                       <td className="py-3 px-3 text-right font-mono">
-                        {formatCurrency(convertPrice(i.rateUSD, currency), currency)}
+                        {fmtMoney(i.rateUSD)}
                       </td>
                       <td className="py-3 px-3 text-right font-mono font-bold">
-                        {formatCurrency(convertPrice(i.amountUSD, currency), currency)}
+                        {fmtMoney(i.amountUSD)}
                       </td>
                     </tr>
                   ))}
@@ -613,25 +650,25 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                 <div className="w-64 space-y-1.5 text-xs font-mono">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>{formatCurrency(convertPrice(invoice.subtotalUSD, currency), currency)}</span>
+                    <span>{fmtMoney(invoice.subtotalUSD)}</span>
                   </div>
                   {invoice.discountAmountUSD > 0 && (
                     <div className="flex justify-between text-rose-600">
                       <span>Discount:</span>
-                      <span>-{formatCurrency(convertPrice(invoice.discountAmountUSD, currency), currency)}</span>
+                      <span>-{fmtMoney(invoice.discountAmountUSD)}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
                     <span>{billSettings.serviceChargeLabel || 'Service'} ({invoice.serviceChargePercent}%):</span>
-                    <span>+{formatCurrency(convertPrice(invoice.serviceChargeAmountUSD, currency), currency)}</span>
+                    <span>+{fmtMoney(invoice.serviceChargeAmountUSD)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>{billSettings.taxLabel || 'Tax'} ({invoice.taxPercent}%):</span>
-                    <span>+{formatCurrency(convertPrice(invoice.taxAmountUSD, currency), currency)}</span>
+                    <span>+{fmtMoney(invoice.taxAmountUSD)}</span>
                   </div>
                   <div className="flex justify-between text-sm font-bold font-sans pt-2 border-t-2 border-stone-900 text-stone-900">
-                    <span>Total Amount:</span>
-                    <span>{formatCurrency(convertPrice(invoice.grandTotalUSD, currency), currency)}</span>
+                    <span>Total Amount ({activeCurrency}):</span>
+                    <span>{fmtMoney(invoice.grandTotalUSD)}</span>
                   </div>
                 </div>
               </div>
@@ -667,16 +704,16 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                       <div className="text-[10px] text-stone-400 font-mono">Qty: {it.quantity}</div>
                     </div>
                     <div className="font-mono font-medium">
-                      {formatCurrency(convertPrice(it.amountUSD, currency), currency)}
+                      {fmtMoney(it.amountUSD)}
                     </div>
                   </div>
                 ))}
               </div>
 
               <div className="pt-4 border-t border-stone-200 space-y-1 text-xs text-right font-mono">
-                <div>Total Tax & Service: +{formatCurrency(convertPrice(invoice.taxAmountUSD + invoice.serviceChargeAmountUSD, currency), currency)}</div>
+                <div>Total Tax & Service: +{fmtMoney(invoice.taxAmountUSD + invoice.serviceChargeAmountUSD)}</div>
                 <div className="text-base font-bold text-stone-900 pt-1">
-                  Due: {formatCurrency(convertPrice(invoice.grandTotalUSD, currency), currency)}
+                  Due ({activeCurrency}): {fmtMoney(invoice.grandTotalUSD)}
                 </div>
               </div>
             </div>
@@ -691,10 +728,10 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                     <img src={billSettings.hotelLogoUrl} alt="Logo" className="w-14 h-14 object-contain rounded" />
                   )}
                   <div>
-                    <h2 className="font-serif text-2xl font-bold text-rose-950 tracking-wider">
-                      KAMAL HOTEL LUXURY RESIDENCE
+                    <h2 className="font-serif text-2xl font-bold text-rose-950 tracking-wider uppercase">
+                      {billSettings.hotelLegalName || themeConfig.hotelName}
                     </h2>
-                    <p className="text-xs text-rose-900/70">Kamalpokhari Heritage District, Kathmandu</p>
+                    <p className="text-xs text-rose-900/70">{billSettings.addressLine || 'Kamalpokhari Heritage District, Kathmandu'}</p>
                   </div>
                 </div>
                 <div className="text-right font-mono text-xs">
@@ -709,7 +746,7 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                   <tr>
                     <th className="py-2.5 px-3 text-left">Description</th>
                     <th className="py-2.5 px-2 text-center">Quantity</th>
-                    <th className="py-2.5 px-3 text-right">Amount ({currency})</th>
+                    <th className="py-2.5 px-3 text-right">Amount ({activeCurrency})</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-rose-950/10">
@@ -718,7 +755,7 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                       <td className="py-2.5 px-3 font-medium text-stone-900">{item.description}</td>
                       <td className="py-2.5 px-2 text-center font-mono">{item.quantity}</td>
                       <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-950">
-                        {formatCurrency(convertPrice(item.amountUSD, currency), currency)}
+                        {fmtMoney(item.amountUSD)}
                       </td>
                     </tr>
                   ))}
@@ -729,19 +766,19 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                 <div className="w-72 space-y-1.5 text-xs font-mono bg-rose-50/50 p-4 rounded-lg border border-rose-900/20">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>{formatCurrency(convertPrice(invoice.subtotalUSD, currency), currency)}</span>
+                    <span>{fmtMoney(invoice.subtotalUSD)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>{billSettings.serviceChargeLabel || 'Service'} ({invoice.serviceChargePercent}%):</span>
-                    <span>+{formatCurrency(convertPrice(invoice.serviceChargeAmountUSD, currency), currency)}</span>
+                    <span>+{fmtMoney(invoice.serviceChargeAmountUSD)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>{billSettings.taxLabel || 'VAT'} ({invoice.taxPercent}%):</span>
-                    <span>+{formatCurrency(convertPrice(invoice.taxAmountUSD, currency), currency)}</span>
+                    <span>+{fmtMoney(invoice.taxAmountUSD)}</span>
                   </div>
                   <div className="flex justify-between text-base font-bold font-serif text-rose-950 pt-2 border-t border-rose-900/20">
-                    <span>Grand Total:</span>
-                    <span>{formatCurrency(convertPrice(invoice.grandTotalUSD, currency), currency)}</span>
+                    <span>Grand Total ({activeCurrency}):</span>
+                    <span>{fmtMoney(invoice.grandTotalUSD)}</span>
                   </div>
                 </div>
               </div>
@@ -768,7 +805,7 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
                 {invoice.items.map((it, idx) => (
                   <div key={idx} className="flex justify-between">
                     <span className="truncate max-w-[180px]">{it.quantity}x {it.description}</span>
-                    <span className="font-bold">{formatCurrency(convertPrice(it.amountUSD, currency), currency)}</span>
+                    <span className="font-bold">{fmtMoney(it.amountUSD)}</span>
                   </div>
                 ))}
               </div>
@@ -776,19 +813,19 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({
               <div className="space-y-1 text-[11px]">
                 <div className="flex justify-between">
                   <span>SUBTOTAL:</span>
-                  <span>{formatCurrency(convertPrice(invoice.subtotalUSD, currency), currency)}</span>
+                  <span>{fmtMoney(invoice.subtotalUSD)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>{billSettings.serviceChargeLabel || 'SVC'} ({invoice.serviceChargePercent}%):</span>
-                  <span>+{formatCurrency(convertPrice(invoice.serviceChargeAmountUSD, currency), currency)}</span>
+                  <span>+{fmtMoney(invoice.serviceChargeAmountUSD)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>{billSettings.taxLabel || 'VAT'} ({invoice.taxPercent}%):</span>
-                  <span>+{formatCurrency(convertPrice(invoice.taxAmountUSD, currency), currency)}</span>
+                  <span>+{fmtMoney(invoice.taxAmountUSD)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-sm pt-1 border-t border-dashed border-stone-400">
-                  <span>TOTAL:</span>
-                  <span>{formatCurrency(convertPrice(invoice.grandTotalUSD, currency), currency)}</span>
+                  <span>TOTAL ({activeCurrency}):</span>
+                  <span>{fmtMoney(invoice.grandTotalUSD)}</span>
                 </div>
               </div>
 

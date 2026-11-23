@@ -14,6 +14,7 @@ import {
   Check,
   LogOut
 } from 'lucide-react';
+import { HorizontalTabSlider } from './HorizontalTabSlider';
 
 interface RoleSwitcherBarProps {
   currentView: 'guest' | 'dashboard' | 'in_room_guest';
@@ -157,31 +158,35 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
           </span>
         </div>
 
-        {/* 1-Click Role Segmented Switcher */}
-        <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-1 md:pb-0 scrollbar-none">
-          {rolesConfig.map((r) => {
-            const isSelected =
-              (r.id === 'guest' && currentView === 'guest') ||
-              (activeRole === r.id && currentView === 'dashboard');
+        {/* 1-Click Role Segmented Switcher Slider */}
+        <div className="max-w-full flex-1 min-w-0">
+          <HorizontalTabSlider scrollStep={200} ariaLabel="Staff Role Switcher">
+            <div className="flex items-center gap-1 w-max py-0.5">
+              {rolesConfig.map((r) => {
+                const isSelected =
+                  (r.id === 'guest' && currentView === 'guest') ||
+                  (activeRole === r.id && currentView === 'dashboard');
 
-            return (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => handleRoleSelect(r)}
-                title={r.description}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-all whitespace-nowrap cursor-pointer ${
-                  isSelected
-                    ? 'bg-amber-600 text-white shadow font-semibold'
-                    : 'text-stone-300 hover:text-white hover:bg-stone-800'
-                }`}
-              >
-                {r.icon}
-                <span>{r.label}</span>
-                {isSelected && <Check className="w-3 h-3 text-white ml-0.5" />}
-              </button>
-            );
-          })}
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => handleRoleSelect(r)}
+                    title={r.description}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-all whitespace-nowrap cursor-pointer ${
+                      isSelected
+                        ? 'bg-amber-600 text-white shadow font-semibold'
+                        : 'text-stone-300 hover:text-white hover:bg-stone-800'
+                    }`}
+                  >
+                    {r.icon}
+                    <span>{r.label}</span>
+                    {isSelected && <Check className="w-3 h-3 text-white ml-0.5" />}
+                  </button>
+                );
+              })}
+            </div>
+          </HorizontalTabSlider>
         </div>
 
         {/* Fast Action Tools */}

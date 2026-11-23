@@ -86,6 +86,7 @@ import { StaffGuestIntercom } from '../Intercom/StaffGuestIntercom';
 import { MediaGalleryManager } from '../CMS/MediaGalleryManager';
 import { CmsManagerPanel } from '../CMS/CmsManagerPanel';
 import { ModalDismissButton, useModalDismiss } from '../Common/ModalDismissHandler';
+import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
 import { ReceptionDesk } from './ReceptionDesk';
 import { WaiterPosView } from './WaiterPosView';
 import { KitchenKdsView } from './KitchenKdsView';
@@ -131,6 +132,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
     activeRole,
     activeUser,
     currentCurrency,
+    setCurrentCurrency,
     updateBookingStatus,
     updateThemeConfig,
     addRoom,
@@ -278,6 +280,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
   const [editingReview, setEditingReview] = useState<GuestReview | null>(null);
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
   const [editingStaffMember, setEditingStaffMember] = useState<StaffUser | null>(null);
+  const [pendingDeleteRoomId, setPendingDeleteRoomId] = useState<string | null>(null);
 
   // Modal dismiss bindings (ESC key & body scroll lock)
   useModalDismiss(isAddRoomOpen, () => { setIsAddRoomOpen(false); setEditingRoom(null); });
@@ -301,9 +304,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
   const occupiedRooms = totalRoomsCount - totalAvailableRooms;
   const occupancyRate = totalRoomsCount > 0 ? Math.round((occupiedRooms / totalRoomsCount) * 100) : 0;
   
-  const totalRevenue = bookings
+  const totalRevenueUSD = bookings
     .filter((b) => b.paymentStatus === 'paid')
-    .reduce((acc, b) => acc + b.totalAmount, 0);
+    .reduce((acc, b) => {
+      if (b.currency === 'NPR') return acc + b.totalAmount / (themeConfig.exchangeRates?.NPR || 135);
+      if (b.currency === 'INR') return acc + b.totalAmount / (themeConfig.exchangeRates?.INR || 84);
+      return acc + b.totalAmount;
+    }, 0);
+  const totalRevenue = convertPrice(totalRevenueUSD, currentCurrency, themeConfig.exchangeRates);
 
   const todayCheckIns = bookings.filter((b) => b.bookingStatus === 'confirmed').length;
 
@@ -338,31 +346,35 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
   const handleSaveRoom = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const totalUnits = Math.max(1, Number(formData.get('totalUnits')) || 1);
+    const rawAvail = Number(formData.get('availableUnits'));
+    const availableUnits = Math.min(totalUnits, Math.max(0, Number.isFinite(rawAvail) ? rawAvail : totalUnits));
     const roomData = {
-      name: formData.get('name') as string,
-      slug: (formData.get('name') as string).toLowerCase().replace(/\s+/g, '-'),
+      name: (formData.get('name') as string).trim(),
+      slug: (formData.get('name') as string).trim().toLowerCase().replace(/\s+/g, '-'),
       type: formData.get('type') as any,
-      pricePerNightUSD: Number(formData.get('pricePerNightUSD')),
+      pricePerNightUSD: Math.max(1, Number(formData.get('pricePerNightUSD')) || 1),
       originalPriceUSD: Number(formData.get('originalPriceUSD')) || undefined,
-      maxGuests: Number(formData.get('maxGuests')),
+      maxGuests: Math.max(1, Number(formData.get('maxGuests')) || 2),
       bedType: formData.get('bedType') as string,
-      sizeSqFt: Number(formData.get('sizeSqFt')),
-      view: formData.get('view') as string,
-      floor: formData.get('floor') as string,
-      totalUnits: Number(formData.get('totalUnits')),
-      availableUnits: Number(formData.get('availableUnits')),
-      rating: 4.9,
-      reviewsCount: 12,
+      sizeSqFt: Math.max(80, Number(formData.get('sizeSqFt')) || 240),
+      view: (formData.get('view') as string) || editingRoom?.view || 'Kamalpokhari City View',
+      floor: (formData.get('floor') as string) || editingRoom?.floor || 'Main Building',
+      totalUnits,
+      availableUnits,
+      rating: editingRoom?.rating || 4.9,
+      reviewsCount: editingRoom?.reviewsCount || 12,
       description: formData.get('description') as string,
       images: [
         (formData.get('image') as string) || './assets/images/room_deluxe_suite_1793848735141.jpg',
       ],
-      amenities: (formData.get('amenities') as string).split(',').map((s) => s.trim()),
+      amenities: (formData.get('amenities') as string).split(',').map((s) => s.trim()).filter(Boolean),
     };
 
     if (editingRoom) {
       updateRoom(editingRoom.id, roomData);
       setEditingRoom(null);
+      setIsAddRoomOpen(false);
     } else {
       addRoom(roomData);
       setIsAddRoomOpen(false);
@@ -470,7 +482,29 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Console Global Currency Switcher */}
+            <div
+              role="group"
+              aria-label="Select console display currency"
+              className="flex items-center rounded-lg border border-[#E6DFD3] dark:border-[#342C24] bg-[#FAF7F2] dark:bg-[#0F0D0B] p-0.5 text-xs font-mono"
+            >
+              {(['NPR', 'INR', 'USD'] as CurrencyCode[]).map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setCurrentCurrency(code)}
+                  className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
+                    currentCurrency === code
+                      ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E] shadow-xs'
+                      : 'text-[#6B6258] dark:text-[#AFA699] hover:text-[#1A1714] dark:hover:text-[#F4EFE6]'
+                  }`}
+                >
+                  {code}
+                </button>
+              ))}
+            </div>
+
             <div className="text-right hidden sm:block">
               <div className="text-xs font-semibold text-[#1A1714] dark:text-[#F4EFE6]">
                 {activeUser ? activeUser.name : 'Authorized Staff'}
@@ -612,14 +646,42 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
 
           return (
             <div className="lg:grid lg:grid-cols-[248px_1fr] gap-6 items-start">
-              {/* Unified Responsive Department Navigation (Horizontal strip < lg, Grouped Left Sidebar >= lg) */}
-              <aside className="flex items-center gap-1.5 overflow-x-auto pb-2.5 mb-5 border-b border-[#E6DFD3] dark:border-[#2A241E] lg:block lg:mb-0 lg:bg-white lg:dark:bg-[#171411] lg:rounded-2xl lg:border lg:p-3.5 lg:shadow-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:space-y-4">
+              {/* Mobile/Tablet Horizontal Navigation Slider (< lg) */}
+              <div className="lg:hidden mb-5 pb-2 border-b border-[#E6DFD3] dark:border-[#2A241E]">
+                <HorizontalTabSlider scrollStep={240} ariaLabel="Department Navigation">
+                  <div className="flex items-center gap-1.5 w-max">
+                    {navItems.map((tab) => {
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`whitespace-nowrap shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E] font-semibold shadow-xs'
+                              : 'text-[#5C544B] dark:text-[#C5BCB0] hover:text-[#1A1714] dark:hover:text-[#F4EFE6] hover:bg-[#EFE9DF] dark:hover:bg-[#211B16]'
+                          }`}
+                        >
+                          <span className={isActive ? 'text-[#DFBE88] dark:text-[#14110E]' : 'text-[#96682E] dark:text-[#D4A76A]'}>
+                            {tab.icon}
+                          </span>
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </HorizontalTabSlider>
+              </div>
+
+              {/* Desktop Grouped Left Sidebar (>= lg) */}
+              <aside className="hidden lg:block lg:mb-0 lg:bg-white lg:dark:bg-[#171411] lg:rounded-2xl lg:border lg:border-[#E6DFD3] lg:dark:border-[#2A241E] lg:p-3.5 lg:shadow-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:space-y-4">
                 {groupOrder.map((groupName) => {
                   const groupTabs = navItems.filter((t) => t.group === groupName);
                   if (groupTabs.length === 0) return null;
                   return (
-                    <div key={groupName} className="contents lg:block lg:space-y-1">
-                      <div className="hidden lg:block px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8E8477]">
+                    <div key={groupName} className="lg:block lg:space-y-1">
+                      <div className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8E8477]">
                         {groupName}
                       </div>
                       {groupTabs.map((tab) => {
@@ -627,8 +689,9 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                         return (
                           <button
                             key={tab.id}
+                            type="button"
                             onClick={() => setActiveTab(tab.id)}
-                            className={`whitespace-nowrap shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer lg:w-full lg:gap-2.5 lg:px-3 lg:text-left ${
+                            className={`whitespace-nowrap shrink-0 flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer w-full text-left ${
                               isActive
                                 ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E] font-semibold shadow-xs'
                                 : 'text-[#5C544B] dark:text-[#C5BCB0] hover:text-[#1A1714] dark:hover:text-[#F4EFE6] hover:bg-[#EFE9DF] dark:hover:bg-[#211B16]'
@@ -637,7 +700,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                             <span className={isActive ? 'text-[#DFBE88] dark:text-[#14110E]' : 'text-[#96682E] dark:text-[#D4A76A]'}>
                               {tab.icon}
                             </span>
-                            <span className="lg:truncate">{tab.label}</span>
+                            <span className="truncate">{tab.label}</span>
                           </button>
                         );
                       })}
@@ -1307,22 +1370,47 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                           </span>
                           <div className="flex items-center gap-1">
                             <button
+                              type="button"
                               onClick={() => {
                                 setEditingRoom(room);
+                                setPendingDeleteRoomId(null);
                                 setIsAddRoomOpen(true);
                               }}
-                              className="p-1 text-stone-500 hover:text-stone-900 dark:hover:text-stone-100"
+                              className="p-1 text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 cursor-pointer"
                               title="Edit Room"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              onClick={() => deleteRoom(room.id)}
-                              className="p-1 text-stone-400 hover:text-rose-600"
-                              title="Delete Room"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {pendingDeleteRoomId === room.id ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    deleteRoom(room.id);
+                                    setPendingDeleteRoomId(null);
+                                  }}
+                                  className="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold cursor-pointer"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setPendingDeleteRoomId(null)}
+                                  className="px-1.5 py-0.5 rounded bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-200 text-[10px] cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setPendingDeleteRoomId(room.id)}
+                                className="p-1 text-stone-400 hover:text-rose-600 cursor-pointer"
+                                title="Delete Room"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -1333,9 +1421,14 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                           {room.bedType} · {room.sizeSqFt} sq.ft · {room.view}
                         </div>
 
-                        <div className="pt-2 flex items-center justify-between">
+                        <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
                           <div className="text-xs font-bold text-stone-900 dark:text-stone-100 font-mono">
-                            ${room.pricePerNightUSD} USD · रू {priceInNPR.toLocaleString()} NPR · ₹ {priceInINR.toLocaleString()} INR
+                            <span className="text-amber-700 dark:text-amber-400">
+                              {formatCurrency(convertPrice(room.pricePerNightUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
+                            </span>
+                            <span className="text-[11px] font-normal text-stone-500 ml-1.5">
+                              (${room.pricePerNightUSD} · रू {priceInNPR.toLocaleString()} · ₹ {priceInINR.toLocaleString()})
+                            </span>
                           </div>
                           <div className="text-xs font-mono text-stone-500">
                             Units: {room.availableUnits} / {room.totalUnits}
@@ -1370,7 +1463,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                     <ModalDismissButton onClose={() => { setIsAddRoomOpen(false); setEditingRoom(null); }} ariaLabel="Close Room Specifications" />
                   </div>
 
-                  <form onSubmit={handleSaveRoom} className="p-5 space-y-3.5 text-xs overflow-y-auto flex-1">
+                  <form key={editingRoom?.id || 'new-room'} onSubmit={handleSaveRoom} className="p-5 space-y-3.5 text-xs overflow-y-auto flex-1">
                     <div>
                       <label className="block font-semibold mb-1">Room Name</label>
                       <input

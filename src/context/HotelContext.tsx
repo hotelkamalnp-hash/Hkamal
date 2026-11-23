@@ -1514,32 +1514,116 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const apiBaseUrl = ((import.meta.env.VITE_API_BASE_URL as string) || '').trim().replace(/\/+$/, '');
   const apiUrl = (endpoint: string) => (apiBaseUrl ? `${apiBaseUrl}${endpoint}` : endpoint);
 
+  const normalizeRoomToken = (val?: string): string =>
+    (val || '')
+      .trim()
+      .toLowerCase()
+      .replace(/^room\s+/i, '')
+      .trim();
+
+  const matchesRoomLabel = (label: string | undefined, targetRoomNumber: string): boolean => {
+    const a = normalizeRoomToken(label);
+    const b = normalizeRoomToken(targetRoomNumber);
+    return Boolean(a && b && a === b);
+  };
+
   const persistCollectionItem = (collection: string, id: string, payload: unknown) => {
-    if (!backendAvailableRef.current || !id) return;
-    fetch(apiUrl(`/api/pms/collection/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(payload),
-    }).catch(() => {});
+    if (!id) return;
+    if (backendAvailableRef.current) {
+      fetch(apiUrl(`/api/pms/collection/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+      return;
+    }
+    const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+    if (!client) return;
+    client
+      .from('pms_records')
+      .upsert(
+        {
+          collection,
+          id,
+          data_json: payload,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'collection,id' }
+      )
+      .then(() => {}, () => {});
   };
 
   const removeCollectionItem = (collection: string, id: string) => {
-    if (!backendAvailableRef.current || !id) return;
-    fetch(apiUrl(`/api/pms/collection/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`), {
-      method: 'DELETE',
-      credentials: 'include',
-    }).catch(() => {});
+    if (!id) return;
+    if (backendAvailableRef.current) {
+      fetch(apiUrl(`/api/pms/collection/${encodeURIComponent(collection)}/${encodeURIComponent(id)}`), {
+        method: 'DELETE',
+        credentials: 'include',
+      }).catch(() => {});
+      return;
+    }
+    const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+    if (!client) return;
+    client
+      .from('pms_records')
+      .delete()
+      .eq('collection', collection)
+      .eq('id', id)
+      .then(() => {}, () => {});
   };
 
   const persistSetting = (settingKey: 'theme' | 'bill' | 'floors', payload: unknown) => {
-    if (!backendAvailableRef.current) return;
-    fetch(apiUrl(`/api/pms/settings/${settingKey}`), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(payload),
-    }).catch(() => {});
+    if (backendAvailableRef.current) {
+      fetch(apiUrl(`/api/pms/settings/${settingKey}`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+      return;
+    }
+    const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+    if (!client) return;
+    const kvKey =
+      settingKey === 'theme'
+        ? 'themeConfig'
+        : settingKey === 'bill'
+        ? 'billSettings'
+        : 'floors';
+    const kvValue =
+      settingKey === 'floors' && payload && typeof payload === 'object' && 'floors' in (payload as Record<string, unknown>)
+        ? (payload as { floors: unknown }).floors
+        : payload;
+    client
+      .from('pms_kv_settings')
+      .upsert(
+        {
+          key: kvKey,
+          value: kvValue,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      )
+      .then(() => {}, () => {});
+  };
+
+  const persistBookingDirect = (booking: Booking) => {
+    if (backendAvailableRef.current || !booking?.id) return;
+    const client = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+    if (!client) return;
+    client
+      .from('bookings_store')
+      .upsert(
+        {
+          id: booking.id,
+          booking_code: booking.bookingCode,
+          data_json: booking,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      )
+      .then(() => {}, () => {});
   };
 
   const applySupabaseDirectState = async (includeStaffRecords: boolean) => {
@@ -2542,49 +2626,58 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Free previously assigned room if any
     if (targetBooking.assignedRoomNumber && targetBooking.assignedRoomNumber !== roomNumber) {
       setRoomUnits((prev) =>
-        prev.map((u) =>
-          u.roomNumber === targetBooking.assignedRoomNumber
-            ? { ...u, occupancyStatus: 'vacant', currentGuestName: undefined, currentBookingCode: undefined }
-            : u
-        )
+        prev.map((u) => {
+          if (u.roomNumber === targetBooking.assignedRoomNumber) {
+            const freed = { ...u, occupancyStatus: 'vacant' as const, currentGuestName: undefined, currentBookingCode: undefined };
+            persistCollectionItem('roomUnits', freed.id, freed);
+            return freed;
+          }
+          return u;
+        })
       );
     }
 
     const assignedFloor = targetUnit?.floor || 'Main Building';
+    const updatedBooking: Booking = { ...targetBooking, assignedRoomNumber: roomNumber, assignedFloor };
 
     // Update booking
     setBookings((prev) =>
-      prev.map((b) =>
-        b.id === bookingId
-          ? { ...b, assignedRoomNumber: roomNumber, assignedFloor }
-          : b
-      )
+      prev.map((b) => (b.id === bookingId ? updatedBooking : b))
     );
+    persistBookingDirect(updatedBooking);
 
     // Update room unit
     setRoomUnits((prev) =>
-      prev.map((u) =>
-        u.roomNumber === roomNumber
-          ? {
-              ...u,
-              occupancyStatus: targetBooking.bookingStatus === 'checked-in' ? 'occupied' : 'reserved',
-              currentGuestName: targetBooking.guestName,
-              currentBookingCode: targetBooking.bookingCode,
-            }
-          : u
-      )
+      prev.map((u) => {
+        if (u.roomNumber === roomNumber) {
+          const nextUnit: RoomOperationalUnit = {
+            ...u,
+            occupancyStatus: targetBooking.bookingStatus === 'checked-in' ? 'occupied' : 'reserved',
+            currentGuestName: targetBooking.guestName,
+            currentBookingCode: targetBooking.bookingCode,
+          };
+          persistCollectionItem('roomUnits', nextUnit.id, nextUnit);
+          return nextUnit;
+        }
+        return u;
+      })
     );
 
     // Auto generate/sync guest session passcode and linked invoice room
     const issuedPin = generateNewRoomPasscode(roomNumber, targetBooking.bookingCode, targetBooking.guestName);
 
     setInvoices((prev) =>
-      prev.map((inv) =>
-        inv.bookingCode === targetBooking.bookingCode
-          ? { ...inv, roomNumber: `Room ${roomNumber}` }
-          : inv
-      )
+      prev.map((inv) => {
+        if (inv.bookingCode === targetBooking.bookingCode) {
+          const updatedInv = { ...inv, roomNumber: `Room ${roomNumber}` };
+          persistCollectionItem('invoices', updatedInv.id, updatedInv);
+          return updatedInv;
+        }
+        return inv;
+      })
     );
+
+    persistCollectionItem('guestSessions', roomNumber, issuedPin);
 
     if (backendAvailableRef.current) {
       fetch(`/api/bookings/${encodeURIComponent(bookingId)}/assign-room`, {
@@ -2593,7 +2686,6 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         credentials: 'include',
         body: JSON.stringify({ roomNumber }),
       }).catch(() => {});
-      persistCollectionItem('guestSessions', roomNumber, issuedPin);
     }
 
     dispatchOperationalAlert({
@@ -2671,32 +2763,39 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setBookings((prev) => [newBooking, ...prev]);
+    persistBookingDirect(newBooking);
 
     // If a room unit was assigned, reserve it and create in-house guest session
     if (assignedRoomNumber) {
       setRoomUnits((prev) =>
-        prev.map((u) =>
-          u.roomNumber === assignedRoomNumber
-            ? {
-                ...u,
-                occupancyStatus: 'reserved',
-                currentGuestName: newBooking.guestName,
-                currentBookingCode: bookingCode,
-              }
-            : u
-        )
+        prev.map((u) => {
+          if (u.roomNumber === assignedRoomNumber) {
+            const nextUnit: RoomOperationalUnit = {
+              ...u,
+              occupancyStatus: 'reserved',
+              currentGuestName: newBooking.guestName,
+              currentBookingCode: bookingCode,
+            };
+            persistCollectionItem('roomUnits', nextUnit.id, nextUnit);
+            return nextUnit;
+          }
+          return u;
+        })
       );
-      generateNewRoomPasscode(assignedRoomNumber, bookingCode, newBooking.guestName);
+      const issuedPin = generateNewRoomPasscode(assignedRoomNumber, bookingCode, newBooking.guestName);
+      persistCollectionItem('guestSessions', assignedRoomNumber, issuedPin);
     }
 
     // Decrease room available units
     setRooms((prev) =>
       prev.map((r) => {
         if (r.id === newBooking.roomTypeId) {
-          return {
+          const nextRoom = {
             ...r,
             availableUnits: Math.max(0, r.availableUnits - 1),
           };
+          persistCollectionItem('rooms', nextRoom.id, nextRoom);
+          return nextRoom;
         }
         return r;
       })
@@ -2786,6 +2885,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setInvoices((prev) => [autoInvoice, ...prev]);
+    persistCollectionItem('invoices', autoInvoice.id, autoInvoice);
 
     // Automated Notification Records
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -2936,7 +3036,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setBookings((prev) =>
         prev.map((b) => {
           if (b.id === bookingId) {
-            return { ...b, bookingStatus: status };
+            const nextBooking = { ...b, bookingStatus: status };
+            persistBookingDirect(nextBooking);
+            return nextBooking;
           }
           return b;
         })
@@ -3009,7 +3111,14 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const markBookingEmailSent = (bookingId: string, sent: boolean) => {
     setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, emailSent: sent } : b))
+      prev.map((b) => {
+        if (b.id === bookingId) {
+          const next = { ...b, emailSent: sent };
+          persistBookingDirect(next);
+          return next;
+        }
+        return b;
+      })
     );
   };
 
@@ -3096,7 +3205,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setBookings((prev) =>
       prev.map((b) => {
         if (b.id === bookingId) {
-          return { ...b, paymentStatus: status };
+          const next = { ...b, paymentStatus: status };
+          persistBookingDirect(next);
+          return next;
         }
         return b;
       })
@@ -3114,8 +3225,11 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // CMS Updates
   const updateThemeConfig = (updates: Partial<HotelThemeConfig>) => {
-    setThemeConfig((prev) => ({ ...prev, ...updates }));
-    persistSetting('theme', updates);
+    setThemeConfig((prev) => {
+      const next = { ...prev, ...updates };
+      persistSetting('theme', backendAvailableRef.current ? updates : next);
+      return next;
+    });
     addAuditLog('CMS Configuration Updated', 'cms', `Updated fields: ${Object.keys(updates).join(', ')}`);
     showToast('Settings Saved', 'Landing page content, rates, or theme updated dynamically.');
   };
@@ -3668,13 +3782,15 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setRestaurantTables((prev) =>
         prev.map((t) => {
           if (t.tableNumber === newOrder.tableOrRoomNo || t.id === newOrder.tableOrRoomNo) {
-            return {
+            const nextTable: RestaurantTable = {
               ...t,
               status: 'order_placed',
               currentOrderId: newOrder.id,
               guestName: newOrder.guestName,
               seatedAt: t.seatedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             };
+            persistCollectionItem('tables', nextTable.id, nextTable);
+            return nextTable;
           }
           return t;
         })
@@ -3686,8 +3802,9 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const cleanRoom = newOrder.roomNumber || newOrder.tableOrRoomNo;
       setInvoices((prev) => {
         const existingIdx = prev.findIndex(
-          (inv) => inv.roomNumber.toLowerCase().includes(cleanRoom.toLowerCase()) || 
-                   inv.guestName.toLowerCase() === newOrder.guestName.toLowerCase()
+          (inv) =>
+            matchesRoomLabel(inv.roomNumber, cleanRoom) ||
+            inv.guestName.toLowerCase() === newOrder.guestName.toLowerCase()
         );
 
         const newLineItem: BillItemLine = {
@@ -3723,12 +3840,12 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             balanceDueUSD: balance,
           };
 
+          persistCollectionItem('invoices', updatedInv.id, updatedInv);
           const clone = [...prev];
           clone[existingIdx] = updatedInv;
           return clone;
         } else {
           // Create new invoice for room
-          const disc = 0;
           const sub = newOrder.subtotalUSD;
           const sc = sub * 0.10;
           const vat = (sub + sc) * 0.13;
@@ -3759,6 +3876,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             paymentStatus: 'pending',
             paymentMethod: 'onsite',
           };
+          persistCollectionItem('invoices', createdInv.id, createdInv);
           return [createdInv, ...prev];
         }
       });
@@ -4051,7 +4169,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setRoomUnits((prev) =>
       prev.map((u) => {
         if (u.roomNumber === roomNumber) {
-          return {
+          const nextUnit: RoomOperationalUnit = {
             ...u,
             occupancyStatus: 'occupied',
             cleanStatus: 'clean',
@@ -4059,6 +4177,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             currentBookingCode: bookingCode,
             checkInDate: new Date().toISOString().split('T')[0],
           };
+          persistCollectionItem('roomUnits', nextUnit.id, nextUnit);
+          return nextUnit;
         }
         return u;
       })
@@ -4271,24 +4391,26 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setRoomUnits((prev) =>
       prev.map((u) => {
         if (u.roomNumber === roomNumber) {
-          return {
+          const nextUnit: RoomOperationalUnit = {
             ...u,
             occupancyStatus: 'vacant',
             cleanStatus: 'dirty',
             currentGuestName: undefined,
             currentBookingCode: undefined,
           };
+          persistCollectionItem('roomUnits', nextUnit.id, nextUnit);
+          return nextUnit;
         }
         return u;
       })
     );
 
     if (matchingBooking && matchingBooking.bookingStatus !== 'checked-out') {
+      const checkedOutBooking: Booking = { ...matchingBooking, bookingStatus: 'checked-out' };
       setBookings((prev) =>
-        prev.map((b) =>
-          b.id === matchingBooking.id ? { ...b, bookingStatus: 'checked-out' } : b
-        )
+        prev.map((b) => (b.id === matchingBooking.id ? checkedOutBooking : b))
       );
+      persistBookingDirect(checkedOutBooking);
     }
 
     addAuditLog('Front Desk Check-Out', 'booking', `Room ${roomNumber} checked out and flagged DIRTY for housekeeping turnaround.`);
@@ -4411,6 +4533,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       referenceId,
     };
     setLostAndFound((prev) => [newItem, ...prev]);
+    persistCollectionItem('lostAndFound', newItem.id, newItem);
     addAuditLog(
       'Lost & Found Logged',
       'cms',
@@ -4438,7 +4561,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setLostAndFound((prev) =>
       prev.map((item) => {
         if (item.id === id) {
-          return {
+          const updated: LostAndFoundItem = {
             ...item,
             status,
             claimedByGuestName: meta.claimedByName || item.claimedByGuestName,
@@ -4446,6 +4569,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             contactPhone: meta.contactPhone || item.contactPhone,
             claimedAt: status === 'claimed' ? new Date().toLocaleString() : item.claimedAt,
           };
+          persistCollectionItem('lostAndFound', id, updated);
+          return updated;
         }
         return item;
       })
@@ -4529,6 +4654,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     setNightAudits((prev) => [newRecord, ...prev]);
+    persistCollectionItem('nightAudits', newRecord.id, newRecord);
     addAuditLog('Night Audit Executed', 'rate', `Night Audit batch closed by ${auditorName}. ADR: $${adrUSD}, RevPAR: $${revParUSD}, Occupancy: ${occupancyPercentage}%`);
     showToast('Night Audit Completed', `Closed day operations. Occupancy: ${occupancyPercentage}%, ADR: $${adrUSD}`, 'success');
     return newRecord;
@@ -5115,6 +5241,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } else {
       setMenuItems((prev) => [...prev, ...formatted]);
     }
+    formatted.forEach((dish) => persistCollectionItem('menuItems', dish.id, dish));
 
     addAuditLog('Menu Excel/CSV Upload', 'cms', `Uploaded and processed ${formatted.length} dishes to menu inventory.`);
     showToast('Menu Uploaded Successfully', `Added ${formatted.length} dishes to the restaurant catalog.`, 'success');
@@ -5129,6 +5256,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return [...prev, newRoom];
     });
+    persistCollectionItem('rooms', newRoom.id, newRoom);
     addAuditLog('Room Type Catalog Added', 'cms', `Added room type: ${newRoom.name} ($${newRoom.pricePerNightUSD}/night)`);
     showToast('Room Type Added', `${newRoom.name} added to catalog.`, 'success');
   };
@@ -5153,6 +5281,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     if (generated.length > 0) {
       setRoomUnits((prev) => [...prev, ...generated]);
+      generated.forEach((unit) => persistCollectionItem('roomUnits', unit.id, unit));
       showToast('Rooms Generated', `Generated ${countAdded} physical rooms on ${floor}.`, 'success');
     }
     return countAdded;
@@ -5186,6 +5315,8 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const adjustStockQuantity = (id: string, delta: number, reason: string) => {
+    const item = stockItems.find((s) => s.id === id);
+    const clampedNext = Math.max(0, (item?.currentStock || 0) + delta);
     setStockItems((prev) =>
       prev.map((s) => {
         if (s.id === id) {
@@ -5201,15 +5332,17 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return s;
       })
     );
-    const item = stockItems.find((s) => s.id === id);
     addAuditLog('Stock Adjusted', 'cms', `${delta > 0 ? '+' : ''}${delta} ${item?.unit} of ${item?.name} (${reason})`);
-    showToast('Stock Adjusted', `Updated count for ${item?.name}: ${((item?.currentStock || 0) + delta)} ${item?.unit}`);
+    showToast('Stock Adjusted', `Updated count for ${item?.name}: ${clampedNext} ${item?.unit}`);
   };
 
   // ----------------- BILLING & INVOICING ACTIONS -----------------
   const updateBillSettings = (updates: Partial<BillSettings>) => {
-    setBillSettings((prev) => ({ ...prev, ...updates }));
-    persistSetting('bill', updates);
+    setBillSettings((prev) => {
+      const next = { ...prev, ...updates };
+      persistSetting('bill', backendAvailableRef.current ? updates : next);
+      return next;
+    });
     addAuditLog('Bill Settings Customized', 'cms', 'Updated invoice template, tax/service rates, or logo.');
     showToast('Bill Settings Saved', 'Invoice template and formatting rules updated.', 'success');
   };
@@ -5314,6 +5447,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setInvoices((prev) => [newInv, ...prev]);
+    persistCollectionItem('invoices', newInv.id, newInv);
     if (backendAvailableRef.current) {
       fetch('/api/pms/invoices', {
         method: 'POST',
@@ -5342,6 +5476,7 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       issuedAt: new Date().toLocaleString(),
     };
     setInvoices((prev) => [newInv, ...prev]);
+    persistCollectionItem('invoices', newInv.id, newInv);
     if (backendAvailableRef.current) {
       fetch('/api/pms/invoices', {
         method: 'POST',
@@ -5376,13 +5511,15 @@ export const HotelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           const newPaid = inv.amountPaidUSD + amount;
           const newBalance = Math.max(0, inv.grandTotalUSD - newPaid);
           const newStatus: PaymentStatus = newBalance === 0 ? 'paid' : 'pending';
-          return {
+          const updatedInv: MasterInvoice = {
             ...inv,
             amountPaidUSD: newPaid,
             balanceDueUSD: newBalance,
             paymentStatus: newStatus,
             paymentMethod: method,
           };
+          persistCollectionItem('invoices', updatedInv.id, updatedInv);
+          return updatedInv;
         }
         return inv;
       })

@@ -21,7 +21,8 @@ import {
   Sliders,
   CreditCard,
   Building,
-  Calculator
+  Calculator,
+  Download
 } from 'lucide-react';
 import { DynamicInvoicingStudio } from './DynamicInvoicingStudio';
 
@@ -207,11 +208,11 @@ export const MasterBillingManager: React.FC = () => {
                         </div>
                       </td>
                       <td className="py-3 px-3 font-mono text-[11px]">
-                        <div>Svc ({inv.serviceChargePercent}%): +{formatCurrency(convertPrice(inv.serviceChargeAmountUSD, currentCurrency), currentCurrency)}</div>
-                        <div className="text-stone-400">VAT ({inv.taxPercent}%): +{formatCurrency(convertPrice(inv.taxAmountUSD, currentCurrency), currentCurrency)}</div>
+                        <div>Svc ({inv.serviceChargePercent}%): +{formatCurrency(convertPrice(inv.serviceChargeAmountUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</div>
+                        <div className="text-stone-400">VAT ({inv.taxPercent}%): +{formatCurrency(convertPrice(inv.taxAmountUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</div>
                       </td>
                       <td className="py-3 px-3 font-mono font-bold text-sm text-stone-900 dark:text-stone-100">
-                        {formatCurrency(convertPrice(inv.grandTotalUSD, currentCurrency), currentCurrency)}
+                        {formatCurrency(convertPrice(inv.grandTotalUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                       </td>
                       <td className="py-3 px-3">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold ${
@@ -347,13 +348,24 @@ export const MasterBillingManager: React.FC = () => {
 
                   <div>
                     <label className="block font-semibold mb-1">Hotel Logo Image URL / Path</label>
-                    <input
-                      type="text"
-                      value={settingsForm.hotelLogoUrl}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, hotelLogoUrl: e.target.value })}
-                      className="w-full p-2 rounded bg-stone-50 dark:bg-stone-800 border font-mono"
-                      placeholder="https://... or /logo.png"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={settingsForm.hotelLogoUrl}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, hotelLogoUrl: e.target.value })}
+                        className="flex-1 p-2 rounded bg-stone-50 dark:bg-stone-800 border font-mono"
+                        placeholder="./kamal-hotel-logo.png"
+                      />
+                      <a
+                        href="./kamal-hotel-logo.png"
+                        download="kamal-hotel-logo.png"
+                        className="px-2.5 py-2 rounded bg-amber-700 hover:bg-amber-800 text-white font-semibold whitespace-nowrap inline-flex items-center gap-1"
+                        title="Download official Hotel Kamal PNG logo"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>PNG</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
 
@@ -605,55 +617,73 @@ export const MasterBillingManager: React.FC = () => {
                   </div>
                 )}
 
-                {/* Mini Sample Line Items */}
-                <div className="space-y-1.5 border-b pb-3 text-[10px]">
-                  <div className="flex justify-between font-bold text-stone-400 uppercase font-mono text-[9px]">
-                    <span>Particulars</span>
-                    <span>Amount</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Deluxe Suite (2 Nights)</span>
-                    <span className="font-mono">$170.00</span>
-                  </div>
-                  <div className="flex justify-between text-stone-600">
-                    <span>Ground-Floor Himalayan Sizzler (x2)</span>
-                    <span className="font-mono">$24.00</span>
-                  </div>
-                  <div className="flex justify-between text-stone-600">
-                    <span>Airport Chauffeured Transfer</span>
-                    <span className="font-mono">$18.00</span>
-                  </div>
-                </div>
+                {/* Mini Sample Line Items (Live Currency & Tax Preview) */}
+                {(() => {
+                  const pRoomUSD = 170;
+                  const pFoodUSD = 24;
+                  const pTransferUSD = 18;
+                  const pSubUSD = pRoomUSD + pFoodUSD + pTransferUSD;
+                  const pDiscUSD = (pSubUSD * (settingsForm.defaultDiscountPercent || 0)) / 100;
+                  const pAfterDiscUSD = Math.max(0, pSubUSD - pDiscUSD);
+                  const pScUSD = (pAfterDiscUSD * (settingsForm.serviceChargePercent ?? 10)) / 100;
+                  const pVatUSD = ((pAfterDiscUSD + pScUSD) * (settingsForm.taxPercent ?? 13)) / 100;
+                  const pGrandUSD = pAfterDiscUSD + pScUSD + pVatUSD;
+                  const fmtPrev = (usd: number) =>
+                    formatCurrency(convertPrice(usd, currentCurrency, themeConfig.exchangeRates), currentCurrency);
 
-                {/* Mini Calculation Breakdown */}
-                <div className="space-y-1 text-[10px] font-mono">
-                  <div className="flex justify-between text-stone-500">
-                    <span>Subtotal:</span>
-                    <span>$212.00</span>
-                  </div>
+                  return (
+                    <>
+                      <div className="space-y-1.5 border-b pb-3 text-[10px]">
+                        <div className="flex justify-between font-bold text-stone-400 uppercase font-mono text-[9px]">
+                          <span>Particulars</span>
+                          <span>Amount ({currentCurrency})</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Deluxe Suite (2 Nights)</span>
+                          <span className="font-mono">{fmtPrev(pRoomUSD)}</span>
+                        </div>
+                        <div className="flex justify-between text-stone-600">
+                          <span>Ground-Floor Himalayan Sizzler (x2)</span>
+                          <span className="font-mono">{fmtPrev(pFoodUSD)}</span>
+                        </div>
+                        <div className="flex justify-between text-stone-600">
+                          <span>Airport Chauffeured Transfer</span>
+                          <span className="font-mono">{fmtPrev(pTransferUSD)}</span>
+                        </div>
+                      </div>
 
-                  {settingsForm.defaultDiscountPercent > 0 && (
-                    <div className="flex justify-between text-rose-600">
-                      <span>Discount ({settingsForm.defaultDiscountPercent}%):</span>
-                      <span>-$21.20</span>
-                    </div>
-                  )}
+                      {/* Mini Calculation Breakdown */}
+                      <div className="space-y-1 text-[10px] font-mono">
+                        <div className="flex justify-between text-stone-500">
+                          <span>Subtotal:</span>
+                          <span>{fmtPrev(pSubUSD)}</span>
+                        </div>
 
-                  <div className="flex justify-between text-stone-600">
-                    <span>{settingsForm.serviceChargeLabel || 'Service Charge'} ({settingsForm.serviceChargePercent}%):</span>
-                    <span>+$21.20</span>
-                  </div>
+                        {settingsForm.defaultDiscountPercent > 0 && (
+                          <div className="flex justify-between text-rose-600">
+                            <span>Discount ({settingsForm.defaultDiscountPercent}%):</span>
+                            <span>-{fmtPrev(pDiscUSD)}</span>
+                          </div>
+                        )}
 
-                  <div className="flex justify-between text-stone-600">
-                    <span>{settingsForm.taxLabel || 'VAT'} ({settingsForm.taxPercent}%):</span>
-                    <span>+$27.56</span>
-                  </div>
+                        <div className="flex justify-between text-stone-600">
+                          <span>{settingsForm.serviceChargeLabel || 'Service Charge'} ({settingsForm.serviceChargePercent}%):</span>
+                          <span>+{fmtPrev(pScUSD)}</span>
+                        </div>
 
-                  <div className="flex justify-between text-xs font-bold text-stone-900 pt-1.5 border-t border-stone-200 font-sans">
-                    <span>Grand Total Due:</span>
-                    <span>$239.56</span>
-                  </div>
-                </div>
+                        <div className="flex justify-between text-stone-600">
+                          <span>{settingsForm.taxLabel || 'VAT'} ({settingsForm.taxPercent}%):</span>
+                          <span>+{fmtPrev(pVatUSD)}</span>
+                        </div>
+
+                        <div className="flex justify-between text-xs font-bold text-stone-900 pt-1.5 border-t border-stone-200 font-sans">
+                          <span>Grand Total Due ({currentCurrency}):</span>
+                          <span>{fmtPrev(pGrandUSD)}</span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {/* Mini Signatory & Footer */}
                 <div className="pt-2 border-t text-[10px] flex items-end justify-between">

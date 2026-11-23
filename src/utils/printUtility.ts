@@ -16,7 +16,7 @@ import { convertPrice, formatCurrency } from './theme';
  * - Generates genuine binary `.pdf` files (`application/pdf`) via jsPDF for all Download actions.
  */
 
-function serializeCloneWithCanvases(targetEl: HTMLElement): string {
+function buildIsolatedPrintNode(targetEl: HTMLElement): HTMLElement {
   const clone = targetEl.cloneNode(true) as HTMLElement;
 
   // Replace empty cloned <canvas> elements with crisp PNG images from live canvases
@@ -46,11 +46,15 @@ function serializeCloneWithCanvases(targetEl: HTMLElement): string {
     el.remove();
   });
 
-  // Force crisp paper contrast regardless of active dark theme on parent document
-  clone.classList.remove('dark');
+  // Ensure light paper contrast inside clone regardless of dark mode
+  clone.classList.remove('dark', 'overflow-y-auto', 'max-h-[92vh]');
+  clone.style.maxHeight = 'none';
+  clone.style.overflow = 'visible';
+  clone.style.backgroundColor = '#ffffff';
+  clone.style.color = '#111827';
   clone.querySelectorAll('.dark').forEach((el) => el.classList.remove('dark'));
 
-  return clone.outerHTML;
+  return clone;
 }
 
 export function printElement(elementId: string, documentTitle: string = 'Document'): boolean {
@@ -62,158 +66,41 @@ export function printElement(elementId: string, documentTitle: string = 'Documen
       return true;
     }
 
-    const printMarkup = serializeCloneWithCanvases(targetEl);
+    const existingRoot = document.getElementById('kamal-print-root');
+    if (existingRoot) existingRoot.remove();
 
-    // Collect stylesheets from parent page
-    let stylesMarkup = '';
-    document.querySelectorAll('style, link[rel="stylesheet"]').forEach((tag) => {
-      if (tag.tagName.toLowerCase() === 'style') {
-        stylesMarkup += `<style>${tag.innerHTML}</style>\n`;
-      } else if (tag.tagName.toLowerCase() === 'link') {
-        const href = (tag as HTMLLinkElement).href;
-        if (href) {
-          stylesMarkup += `<link rel="stylesheet" href="${href}">\n`;
-        }
-      }
-    });
+    const printRoot = document.createElement('div');
+    printRoot.id = 'kamal-print-root';
+    const clonedContent = buildIsolatedPrintNode(targetEl);
+    printRoot.appendChild(clonedContent);
+    document.body.appendChild(printRoot);
 
-    const printOverrides = `
-      * {
-        box-sizing: border-box;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      html, body {
-        margin: 0;
-        padding: 20px;
-        background: #ffffff !important;
-        color: #1c1917 !important;
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        font-size: 13px;
-        line-height: 1.5;
-      }
-      h1, h2, h3, .font-serif {
-        font-family: 'Cormorant Garamond', Georgia, serif;
-      }
-      .dark\\:bg-stone-900,
-      .dark\\:bg-stone-800\\/70,
-      .dark\\:bg-stone-800\\/60,
-      .dark\\:bg-stone-950 {
-        background-color: #ffffff !important;
-      }
-      .dark\\:text-stone-50,
-      .dark\\:text-stone-100,
-      .dark\\:text-stone-200,
-      .dark\\:text-stone-300 {
-        color: #1c1917 !important;
-      }
-      .dark\\:text-amber-400 {
-        color: #92400e !important;
-      }
-      .dark\\:border-stone-700,
-      .dark\\:border-stone-800 {
-        border-color: #d6d3d1 !important;
-      }
-      @page {
-        margin: 1cm;
-        size: auto;
-      }
-      @media print {
-        body {
-          padding: 0 !important;
-        }
-        .print\\:hidden, button, [role="button"] {
-          display: none !important;
-        }
-      }
-    `;
+    const previousTitle = document.title;
+    document.title = documentTitle;
+    document.body.classList.add('kamal-print-mode');
 
-    // Remove previous isolated print frame if any
-    const oldFrame = document.getElementById('hotel-print-isolated-frame');
-    if (oldFrame) oldFrame.remove();
-
-    // Render with real A4 layout dimensions offscreen (prevents Chrome 0x0 blank print)
-    const iframe = document.createElement('iframe');
-    iframe.id = 'hotel-print-isolated-frame';
-    iframe.setAttribute('aria-hidden', 'true');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-12000px';
-    iframe.style.top = '0';
-    iframe.style.width = '820px';
-    iframe.style.height = '1120px';
-    iframe.style.border = '0';
-    iframe.style.pointerEvents = 'none';
-
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document || iframe.contentDocument;
-    if (!doc) {
-      window.print();
-      return true;
-    }
-
-    const triggerFramePrint = () => {
-      const printWindow = iframe.contentWindow;
-      if (!printWindow) {
-        window.print();
-        return;
-      }
-
-      const cleanup = () => {
-        setTimeout(() => {
-          if (iframe.parentNode) iframe.remove();
-        }, 1000);
-      };
-
-      printWindow.addEventListener('afterprint', cleanup, { once: true });
-      setTimeout(cleanup, 60000);
-
-      try {
-        printWindow.focus();
-        printWindow.print();
-      } catch (err) {
-        console.warn('Iframe print blocked by browser sandbox, using window.print():', err);
-        window.print();
-      }
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      document.body.classList.remove('kamal-print-mode');
+      document.title = previousTitle;
+      const rootEl = document.getElementById('kamal-print-root');
+      if (rootEl) rootEl.remove();
     };
 
-    doc.open();
-    doc.write(`<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${documentTitle}</title>
-    ${stylesMarkup}
-    <style>${printOverrides}</style>
-  </head>
-  <body>
-    <div style="width: 100%; max-width: 780px; margin: 0 auto;">
-      ${printMarkup}
-    </div>
-  </body>
-</html>`);
-    doc.close();
+    window.addEventListener('afterprint', cleanup, { once: true });
+    window.setTimeout(cleanup, 3000);
 
-    // Wait for frame styles & fonts before dispatching native print
-    let printed = false;
-    const runOnce = () => {
-      if (printed) return;
-      printed = true;
-      setTimeout(triggerFramePrint, 250);
-    };
-
-    iframe.onload = runOnce;
-    setTimeout(runOnce, 500);
+    window.focus();
+    window.print();
     return true;
   } catch (err) {
-    console.warn('Isolated print failed, falling back to window.print():', err);
-    try {
-      window.print();
-      return true;
-    } catch {
-      return false;
-    }
+    document.body.classList.remove('kamal-print-mode');
+    const rootEl = document.getElementById('kamal-print-root');
+    if (rootEl) rootEl.remove();
+    console.warn('Isolated print failed:', err);
+    return false;
   }
 }
 

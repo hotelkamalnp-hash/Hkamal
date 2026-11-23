@@ -452,7 +452,7 @@ export const DynamicInvoicingStudio: React.FC = () => {
                 onClick={() => handleQuickAdd(preset)}
                 className="px-2.5 py-1 rounded-md border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-[11px] font-medium text-stone-700 dark:text-stone-300 cursor-pointer"
               >
-                {preset.label}
+                {preset.label.split('(')[0].trim()} ({displayMoney(preset.rateUSD)})
               </button>
             ))}
           </div>
@@ -630,7 +630,7 @@ export const DynamicInvoicingStudio: React.FC = () => {
                   .filter((c) => c.isActive)
                   .map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.code} ({c.discountType === 'percentage' ? `${c.discountValue}% Off` : `$${c.discountValue} Off`})
+                      {c.code} ({c.discountType === 'percentage' ? `${c.discountValue}% Off` : `${displayMoney(c.discountValue)} Off`})
                     </option>
                   ))}
               </select>
@@ -798,9 +798,11 @@ export const DynamicInvoicingStudio: React.FC = () => {
                 <span>Net Balance Due</span>
                 <span className="font-mono">{displayMoney(calculations.balanceDueUSD)}</span>
               </div>
-              <div className="text-[10px] text-stone-400 text-right font-mono">
-                Ledger USD Equiv: ${calculations.grandTotalUSD.toFixed(2)} (Due: ${calculations.balanceDueUSD.toFixed(2)})
-              </div>
+              {currentCurrency !== 'USD' && (
+                <div className="text-[10px] text-stone-400 text-right font-mono">
+                  Ledger Base Equiv: ${calculations.grandTotalUSD.toFixed(2)} (Due: ${calculations.balanceDueUSD.toFixed(2)})
+                </div>
+              )}
             </div>
 
             <button

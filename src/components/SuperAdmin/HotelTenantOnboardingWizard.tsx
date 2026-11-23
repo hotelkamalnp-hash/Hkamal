@@ -43,6 +43,7 @@ import {
   Star
 } from 'lucide-react';
 import { ModalDismissButton, useModalDismiss } from '../Common/ModalDismissHandler';
+import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
 import { EmailSmtpSettingsCard } from '../CMS/EmailSmtpSettingsCard';
 
 export const HotelTenantOnboardingWizard: React.FC = () => {
@@ -460,30 +461,34 @@ Warm Apple Pie with Organic Honey,Desserts,Baked Helambu mountain apples infused
       </div>
 
       {/* Tab Navigation Strip */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-stone-200 dark:border-stone-800 scrollbar-none">
-        {[
-          { id: 'purge_reset', label: '1-Click Clean Tenant Reset', icon: <Trash2 className="w-4 h-4 text-rose-500" /> },
-          { id: 'branding_cms', label: 'Branding & Landing Page', icon: <Sliders className="w-4 h-4 text-amber-500" /> },
-          { id: 'smtp_gateway', label: 'Mail SMTP Gateway', icon: <Mail className="w-4 h-4 text-sky-500" /> },
-          { id: 'floors_rooms', label: 'Floors & Rooms Catalog', icon: <Layers className="w-4 h-4 text-emerald-500" /> },
-          { id: 'restaurant_tables', label: 'Restaurant Tables Layout', icon: <UtensilsCrossed className="w-4 h-4 text-purple-500" /> },
-          { id: 'menu_upload', label: 'Excel / CSV Menu Upload', icon: <FileSpreadsheet className="w-4 h-4 text-indigo-500" /> },
-          { id: 'staff_roles', label: 'Staff Additions & RBAC', icon: <Users className="w-4 h-4 text-teal-500" /> },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
-              activeTab === tab.id
-                ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm'
-                : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
-            }`}
-          >
-            {tab.icon}
-            <span>{tab.label}</span>
-          </button>
-        ))}
+      <div className="pb-2 border-b border-stone-200 dark:border-stone-800">
+        <HorizontalTabSlider scrollStep={260} ariaLabel="Onboarding Setup Sections">
+          <div className="flex items-center gap-2 w-max">
+            {[
+              { id: 'purge_reset', label: '1-Click Clean Tenant Reset', icon: <Trash2 className="w-4 h-4 text-rose-500" /> },
+              { id: 'branding_cms', label: 'Branding & Landing Page', icon: <Sliders className="w-4 h-4 text-amber-500" /> },
+              { id: 'smtp_gateway', label: 'Mail SMTP Gateway', icon: <Mail className="w-4 h-4 text-sky-500" /> },
+              { id: 'floors_rooms', label: 'Floors & Rooms Catalog', icon: <Layers className="w-4 h-4 text-emerald-500" /> },
+              { id: 'restaurant_tables', label: 'Restaurant Tables Layout', icon: <UtensilsCrossed className="w-4 h-4 text-purple-500" /> },
+              { id: 'menu_upload', label: 'Excel / CSV Menu Upload', icon: <FileSpreadsheet className="w-4 h-4 text-indigo-500" /> },
+              { id: 'staff_roles', label: 'Staff Additions & RBAC', icon: <Users className="w-4 h-4 text-teal-500" /> },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm'
+                    : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
+                }`}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </HorizontalTabSlider>
       </div>
 
       {/* ===================== TAB 1: 1-CLICK CLEAN TENANT RESET ===================== */}
@@ -941,7 +946,7 @@ Warm Apple Pie with Organic Honey,Desserts,Baked Helambu mountain apples infused
                   className="w-full p-2.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 font-mono"
                 />
                 <span className="text-[10px] text-stone-400 mt-0.5 block">
-                  Converts dynamically: {formatCurrency(convertPrice(newRoomType.pricePerNightUSD, currentCurrency), currentCurrency)}
+                  Converts dynamically: {formatCurrency(convertPrice(newRoomType.pricePerNightUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                 </span>
               </div>
 
@@ -1169,7 +1174,7 @@ Warm Apple Pie with Organic Honey,Desserts,Baked Helambu mountain apples infused
                     {tbl.tableNumber}
                   </div>
                   <div className="text-[10px] text-stone-400 capitalize font-mono">
-                    {tbl.zone} · {tbl.capacity} Pax
+                    {tbl.zone === 'rooftop' ? 'Ground-Floor Garden' : tbl.zone} · {tbl.capacity} Pax
                   </div>
                   <div className="text-[10px] text-emerald-600 font-semibold font-mono">
                     {tbl.status}
@@ -1300,7 +1305,7 @@ Warm Apple Pie with Organic Honey,Desserts,Baked Helambu mountain apples infused
                           <td className="py-2 px-3 max-w-xs truncate text-[11px] text-stone-500">{dish.description}</td>
                           <td className="py-2 px-3 font-mono font-bold">${dish.priceUSD.toFixed(2)}</td>
                           <td className="py-2 px-3 font-mono font-bold text-amber-700 dark:text-amber-400">
-                            {formatCurrency(convertPrice(dish.priceUSD, currentCurrency), currentCurrency)}
+                            {formatCurrency(convertPrice(dish.priceUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                           </td>
                           <td className="py-2 px-3 text-center">
                             <div className="flex items-center justify-center gap-1 text-[10px]">

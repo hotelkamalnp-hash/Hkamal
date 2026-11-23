@@ -33,6 +33,7 @@ import { RoomServiceAmenityView } from './RoomServiceAmenityView';
 import { DigitalRestaurantMenu } from './DigitalRestaurantMenu';
 import { LocalEventsKathmanduWidget } from './LocalEventsKathmanduWidget';
 import { InteractiveFloorPlanSelector } from './InteractiveFloorPlanSelector';
+import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
 
 export const InRoomGuestPortal: React.FC = () => {
   const { 
@@ -384,111 +385,115 @@ export const InRoomGuestPortal: React.FC = () => {
         />
       )}
 
-      {/* Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-[#E6DFD3] dark:border-[#2A241E] pb-2.5 text-xs font-semibold">
-        <button
-          onClick={() => setActiveTab('door_lock')}
-          className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'door_lock' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
-          }`}
-        >
-          <Lock className="w-4 h-4" />
-          <span>Smart Door Lock (QR)</span>
-        </button>
+      {/* Navigation Tabs Slider */}
+      <div className="border-b border-[#E6DFD3] dark:border-[#2A241E] pb-2.5 text-xs font-semibold">
+        <HorizontalTabSlider scrollStep={240} ariaLabel="In-Room Guest Portal Sections">
+          <div className="flex items-center gap-2 w-max py-0.5">
+            <button
+              onClick={() => setActiveTab('door_lock')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'door_lock' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
+              }`}
+            >
+              <Lock className="w-4 h-4" />
+              <span>Smart Door Lock (QR)</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('dining')}
-          className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'dining' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
-          }`}
-        >
-          <Utensils className="w-4 h-4" />
-          <span>Digital Restaurant Menu</span>
-        </button>
+            <button
+              onClick={() => setActiveTab('dining')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'dining' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
+              }`}
+            >
+              <Utensils className="w-4 h-4" />
+              <span>Digital Restaurant Menu</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('floor_plan')}
-          className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'floor_plan' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
-          }`}
-        >
-          <MapIcon className="w-4 h-4" />
-          <span>2D Floor Plan &amp; Rooms</span>
-        </button>
+            <button
+              onClick={() => setActiveTab('floor_plan')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'floor_plan' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
+              }`}
+            >
+              <MapIcon className="w-4 h-4" />
+              <span>2D Floor Plan &amp; Rooms</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('local_guide')}
-          className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'local_guide' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
-          }`}
-        >
-          <Compass className="w-4 h-4" />
-          <span>Local Events &amp; Attractions</span>
-        </button>
+            <button
+              onClick={() => setActiveTab('local_guide')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'local_guide' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
+              }`}
+            >
+              <Compass className="w-4 h-4" />
+              <span>Local Events &amp; Attractions</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('room_service')}
-          className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'room_service' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
-          }`}
-        >
-          <ConciergeBell className="w-4 h-4" />
-          <span className="tabular-nums">
-            Room Service{activeRoomServiceCount > 0 ? ` (${activeRoomServiceCount})` : ''}
-          </span>
-        </button>
+            <button
+              onClick={() => setActiveTab('room_service')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'room_service' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
+              }`}
+            >
+              <ConciergeBell className="w-4 h-4" />
+              <span className="tabular-nums">
+                Room Service{activeRoomServiceCount > 0 ? ` (${activeRoomServiceCount})` : ''}
+              </span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'orders' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
-          }`}
-        >
-          <ShoppingBag className="w-4 h-4" />
-          <span>My Orders ({myOrders.length})</span>
-        </button>
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'orders' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
+              }`}
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span>My Orders ({myOrders.length})</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('bill')}
-          className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'bill' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
-          }`}
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>Live Room Bill &amp; Folio</span>
-        </button>
+            <button
+              onClick={() => setActiveTab('bill')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'bill' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Live Room Bill &amp; Folio</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('intercom')}
-          className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'intercom' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
-          }`}
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span>Direct Reception &amp; Waiter Chat</span>
-        </button>
+            <button
+              onClick={() => setActiveTab('intercom')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'intercom' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Direct Reception &amp; Waiter Chat</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('rewards')}
-          className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'rewards' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
-          }`}
-        >
-          <Award className="w-4 h-4" />
-          <span className="tabular-nums">Kamal Rewards ({guestPointsBalance.toLocaleString()} pts)</span>
-        </button>
+            <button
+              onClick={() => setActiveTab('rewards')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'rewards' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
+              }`}
+            >
+              <Award className="w-4 h-4" />
+              <span className="tabular-nums">Kamal Rewards ({guestPointsBalance.toLocaleString()} pts)</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('wake_up')}
-          className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-            activeTab === 'wake_up' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
-          }`}
-        >
-          <AlarmClock className="w-4 h-4" />
-          <span className="tabular-nums">
-            Wake-up Call{activeWakeUpCallsCount > 0 ? ` (${activeWakeUpCallsCount})` : ''}
-          </span>
-        </button>
+            <button
+              onClick={() => setActiveTab('wake_up')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                activeTab === 'wake_up' ? 'bg-[#1A1714] text-[#FAF7F2] dark:bg-[#C69553] dark:text-[#14110E]' : 'text-[#5C544B] dark:text-[#C5BCB0] hover:bg-[#EFE9DF] dark:hover:bg-[#1D1813]'
+              }`}
+            >
+              <AlarmClock className="w-4 h-4" />
+              <span className="tabular-nums">
+                Wake-up Call{activeWakeUpCallsCount > 0 ? ` (${activeWakeUpCallsCount})` : ''}
+              </span>
+            </button>
+          </div>
+        </HorizontalTabSlider>
       </div>
 
       {/* ===================== TAB 0: SMART DOOR LOCK READER ===================== */}
@@ -539,7 +544,7 @@ export const InRoomGuestPortal: React.FC = () => {
                   </div>
 
                   <div className="text-[11px] text-stone-500 font-mono flex justify-between pt-2 border-t">
-                    <span>Total: {formatCurrency(convertPrice(ord.totalAmountUSD, currentCurrency), currentCurrency)}</span>
+                    <span>Total: {formatCurrency(convertPrice(ord.totalAmountUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}</span>
                     <span>Placed at: {new Date(ord.createdAt).toLocaleTimeString()}</span>
                   </div>
                 </div>
@@ -657,8 +662,8 @@ export const InRoomGuestPortal: React.FC = () => {
                 <span className="text-[10px] text-[#8E8477] uppercase font-mono block">Current Balance Due</span>
                 <span className="text-2xl font-sans font-semibold tracking-tight text-[#96682E] dark:text-[#DFBE88] tabular-nums">
                   {matchedInv 
-                    ? formatCurrency(convertPrice(matchedInv.balanceDueUSD + diningTotalUSD, currentCurrency), currentCurrency)
-                    : formatCurrency(convertPrice(diningTotalUSD || 43.5, currentCurrency), currentCurrency)
+                    ? formatCurrency(convertPrice(matchedInv.balanceDueUSD + diningTotalUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)
+                    : formatCurrency(convertPrice(diningTotalUSD || 43.5, currentCurrency, themeConfig.exchangeRates), currentCurrency)
                   }
                 </span>
               </div>
@@ -683,8 +688,8 @@ export const InRoomGuestPortal: React.FC = () => {
                   </div>
                   <div className="font-mono font-bold text-stone-800 dark:text-stone-200">
                     {matchedInv 
-                      ? formatCurrency(convertPrice(matchedInv.subtotalUSD, currentCurrency), currentCurrency)
-                      : formatCurrency(convertPrice(110, currentCurrency), currentCurrency)
+                      ? formatCurrency(convertPrice(matchedInv.subtotalUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)
+                      : formatCurrency(convertPrice(110, currentCurrency, themeConfig.exchangeRates), currentCurrency)
                     }
                   </div>
                 </div>
@@ -694,14 +699,14 @@ export const InRoomGuestPortal: React.FC = () => {
                   <div key={ord.id} className="p-3.5 flex justify-between items-center">
                     <div>
                       <div className="font-semibold text-stone-900 dark:text-stone-100">
-                        Rooftop Kitchen Order #{ord.orderNumber}
+                        Ground-Floor Kitchen Order #{ord.orderNumber}
                       </div>
                       <div className="text-[11px] text-stone-400 font-mono">
                         {ord.items.map((i) => `${i.quantity}x ${i.name}`).join(', ')} · Status: {ord.status.replace(/_/g, ' ')}
                       </div>
                     </div>
                     <div className="font-mono font-bold text-stone-800 dark:text-stone-200">
-                      {formatCurrency(convertPrice(ord.totalAmountUSD, currentCurrency), currentCurrency)}
+                      {formatCurrency(convertPrice(ord.totalAmountUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                     </div>
                   </div>
                 ))}
@@ -711,37 +716,37 @@ export const InRoomGuestPortal: React.FC = () => {
                   <div className="flex justify-between text-stone-600 dark:text-stone-400">
                     <span>Taxable Base Subtotal:</span>
                     <span className="font-semibold text-stone-900 dark:text-stone-100 tabular-nums">
-                      {formatCurrency(convertPrice(matchedInv?.subtotalUSD || 110, currentCurrency), currentCurrency)}
+                      {formatCurrency(convertPrice(matchedInv?.subtotalUSD || 110, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                     </span>
                   </div>
                   <div className="flex justify-between text-stone-600 dark:text-stone-400">
                     <span>10% Hotel Service Charge:</span>
                     <span className="font-semibold text-stone-900 dark:text-stone-100 tabular-nums">
-                      {formatCurrency(convertPrice(matchedInv?.serviceChargeAmountUSD || 11, currentCurrency), currentCurrency)}
+                      {formatCurrency(convertPrice(matchedInv?.serviceChargeAmountUSD || 11, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                     </span>
                   </div>
                   <div className="flex justify-between text-stone-600 dark:text-stone-400">
                     <span>13% Nepal VAT (IRD Nepal):</span>
                     <span className="font-semibold text-stone-900 dark:text-stone-100 tabular-nums">
-                      {formatCurrency(convertPrice(matchedInv?.taxAmountUSD || 15.73, currentCurrency), currentCurrency)}
+                      {formatCurrency(convertPrice(matchedInv?.taxAmountUSD || 15.73, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                     </span>
                   </div>
                   <div className="flex justify-between text-stone-900 dark:text-stone-100 font-bold pt-1 border-t border-stone-200 dark:border-stone-700">
                     <span>Total Grand Bill:</span>
                     <span className="tabular-nums">
-                      {formatCurrency(convertPrice(matchedInv?.grandTotalUSD || 136.73, currentCurrency), currentCurrency)}
+                      {formatCurrency(convertPrice(matchedInv?.grandTotalUSD || 136.73, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                     </span>
                   </div>
                   <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                     <span>Payments / Advance Credited:</span>
                     <span className="tabular-nums">
-                      -{formatCurrency(convertPrice(matchedInv?.amountPaidUSD || 0, currentCurrency), currentCurrency)}
+                      -{formatCurrency(convertPrice(matchedInv?.amountPaidUSD || 0, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                     </span>
                   </div>
                   <div className="flex justify-between text-amber-800 dark:text-amber-400 font-bold text-sm pt-1 border-t border-stone-200 dark:border-stone-700">
                     <span>Current Balance Payable:</span>
                     <span className="tabular-nums">
-                      {formatCurrency(convertPrice(matchedInv?.balanceDueUSD || 136.73, currentCurrency), currentCurrency)}
+                      {formatCurrency(convertPrice(matchedInv?.balanceDueUSD || 136.73, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                     </span>
                   </div>
                 </div>

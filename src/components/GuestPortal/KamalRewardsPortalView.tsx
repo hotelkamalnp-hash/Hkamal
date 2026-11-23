@@ -11,7 +11,7 @@ const REWARD_PERKS = [
   {
     id: 'perk-chai',
     title: 'Complimentary Himalayan Tea & Artisan Pastry Platter',
-    detail: 'Delivered fresh to your room or served at our Rooftop Terrace.',
+    detail: 'Delivered fresh to your room or served at our Ground-Floor Terrace.',
     costPoints: 250,
   },
   {

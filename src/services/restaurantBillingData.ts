@@ -248,7 +248,7 @@ export const INITIAL_STOCK_ITEMS: StockItem[] = [
 
 export const INITIAL_BILL_SETTINGS: BillSettings = {
   template: 'heritage-gold',
-  hotelLogoUrl: './assets/aistudio/image_0a8c7264.png',
+  hotelLogoUrl: './kamal-hotel-logo.png',
   hotelLegalName: 'Kamal Hotel Pvt. Ltd.',
   panVatNumber: '304928174',
   taxLabel: 'Inland Revenue Dept (IRD) VAT',
