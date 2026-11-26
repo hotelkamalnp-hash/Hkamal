@@ -563,4 +563,36 @@ CREATE POLICY "audit_logs_admin_select" ON public.audit_logs FOR SELECT TO authe
 CREATE POLICY "audit_logs_staff_insert" ON public.audit_logs FOR INSERT TO authenticated WITH CHECK (public.current_staff_role() IS NOT NULL);
 
 CREATE POLICY "smtp_settings_admin_only" ON public.smtp_settings FOR ALL TO authenticated USING (public.has_staff_role(ARRAY['super_admin','admin'])) WITH CHECK (public.has_staff_role(ARRAY['super_admin','admin']));
+
+-- 7. Media Storage Bucket & Policies (Supabase Storage: hotel-media)
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('hotel-media', 'hotel-media', true)
+ON CONFLICT (id) DO NOTHING;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' AND schemaname = 'storage' AND policyname = 'hotel_media_public_read'
+  ) THEN
+    CREATE POLICY "hotel_media_public_read" ON storage.objects
+    FOR SELECT TO public USING (bucket_id = 'hotel-media');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' AND schemaname = 'storage' AND policyname = 'hotel_media_auth_upload'
+  ) THEN
+    CREATE POLICY "hotel_media_auth_upload" ON storage.objects
+    FOR INSERT TO authenticated WITH CHECK (bucket_id = 'hotel-media');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' AND schemaname = 'storage' AND policyname = 'hotel_media_auth_update'
+  ) THEN
+    CREATE POLICY "hotel_media_auth_update" ON storage.objects
+    FOR UPDATE TO authenticated USING (bucket_id = 'hotel-media');
+  END IF;
+END $$;
 `;

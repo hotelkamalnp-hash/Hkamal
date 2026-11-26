@@ -207,7 +207,7 @@ export const NightAuditManager: React.FC = () => {
           <div className="space-y-3 text-xs">
             <div>
               <label className="block text-stone-600 dark:text-stone-400 mb-1">
-                Actual Physical Cash Counted in Drawer (NPR रू)
+                Actual Physical Cash Counted in Drawer (NPR Rs.)
               </label>
               <input
                 type="number"
@@ -219,7 +219,7 @@ export const NightAuditManager: React.FC = () => {
 
             <div>
               <label className="block text-stone-600 dark:text-stone-400 mb-1">
-                System Expected Cash from Invoices (NPR रू)
+                System Expected Cash from Invoices (NPR Rs.)
               </label>
               <input
                 type="number"

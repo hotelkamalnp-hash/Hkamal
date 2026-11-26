@@ -78,7 +78,7 @@ function formatDateISO(date: Date): string {
 }
 
 function formatCompactAxisTick(value: number, currency: CurrencyCode): string {
-  const symbol = currency === 'NPR' ? 'रू ' : currency === 'INR' ? '₹ ' : '$';
+  const symbol = currency === 'NPR' ? 'Rs. ' : currency === 'INR' ? '₹ ' : '$';
   if (value === 0) return `${symbol}0`;
   if (Math.abs(value) >= 1_000_000) {
     return `${symbol}${(value / 1_000_000).toFixed(1)}M`;

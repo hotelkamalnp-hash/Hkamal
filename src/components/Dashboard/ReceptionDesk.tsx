@@ -1590,7 +1590,7 @@ export const ReceptionDesk: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                  Cash In Drawer (NPR रू)
+                  Cash In Drawer (NPR Rs.)
                 </label>
                 <input
                   type="number"

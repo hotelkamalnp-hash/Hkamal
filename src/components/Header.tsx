@@ -119,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setCurrentView }) =
 
   const currencyOptions: { code: CurrencyCode; label: string; desc: string }[] = [
     { code: 'USD', label: '$ USD', desc: 'US Dollar' },
-    { code: 'NPR', label: 'रू NPR', desc: 'Nepali Rupee' },
+    { code: 'NPR', label: 'Rs. NPR', desc: 'Nepali Rupee' },
     { code: 'INR', label: '₹ INR', desc: 'Indian Rupee' }
   ];
 

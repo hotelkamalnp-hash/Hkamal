@@ -112,7 +112,7 @@ export const convertPrice = (
 
 export const formatCurrency = (amount: number, currency: CurrencyCode = 'NPR'): string => {
   if (currency === 'NPR') {
-    return `रू ${Math.round(amount).toLocaleString('en-IN')}`;
+    return `Rs. ${Math.round(amount).toLocaleString('en-IN')}`;
   }
   if (currency === 'INR') {
     return `₹ ${Math.round(amount).toLocaleString('en-IN')}`;

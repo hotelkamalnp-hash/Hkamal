@@ -281,7 +281,7 @@ export const INITIAL_FAQS: FaqItem[] = [
     id: 'faq-3',
     question: 'Can I pay in Nepali Rupees (NPR), US Dollars (USD), or Indian Rupees (INR)?',
     answer:
-      'Yes! Our booking engine supports real-time rate display and payment in Nepali Rupees (रू NPR), US Dollars ($ USD), and Indian Rupees (₹ INR). You can pay online via eSewa, Khalti, Card Checkout, or choose Pay at Check-In.',
+      'Yes! Our booking engine supports real-time rate display and payment in Nepali Rupees (Rs. NPR), US Dollars ($ USD), and Indian Rupees (₹ INR). You can pay online via eSewa, Khalti, Card Checkout, or choose Pay at Check-In.',
     category: 'Payment',
   },
   {

@@ -1286,7 +1286,7 @@ export const CmsManagerPanel: React.FC<CmsManagerPanelProps> = ({
                   onChange={(e) => updateDraft({ defaultCurrency: e.target.value as 'NPR' | 'USD' | 'INR' })}
                   className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded p-2 font-bold"
                 >
-                  <option value="NPR">NPR (रू Nepali Rupees)</option>
+                  <option value="NPR">NPR (Rs. Nepali Rupees)</option>
                   <option value="USD">USD ($ US Dollars)</option>
                   <option value="INR">INR (₹ Indian Rupees)</option>
                 </select>

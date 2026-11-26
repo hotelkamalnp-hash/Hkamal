@@ -15,6 +15,7 @@ import {
   Eye
 } from 'lucide-react';
 import { HorizontalTabSlider } from '../Common/HorizontalTabSlider';
+import { getSupabaseClient } from '../../services/supabase';
 
 interface ImagePreset {
   id: string;
@@ -124,38 +125,69 @@ export const MediaGalleryManager: React.FC = () => {
     setStorageUploading(true);
     try {
       // 1. Direct upload via base64 to server (Supabase Storage bucket hotel-media / local disk)
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
-      });
+      try {
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(file);
+        });
 
-      const uploadRes = await fetch('/api/media/upload-direct', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          fileName: file.name,
-          contentType: file.type || 'image/jpeg',
-          base64Data,
-          category,
-        }),
-      });
+        const uploadRes = await fetch('/api/media/upload-direct', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type || 'image/jpeg',
+            base64Data,
+            category,
+          }),
+        });
 
-      const uploadData = await uploadRes.json().catch(() => ({}));
-      if (uploadRes.ok && uploadData?.ok && uploadData?.publicUrl) {
-        const providerName =
-          uploadData.provider === 'supabase'
-            ? 'Supabase Storage'
-            : uploadData.provider === 'r2'
-            ? 'Cloudflare R2'
-            : 'Local Storage';
-        showToast(`Uploaded to ${providerName}`, 'Image stored safely in cloud storage. Click Save to apply.', 'success');
-        return uploadData.publicUrl;
+        const uploadData = await uploadRes.json().catch(() => ({}));
+        if (uploadRes.ok && uploadData?.ok && uploadData?.publicUrl) {
+          const providerName =
+            uploadData.provider === 'supabase'
+              ? 'Supabase Storage'
+              : uploadData.provider === 'r2'
+              ? 'Cloudflare R2'
+              : 'Local Storage';
+          showToast(`Uploaded to ${providerName}`, 'Image stored safely in cloud storage. Click Save to apply.', 'success');
+          return uploadData.publicUrl;
+        }
+      } catch {
+        // Fall through to direct Supabase browser client upload
       }
 
-      // 2. Fallback to presigned URL if direct upload returned error
+      // 2. Direct client upload to Supabase Storage bucket hotel-media (ideal for static hosts like GitHub Pages)
+      const sbClient = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+      if (sbClient) {
+        try {
+          const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const objectKey = `${category}/${Date.now()}-${cleanName}`;
+          const { error: sbUploadErr } = await sbClient.storage
+            .from('hotel-media')
+            .upload(objectKey, file, {
+              contentType: file.type || 'image/jpeg',
+              upsert: true,
+            });
+
+          if (!sbUploadErr) {
+            const { data: pubData } = sbClient.storage
+              .from('hotel-media')
+              .getPublicUrl(objectKey);
+            if (pubData?.publicUrl) {
+              showToast('Uploaded to Supabase Storage', 'Image stored safely in hotel-media bucket. Click Save to apply.', 'success');
+              return pubData.publicUrl;
+            }
+          }
+        } catch {
+          // Fall through to presigned / compression
+        }
+      }
+
+      // 3. Fallback to presigned URL
       const presignRes = await fetch('/api/media/presign-upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -180,12 +212,32 @@ export const MediaGalleryManager: React.FC = () => {
         }
       }
 
-      showToast(
-        'Upload Notice',
-        uploadData?.error || 'Could not upload to cloud storage. Using compressed data URL.',
-        'warning'
-      );
-      return null;
+      // 4. Fallback to client canvas compress if cloud storage is unavailable
+      const fallbackUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new window.Image();
+          img.onload = () => {
+            const maxDim = 1600;
+            const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.86));
+            } else {
+              resolve(reader.result as string);
+            }
+          };
+          img.src = reader.result as string;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      showToast('Compressed Image Ready', 'Image optimized locally. Click Save to apply.', 'info');
+      return fallbackUrl;
     } catch (err: any) {
       showToast('Upload Error', err?.message || 'Unable to upload file to media storage.', 'error');
       return null;
@@ -228,6 +280,22 @@ export const MediaGalleryManager: React.FC = () => {
     };
     reader.readAsDataURL(file);
     e.target.value = '';
+  };
+
+  const handleUploadDiningStorage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const url = await uploadMediaFile(file, 'rooftop');
+    if (url) setRooftopInput(url);
+  };
+
+  const handleUploadRoomStorage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const url = await uploadMediaFile(file, 'room');
+    if (url) setRoomImageInput(url);
   };
 
   const handleApplyHero = () => {
@@ -556,7 +624,7 @@ export const MediaGalleryManager: React.FC = () => {
               />
             </div>
 
-            <div className="pt-2 flex items-center gap-3">
+            <div className="pt-2 flex flex-wrap items-center gap-2.5">
               <button
                 onClick={handleApplyRooftop}
                 className={`px-5 py-2.5 rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-2 ${themeClasses.primary}`}
@@ -564,6 +632,18 @@ export const MediaGalleryManager: React.FC = () => {
                 <Check className="w-4 h-4" />
                 <span>Save &amp; Update Dining Photo</span>
               </button>
+
+              <label className="px-3.5 py-2.5 rounded-lg text-xs font-semibold border border-sky-600/40 text-sky-800 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition flex items-center gap-1.5 cursor-pointer">
+                <Upload className="w-3.5 h-3.5" />
+                <span>{storageUploading ? 'Uploading...' : 'Upload to Supabase / Storage'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={storageUploading}
+                  onChange={handleUploadDiningStorage}
+                  className="sr-only"
+                />
+              </label>
 
               <button
                 onClick={() => setRooftopInput('./assets/images/rooftop_dining_terrace_1793848750868.jpg')}
@@ -656,17 +736,28 @@ export const MediaGalleryManager: React.FC = () => {
               <span className="text-xs font-semibold text-stone-800 dark:text-stone-200">
                 Update Photo for: {rooms.find((r) => r.id === selectedRoomId)?.name}
               </span>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 items-center">
                 <input
                   type="text"
                   value={roomImageInput}
                   onChange={(e) => setRoomImageInput(e.target.value)}
                   placeholder="Image URL or relative path..."
-                  className="flex-1 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg p-2 text-xs font-mono"
+                  className="flex-1 w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg p-2 text-xs font-mono"
                 />
+                <label className="px-3.5 py-2 rounded-lg text-xs font-semibold border border-sky-600/40 text-sky-800 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{storageUploading ? 'Uploading...' : 'Upload to Supabase'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={storageUploading}
+                    onChange={handleUploadRoomStorage}
+                    className="sr-only"
+                  />
+                </label>
                 <button
                   onClick={handleApplyRoomPhoto}
-                  className={`px-4 py-2 rounded-lg text-xs font-semibold text-white shadow transition cursor-pointer ${themeClasses.primary}`}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold text-white shadow transition cursor-pointer whitespace-nowrap ${themeClasses.primary}`}
                 >
                   Save Room Photo
                 </button>

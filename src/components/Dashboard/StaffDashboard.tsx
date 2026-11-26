@@ -14,7 +14,7 @@ import {
 } from '../../types/hotel';
 import { getThemeClasses, formatCurrency, convertPrice } from '../../utils/theme';
 import { downloadBookingVoucherPdf } from '../../utils/printUtility';
-import { SUPABASE_SQL_SCHEMA } from '../../services/supabase';
+import { SUPABASE_SQL_SCHEMA, getSupabaseClient } from '../../services/supabase';
 import { 
   LayoutDashboard, 
   CalendarDays, 
@@ -73,7 +73,8 @@ import {
   Crown,
   BookOpen,
   Download,
-  Printer
+  Printer,
+  Upload
 } from 'lucide-react';
 import { RestaurantBillingManager } from '../Restaurant/RestaurantBillingManager';
 import { InventoryStockManager } from '../Inventory/InventoryStockManager';
@@ -274,13 +275,107 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
   const [loyaltyPointsAmount, setLoyaltyPointsAmount] = useState<string>('250');
   const [loyaltyReason, setLoyaltyReason] = useState<string>('Front Desk Courtesy Bonus');
 
-  // Editing items
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [roomImageInput, setRoomImageInput] = useState<string>('');
+  const [isUploadingRoomImage, setIsUploadingRoomImage] = useState<boolean>(false);
   const [editingAmenity, setEditingAmenity] = useState<AmenityItem | null>(null);
   const [editingReview, setEditingReview] = useState<GuestReview | null>(null);
   const [editingFaq, setEditingFaq] = useState<FaqItem | null>(null);
   const [editingStaffMember, setEditingStaffMember] = useState<StaffUser | null>(null);
   const [pendingDeleteRoomId, setPendingDeleteRoomId] = useState<string | null>(null);
+
+  const uploadRoomImageToStorage = async (file: File): Promise<string | null> => {
+    setIsUploadingRoomImage(true);
+    try {
+      // 1. Server-side direct upload
+      try {
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(file);
+        });
+
+        const uploadRes = await fetch('/api/media/upload-direct', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType: file.type || 'image/jpeg',
+            base64Data,
+            category: 'room',
+          }),
+        });
+
+        const uploadData = await uploadRes.json().catch(() => ({}));
+        if (uploadRes.ok && uploadData?.ok && uploadData?.publicUrl) {
+          const providerName = uploadData.provider === 'supabase' ? 'Supabase Storage' : 'Cloud Storage';
+          showToast(`Uploaded to ${providerName}`, 'Room image stored safely in hotel-media bucket.', 'success');
+          return uploadData.publicUrl;
+        }
+      } catch {
+        // Fall back to client Supabase upload
+      }
+
+      // 2. Client-side direct Supabase Storage upload
+      const sbClient = getSupabaseClient(themeConfig.supabaseUrl, themeConfig.supabaseAnonKey);
+      if (sbClient) {
+        try {
+          const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const objectKey = `room/${Date.now()}-${cleanName}`;
+          const { error: sbUploadErr } = await sbClient.storage
+            .from('hotel-media')
+            .upload(objectKey, file, {
+              contentType: file.type || 'image/jpeg',
+              upsert: true,
+            });
+
+          if (!sbUploadErr) {
+            const { data: pubData } = sbClient.storage.from('hotel-media').getPublicUrl(objectKey);
+            if (pubData?.publicUrl) {
+              showToast('Uploaded to Supabase Storage', 'Room image stored in hotel-media bucket.', 'success');
+              return pubData.publicUrl;
+            }
+          }
+        } catch {
+          // Fall through to canvas compression
+        }
+      }
+
+      // 3. Fallback client canvas compression
+      const fallbackUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new window.Image();
+          img.onload = () => {
+            const maxDim = 1600;
+            const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.88));
+            } else {
+              resolve(reader.result as string);
+            }
+          };
+          img.src = reader.result as string;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      showToast('Image Ready', 'High-quality room photo optimized.', 'info');
+      return fallbackUrl;
+    } catch (err: any) {
+      showToast('Upload Error', err?.message || 'Unable to upload room photo.', 'error');
+      return null;
+    } finally {
+      setIsUploadingRoomImage(false);
+    }
+  };
 
   // Modal dismiss bindings (ESC key & body scroll lock)
   useModalDismiss(isAddRoomOpen, () => { setIsAddRoomOpen(false); setEditingRoom(null); });
@@ -366,7 +461,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
       reviewsCount: editingRoom?.reviewsCount || 12,
       description: formData.get('description') as string,
       images: [
-        (formData.get('image') as string) || './assets/images/room_deluxe_suite_1793848735141.jpg',
+        roomImageInput.trim() || (formData.get('image') as string) || './assets/images/room_deluxe_suite_1793848735141.jpg',
       ],
       amenities: (formData.get('amenities') as string).split(',').map((s) => s.trim()).filter(Boolean),
     };
@@ -374,9 +469,11 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
     if (editingRoom) {
       updateRoom(editingRoom.id, roomData);
       setEditingRoom(null);
+      setRoomImageInput('');
       setIsAddRoomOpen(false);
     } else {
       addRoom(roomData);
+      setRoomImageInput('');
       setIsAddRoomOpen(false);
     }
   };
@@ -1337,6 +1434,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                 <button
                   onClick={() => {
                     setEditingRoom(null);
+                    setRoomImageInput('');
                     setIsAddRoomOpen(true);
                   }}
                   className={`px-4 py-2 text-xs font-semibold rounded flex items-center gap-1.5 ${themeClasses.primary}`}
@@ -1358,11 +1456,36 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                     className="border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden flex flex-col justify-between"
                   >
                     <div className="flex gap-4 p-4">
-                      <img
-                        src={room.images[0]}
-                        alt={room.name}
-                        className="w-24 h-24 rounded-lg object-cover shrink-0"
-                      />
+                      <div className="relative group shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-900">
+                        <img
+                          src={room.images[0]}
+                          alt={room.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = './assets/images/room_deluxe_suite_1793848735141.jpg';
+                          }}
+                        />
+                        <label className="absolute inset-0 bg-stone-950/75 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer p-1 text-center">
+                          <Upload className="w-4 h-4 mb-1 text-amber-400" />
+                          <span className="text-[9px] font-bold leading-tight">Upload Image</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={isUploadingRoomImage}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = '';
+                              if (!file) return;
+                              const url = await uploadRoomImageToStorage(file);
+                              if (url) {
+                                updateRoom(room.id, { images: [url, ...room.images.slice(1)] });
+                                showToast('Room Photo Stored', `High-quality photo saved to Supabase Storage for ${room.name}.`, 'success');
+                              }
+                            }}
+                            className="sr-only"
+                          />
+                        </label>
+                      </div>
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-mono font-semibold uppercase text-amber-700 dark:text-amber-400">
@@ -1373,6 +1496,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                               type="button"
                               onClick={() => {
                                 setEditingRoom(room);
+                                setRoomImageInput(room.images[0] || '');
                                 setPendingDeleteRoomId(null);
                                 setIsAddRoomOpen(true);
                               }}
@@ -1427,7 +1551,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                               {formatCurrency(convertPrice(room.pricePerNightUSD, currentCurrency, themeConfig.exchangeRates), currentCurrency)}
                             </span>
                             <span className="text-[11px] font-normal text-stone-500 ml-1.5">
-                              (${room.pricePerNightUSD} · रू {priceInNPR.toLocaleString()} · ₹ {priceInINR.toLocaleString()})
+                              (${room.pricePerNightUSD} · Rs. {priceInNPR.toLocaleString()} · ₹ {priceInINR.toLocaleString()})
                             </span>
                           </div>
                           <div className="text-xs font-mono text-stone-500">
@@ -1550,12 +1674,71 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ onPreviewGuestSi
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block font-semibold mb-1">Main Picture URL</label>
+                    <div className="space-y-2 p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50/80 dark:bg-stone-800/50">
+                      <div className="flex items-center justify-between">
+                        <label className="block font-semibold text-stone-800 dark:text-stone-200">
+                          Room Listing Image (Cloudinary / Supabase Storage)
+                        </label>
+                        <span className="text-[10px] font-mono text-amber-700 dark:text-amber-400 font-semibold">
+                          {isUploadingRoomImage ? 'Uploading to cloud...' : 'High-Resolution'}
+                        </span>
+                      </div>
+
+                      {/* Image Preview & Upload Action */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-24 h-20 rounded-lg overflow-hidden bg-stone-200 dark:bg-stone-950 border border-stone-300 dark:border-stone-700 shrink-0 relative shadow-xs">
+                          <img
+                            src={roomImageInput || editingRoom?.images[0] || './assets/images/room_deluxe_suite_1793848735141.jpg'}
+                            alt="Room Preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = './assets/images/room_deluxe_suite_1793848735141.jpg';
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex-1 space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <label className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-700 hover:bg-amber-800 text-white transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{isUploadingRoomImage ? 'Uploading...' : 'Upload to Supabase / Storage'}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                disabled={isUploadingRoomImage}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  e.target.value = '';
+                                  if (!file) return;
+                                  const url = await uploadRoomImageToStorage(file);
+                                  if (url) setRoomImageInput(url);
+                                }}
+                                className="sr-only"
+                              />
+                            </label>
+
+                            {roomImageInput && (
+                              <button
+                                type="button"
+                                onClick={() => setRoomImageInput('./assets/images/room_deluxe_suite_1793848735141.jpg')}
+                                className="text-[10px] text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 underline cursor-pointer"
+                              >
+                                Reset Default
+                              </button>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-stone-500 leading-tight block">
+                            Direct cloud upload stores image in Supabase <code>hotel-media</code> bucket and replaces static placeholders.
+                          </span>
+                        </div>
+                      </div>
+
                       <input
                         name="image"
-                        defaultValue={editingRoom?.images[0] || './assets/images/room_deluxe_suite_1793848735141.jpg'}
-                        className="w-full bg-stone-50 dark:bg-stone-800 border rounded p-2 text-stone-900 dark:text-stone-100"
+                        value={roomImageInput}
+                        onChange={(e) => setRoomImageInput(e.target.value)}
+                        placeholder="Image URL or relative path (e.g. https://... or ./assets/...)"
+                        className="w-full bg-white dark:bg-stone-900 border rounded p-2 text-stone-900 dark:text-stone-100 font-mono text-[11px]"
                       />
                     </div>
 
